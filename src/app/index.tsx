@@ -207,7 +207,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.heroVisual}>
+        <View style={[styles.heroVisual, !isDesktop ? styles.fullWidth : null]}>
           <Image source={require('@/assets/images/academic-hero.png')} style={styles.heroImage} contentFit="cover" accessibilityLabel="Akademik İngilizce çalışması için laptop, kulaklık ve not defteri olan çalışma masası" />
           <View style={styles.heroAiCard}><Text style={styles.aiLabel}>AI Koç</Text><Text style={styles.heroAiText}>Son speaking cevabında örnek kısmı zayıf. 1 somut akademik örnek ekle.</Text></View>
           <View style={styles.dashboardCard}>
@@ -387,6 +387,7 @@ const styles = StyleSheet.create({
   content: { maxWidth: 1160, width: '100%', alignSelf: 'center', paddingHorizontal: 20 },
   row: { flexDirection: 'row' },
   stack: { flexDirection: 'column' },
+  fullWidth: { width: '100%' },
   hero: { maxWidth: 1160, width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 42, gap: 28, alignItems: 'center' },
   heroCopy: { flex: 1, gap: 18 },
   kicker: { alignSelf: 'flex-start', backgroundColor: palette.seaSoft, color: palette.seaDark, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, fontSize: 12, lineHeight: 16, fontWeight: '800' },
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
   trustItem: { borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 10, minWidth: 110 },
   trustValue: { color: palette.ink, fontSize: 24, lineHeight: 29, fontWeight: '900' },
   trustLabel: { color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },
-  heroVisual: { flex: 1, width: '100%', minHeight: 440, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.seaDark, position: 'relative' },
+  heroVisual: { flex: 1, minHeight: 440, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.seaDark, position: 'relative' },
   heroImage: { width: '100%', height: '100%', minHeight: 440 },
   heroAiCard: { position: 'absolute', top: 22, right: 22, width: 220, borderRadius: 8, backgroundColor: 'rgba(255,240,202,0.96)', borderWidth: 1, borderColor: 'rgba(201,131,33,0.45)', padding: 12, gap: 5 },
   aiLabel: { color: palette.amber, fontSize: 12, lineHeight: 16, fontWeight: '900' },
@@ -533,3 +534,4 @@ const styles = StyleSheet.create({
   footerLink: { color: '#d9f0eb', fontSize: 13, lineHeight: 20, fontWeight: '700' },
   pressed: { opacity: 0.76 },
 });
+
