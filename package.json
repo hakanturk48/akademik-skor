@@ -39,7 +39,19 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "validate:content": "node scripts/validate-content-taxonomy.cjs",
+    "validate:navigation": "node scripts/validate-navigation.cjs",
+    "validate:vocabulary": "node scripts/validate-vocabulary-engine.cjs",
+    "validate:grammar": "node scripts/validate-grammar-engine.cjs",
+    "validate:videos": "node scripts/validate-video-discovery.cjs",
+    "validate:listening": "node scripts/validate-listening-hub.cjs",
+    "validate:mini-tests": "node scripts/validate-mini-test-builder.cjs",
+    "validate:progress-engine": "node scripts/validate-progress-engine.cjs",
+    "validate:admin": "node scripts/validate-admin-foundation.cjs",
+    "test:admin-workflow": "node --test scripts/test-admin-workflow.cjs",
+    "test:admin-login": "node --test scripts/test-admin-login.cjs",
+    "test:page-builder": "node scripts/test-page-builder.cjs"
   },
   "private": true
 }

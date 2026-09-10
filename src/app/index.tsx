@@ -1,537 +1,1311 @@
+import { useRef, useState } from 'react';
+import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getCurrentUser, type AuthUser } from '@/lib/auth';
+import { submitDemoRequest } from '@/lib/demo-requests';
+
+const homeFontFamily = 'Quicksand, ui-sans-serif, system-ui, sans-serif';
+
 const palette = {
-  ink: '#10231f',
-  muted: '#5b6c66',
-  paper: '#fffdf7',
-  sea: '#006c61',
-  seaDark: '#063e39',
-  seaSoft: '#dff2ed',
-  blue: '#245d85',
-  blueSoft: '#e1edf4',
-  amber: '#c98321',
-  amberSoft: '#fff0ca',
-  rose: '#b45757',
-  roseSoft: '#ffe4e4',
-  line: '#d8ded8',
+  ink: '#20233a',
+  text: '#565d70',
+  muted: '#7a8092',
+  page: '#f6f6f3',
+  surface: '#ffffff',
+  soft: '#eef0f7',
+  navy: '#373a5b',
+  navyDeep: '#24263f',
+  navySoft: '#dfe3f2',
+  yellow: '#f4c431',
+  yellowDeep: '#d99b00',
+  yellowSoft: '#fff3c6',
+  orange: '#f06a3d',
+  orangeSoft: '#fff0e9',
+  teal: '#007d73',
+  tealSoft: '#e4f4f1',
+  blue: '#5b75d8',
+  blueSoft: '#edf1ff',
+  line: '#dddeda',
 };
 
-const navItems = ['Programlar', 'Video Dersler', 'AI Araçları', '4 Beceri', 'Öğretmen Paneli'];
-const audienceItems = ['Öğrenciler', 'Öğretmenler', 'Kurumlar'];
+const homepageAssets = {
+  logo: require('@/assets/images/homepage/logo_A.png'),
+  loginUser: require('@/assets/images/homepage/login_user.png'),
+  carouselLeft: require('@/assets/images/homepage/carousel_left.png'),
+  carouselRight: require('@/assets/images/homepage/carousel_right.png'),
+  arrowRightWhite: require('@/assets/images/homepage/arrow_right_white.png'),
+  details: {
+    yellow: require('@/assets/images/homepage/details_button_yellow.png'),
+    teal: require('@/assets/images/homepage/details_button_teal.png'),
+    orange: require('@/assets/images/homepage/details_button_orange.png'),
+    blue: require('@/assets/images/homepage/details_button_blue.png'),
+  },
+  resourceBadges: {
+    T: require('@/assets/images/homepage/resource_badge_T.png'),
+    W: require('@/assets/images/homepage/resource_badge_W.png'),
+    S: require('@/assets/images/homepage/resource_badge_S.png'),
+    L: require('@/assets/images/homepage/resource_badge_L.png'),
+  },
+  resourceArrows: {
+    yellow: require('@/assets/images/homepage/resource_arrow_yellow.png'),
+    blue: require('@/assets/images/homepage/resource_arrow_blue.png'),
+    purple: require('@/assets/images/homepage/resource_arrow_purple.png'),
+    orange: require('@/assets/images/homepage/resource_arrow_orange.png'),
+  },
+};
+type SectionKey = 'home' | 'why' | 'toefl' | 'resources' | 'contact';
+type NavIconKey = 'home' | 'people' | 'book' | 'document' | 'mail' | 'user';
+type DemoRequestMessageTone = 'error' | 'success';
+const navItems: { label: string; target: SectionKey; icon: NavIconKey }[] = [
+  { label: 'Ana Sayfa', target: 'home', icon: 'home' },
+  { label: 'Neden Biz?', target: 'why', icon: 'people' },
+  { label: 'TOEFL iBT', target: 'toefl', icon: 'book' },
+  { label: 'Ücretsiz Kaynaklar', target: 'resources', icon: 'document' },
+  { label: 'İletişim', target: 'contact', icon: 'mail' },
+];
 
-const skills = [
+const capabilities = [
   {
-    short: 'R',
-    title: 'Reading',
-    label: 'Akademik pasaj okuma',
-    score: '5.0',
-    routine: 'Günlük 20 dk',
-    text: 'Pasaj yapısı, ana fikir, çıkarım, kelime ve referans soruları Türkçe açıklamalı çözümle ilerler.',
-    chips: ['Inference', 'Vocabulary', 'Purpose'],
-    dots: 5,
-    accent: palette.blue,
-    bg: palette.blueSoft,
+    code: '01',
+    title: 'Video derslerle net öğrenme',
+    text: 'Sınav stratejileri kısa, anlaşılır ve tekrar edilebilir derslerle sunulur.',
   },
   {
-    short: 'L',
-    title: 'Listening',
-    label: 'Ders ve kampüs dinleme',
-    score: '4.5',
-    routine: 'Günlük 18 dk',
-    text: 'Lecture ve conversation kayıtlarında not alma, detay yakalama ve transkript üstünden hata analizi yapılır.',
-    chips: ['Lecture', 'Note-taking', 'Detail'],
-    dots: 4,
-    accent: palette.sea,
-    bg: palette.seaSoft,
+    code: '02',
+    title: 'Yapay zeka konuşma analizi',
+    text: 'Speaking cevapları akıcılık, süre, telaffuz ve içerik düzeni açısından yorumlanır.',
   },
   {
-    short: 'S',
-    title: 'Speaking',
-    label: 'Mikrofonla cevap pratiği',
-    score: '3.5',
-    routine: 'Günlük 12 dk',
-    text: 'Kayıt alınır, transkript çıkarılır; akıcılık, telaffuz, süre kullanımı ve cevap organizasyonu puanlanır.',
-    chips: ['Fluency', 'Pronunciation', 'Timing'],
-    dots: 3,
-    accent: palette.amber,
-    bg: palette.amberSoft,
+    code: '03',
+    title: 'Rubrik bazlı writing geri bildirimi',
+    text: 'Essay cevapları görev, organizasyon, dil kullanımı ve örnek kalitesiyle değerlendirilir.',
   },
   {
-    short: 'W',
-    title: 'Writing',
-    label: 'Rubrik bazlı essay',
-    score: '4.0',
-    routine: 'Günlük 25 dk',
-    text: 'Essay yapısı, gramer, akademik kelime ve örnek kullanımı rubrik üzerinden ayrı ayrı değerlendirilir.',
-    chips: ['Cohesion', 'Grammar', 'Examples'],
-    dots: 4,
-    accent: palette.rose,
-    bg: palette.roseSoft,
+    code: '04',
+    title: 'Kişiselleştirilmiş eğitim koçluğu',
+    text: 'Giriş sonrası hedef skor, sınav tarihi ve güçlü-zayıf becerilere göre çalışma önerilir.',
   },
 ];
+
+
+const capabilityTones = [palette.blue, palette.teal, palette.yellowDeep, palette.orange];
 
 const programs = [
-  'TOEFL tarzı sınav hazırlığı',
-  'Akademik writing geliştirme',
-  'Speaking ve telaffuz pratiği',
-  'Okullar için öğretmen paneli',
+  {
+    tag: 'TOEFL iBT',
+    title: 'Dört beceriyi birlikte geliştiren hazırlık sistemi',
+    text: 'Reading, Listening, Speaking ve Writing becerileri tek bir sınav mantığı içinde ele alınır.',
+    tone: palette.yellow,
+    actionBg: '#fff8df',
+  },
+  {
+    tag: 'Speaking',
+    title: 'Ses kaydı, tekrar deneme ve AI destekli analiz',
+    text: 'Öğrenci cevabını kaydeder; sistem yanıtın anlaşılabilirliğini ve yapısını görünür hale getirir.',
+    tone: palette.teal,
+    actionBg: '#e7f7f4',
+  },
+  {
+    tag: 'Writing',
+    title: 'Akademik yazma için sade rubrik rehberliği',
+    text: 'Paragraf düzeni, örnek kullanımı ve dil doğruluğu anlaşılır adımlarla geliştirilir.',
+    tone: palette.orange,
+    actionBg: '#fff0e9',
+  },
+  {
+    tag: 'Planlama',
+    title: 'Hedefe göre çalışma yolu',
+    text: 'Seviye, sınav tarihi ve zayıf beceriler tek planda birleşir.',
+    tone: palette.blue,
+    actionBg: '#edf1ff',
+  },
 ];
 
-const videos = [
-  { title: 'Reading strateji dersi', time: '10 dk', text: 'Pasajı önce haritalandır, sonra soru tipine göre oku.', accent: palette.blue, bg: palette.blueSoft },
-  { title: 'Listening not alma', time: '8 dk', text: 'Lecture akışında örnekleri ve karşıt fikirleri kaçırma.', accent: palette.sea, bg: palette.seaSoft },
-  { title: 'Speaking cevap kurgusu', time: '7 dk', text: '45 saniyelik cevabı giriş, gerekçe ve örnekle toparla.', accent: palette.amber, bg: palette.amberSoft },
-  { title: 'Writing rubrik analizi', time: '12 dk', text: 'AI puanını rubrik kırılımlarına göre nasıl okuyacağını gör.', accent: palette.rose, bg: palette.roseSoft },
+const toeflSkills = [
+  {
+    icon: 'R',
+    title: 'Reading',
+    text: 'Ana fikir, çıkarım, kelime ve paragraf yapısı odaklı strateji dersleri.',
+    image: require('@/assets/images/skill-reading.png'),
+    imageLabel: 'Reading becerisi için kitap ve ampul görseli',
+    bg: palette.blueSoft,
+    color: palette.blue,
+  },
+  {
+    icon: 'L',
+    title: 'Listening',
+    text: 'Lecture ve conversation türlerinde not alma, amaç ve detay yakalama çalışmaları.',
+    image: require('@/assets/images/skill-listening.png'),
+    imageLabel: 'Listening becerisi için kulaklık ve ses dalgası görseli',
+    bg: palette.tealSoft,
+    color: palette.teal,
+  },
+  {
+    icon: 'S',
+    title: 'Speaking',
+    text: '45-60 saniyelik cevap kurma, akıcılık ve telaffuz için yapay zeka destekli pratik.',
+    image: require('@/assets/images/skill-speaking.png'),
+    imageLabel: 'Speaking becerisi için mikrofon ve konuşma balonu görseli',
+    bg: palette.yellowSoft,
+    color: palette.yellowDeep,
+  },
+  {
+    icon: 'W',
+    title: 'Writing',
+    text: 'Integrated ve academic essay görevleri için planlama, geliştirme ve rubrik analizi.',
+    image: require('@/assets/images/skill-writing.png'),
+    imageLabel: 'Writing becerisi için defter ve kalem görseli',
+    bg: palette.orangeSoft,
+    color: palette.orange,
+  },
 ];
 
-const aiTools = [
-  { title: 'AI Speaking Coach', tag: 'Ses analizi', text: 'Ses kaydını transkripte çevirir, akıcılık ve süre kullanımını görselleştirir.', type: 'wave', accent: palette.sea, bg: '#e8f6f2' },
-  { title: 'Writing Rubric AI', tag: 'Rubrik skoru', text: 'Essay cevabını task response, grammar, cohesion ve akademik kelime açısından puanlar.', type: 'rubric', accent: palette.rose, bg: '#fff0f0' },
-  { title: 'Akıllı Çalışma Planı', tag: 'Plan motoru', text: 'Hedef skor ve sınav tarihine göre günlük görevleri otomatik dengeler.', type: 'timeline', accent: palette.blue, bg: '#edf4f8' },
-  { title: 'Hata Defteri', tag: 'Tekrar sistemi', text: 'Yanlışları konu, beceri ve soru tipine göre kaydeder; tekrar zamanını önerir.', type: 'notebook', accent: palette.amber, bg: '#fff5d8' },
+const announcements = [
+  {
+    category: 'Video ders',
+    title: 'Reading inference mini dersleri yayında',
+    text: 'Çıkarım sorularında paragrafı önce haritalama, sonra seçenekleri eleme yöntemi anlatılıyor.',
+    meta: '10 dk',
+    color: palette.blue,
+  },
+  {
+    category: 'AI araçları',
+    title: 'Speaking cevap kontrolü için yeni analiz alanı',
+    text: 'Kayıt sonrası cevap organizasyonu, süre kullanımı ve anlaşılabilirlik için sade geri bildirim alınır.',
+    meta: 'Beta',
+    color: palette.teal,
+  },
+  {
+    category: 'Ücretsiz kaynak',
+    title: 'TOEFL iBT başlangıç kontrol listesi',
+    text: 'Sınava ilk kez hazırlanan öğrenciler için beceri bazlı başlangıç rehberi hazırlandı.',
+    meta: 'PDF',
+    color: palette.yellowDeep,
+  },
+  {
+    category: 'Kurumlar',
+    title: 'Sınıf bazlı ilerleme takibi planlanıyor',
+    text: 'Öğretmenler ileride öğrencilerin speaking ve writing gelişimini tek panelden görebilecek.',
+    meta: 'Yakında',
+    color: palette.orange,
+  },
 ];
 
-const resources = ['Ücretsiz seviye testi', 'Haftalık çalışma planı', 'Hata defteri', 'Mini deneme sınavı', 'Türkçe açıklamalı çözümler', 'AI koç raporu'];
-const steps = [
-  { number: '01', title: 'Ölç', text: 'Kısa tanı testiyle başlangıç skoru ve zayıf beceriler belirlenir.' },
-  { number: '02', title: 'Planla', text: 'Hedef skor, sınav tarihi ve günlük süreye göre kişisel çalışma yolu açılır.' },
-  { number: '03', title: 'Çalış', text: 'Video ders, soru pratiği, speaking kaydı ve writing görevi tek akışta verilir.' },
-  { number: '04', title: 'Düzelt', text: 'AI koç yanlışları Türkçe açıklar, hata defterine işler ve tekrar planlar.' },
+const resources = [
+  {
+    title: 'TOEFL iBT sınav formatı rehberi',
+    text: 'Sınav bölümleri, süreler ve puanlama sistemi hakkında kapsamlı rehber.',
+    glyph: 'T',
+    color: palette.yellow,
+    badgeImage: homepageAssets.resourceBadges.T,
+    arrowImage: homepageAssets.resourceArrows.yellow,
+  },
+  {
+    title: 'Academic writing paragraf kontrol listesi',
+    text: 'Paragraf yazarken dikkat edilmesi gereken kritik noktalar.',
+    glyph: 'W',
+    color: palette.blue,
+    badgeImage: homepageAssets.resourceBadges.W,
+    arrowImage: homepageAssets.resourceArrows.blue,
+  },
+  {
+    title: 'Speaking cevap şablonları',
+    text: 'Yaygın konular için etkili cevap şablonları ve örnekler.',
+    glyph: 'S',
+    color: '#7f72ea',
+    badgeImage: homepageAssets.resourceBadges.S,
+    arrowImage: homepageAssets.resourceArrows.purple,
+  },
+  {
+    title: 'Listening not alma çalışma kağıdı',
+    text: 'Not alma becerisini geliştirmek için pratik sayfalar.',
+    glyph: 'L',
+    color: '#dd6b20',
+    badgeImage: homepageAssets.resourceBadges.L,
+    arrowImage: homepageAssets.resourceArrows.orange,
+  },
 ];
 
-function MiniVisual({ type, color }: { type: string; color: string }) {
-  if (type === 'wave') {
+const testimonials = [
+  {
+    quote: 'Speaking cevaplarımı tekrar dinlemek ve kısa AI notları almak eksiklerimi daha net görmemi sağladı.',
+    name: 'Elif K.',
+    meta: 'İstanbul - hedef TOEFL 90',
+    initials: 'EK',
+  },
+  {
+    quote: 'Writing çalışırken sadece doğru-yanlış değil, paragraf düzeni ve örnek kalitesi hakkında yönlendirme almak çok faydalı.',
+    name: 'Mert A.',
+    meta: 'Ankara - yüksek lisans hazırlığı',
+    initials: 'MA',
+  },
+  {
+    quote: 'Video derslerin kısa olması ve dört becerinin aynı planda ilerlemesi hazırlığımı daha düzenli hale getirdi.',
+    name: 'Zeynep D.',
+    meta: 'İzmir - akademik başvuru',
+    initials: 'ZD',
+  },
+  {
+    quote: 'Türkçe açıklamalı geri bildirim sayesinde hatanın nereden kaynaklandığını daha hızlı anlıyorum.',
+    name: 'Burak T.',
+    meta: 'Bursa - TOEFL iBT hazırlığı',
+    initials: 'BT',
+  },
+];
+
+function NavIcon({ name, color = palette.ink }: { name: NavIconKey; color?: string }) {
+  const strokeStyle = { borderColor: color };
+  const fillStyle = { backgroundColor: color };
+
+  if (name === 'home') {
     return (
-      <View style={styles.wave} accessible={false}>
-        {[18, 34, 24, 44, 30, 52, 26, 38].map((height, index) => <View key={`${height}-${index}`} style={[styles.waveBar, { height, backgroundColor: color }]} />)}
+      <View style={styles.navLineIcon} accessible={false}>
+        <View style={[styles.homeRoofLeft, fillStyle]} />
+        <View style={[styles.homeRoofRight, fillStyle]} />
+        <View style={[styles.homeBase, strokeStyle]} />
       </View>
     );
   }
 
-  if (type === 'rubric') {
+  if (name === 'people') {
     return (
-      <View style={styles.rubric} accessible={false}>
-        {['Task', 'Grammar', 'Cohesion'].map((item, index) => (
-          <View key={item} style={styles.rubricRow}>
-            <Text style={styles.rubricLabel}>{item}</Text>
-            <View style={styles.rubricTrack}><View style={[styles.rubricFill, { width: `${74 - index * 12}%`, backgroundColor: color }]} /></View>
-          </View>
-        ))}
+      <View style={styles.navLineIcon} accessible={false}>
+        <View style={[styles.peopleHeadLeft, strokeStyle]} />
+        <View style={[styles.peopleHeadRight, strokeStyle]} />
+        <View style={[styles.peopleBodyLeft, strokeStyle]} />
+        <View style={[styles.peopleBodyRight, strokeStyle]} />
       </View>
     );
   }
 
-  if (type === 'timeline') {
+  if (name === 'book') {
     return (
-      <View style={styles.timeline} accessible={false}>
-        {['Bugün', '3 gün', 'Hafta'].map((item, index) => (
-          <View key={item} style={styles.timelineItem}>
-            <View style={[styles.timelineDot, { backgroundColor: color }]} />
-            <Text style={styles.timelineLabel}>{item}</Text>
-            {index < 2 ? <View style={styles.timelineLine} /> : null}
-          </View>
-        ))}
+      <View style={styles.navLineIcon} accessible={false}>
+        <View style={[styles.bookPageLeft, strokeStyle]} />
+        <View style={[styles.bookPageRight, strokeStyle]} />
+        <View style={[styles.bookSpine, fillStyle]} />
+      </View>
+    );
+  }
+
+  if (name === 'document') {
+    return (
+      <View style={styles.navLineIcon} accessible={false}>
+        <View style={[styles.documentFrame, strokeStyle]} />
+        <View style={[styles.documentFold, strokeStyle]} />
+        <View style={[styles.documentLineOne, fillStyle]} />
+        <View style={[styles.documentLineTwo, fillStyle]} />
+      </View>
+    );
+  }
+
+  if (name === 'mail') {
+    return (
+      <View style={styles.navLineIcon} accessible={false}>
+        <View style={[styles.mailFrame, strokeStyle]} />
+        <View style={[styles.mailDiagonalLeft, fillStyle]} />
+        <View style={[styles.mailDiagonalRight, fillStyle]} />
       </View>
     );
   }
 
   return (
-    <View style={styles.notebook} accessible={false}>
-      {[0, 1, 2].map((item) => (
-        <View key={item} style={styles.noteLine}>
-          <View style={[styles.noteBullet, { backgroundColor: color }]} />
-          <View style={[styles.noteTextLine, item === 2 ? styles.noteTextShort : null]} />
-        </View>
-      ))}
+    <View style={styles.navLineIcon} accessible={false}>
+      <View style={[styles.userHead, strokeStyle]} />
+      <View style={[styles.userBody, strokeStyle]} />
     </View>
   );
 }
-
 export default function HomeScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 980;
-  const isTablet = width >= 720;
+  const isDesktop = width >= 1080;
+  const isTablet = width >= 760;
+  const isCompact = width < 760;
+  const isTabletHeader = !isCompact && width < 1700;
+  const isHeaderCompact = isCompact;
+  const showHeaderActions = !isCompact;
+  const mobileWidth = Math.max(280, Math.min(width - 36, 430));
+  const cardWidth = isDesktop ? 324 : isTablet ? 300 : mobileWidth;
+  const testimonialWidth = isDesktop ? 350 : isTablet ? 318 : mobileWidth;
+  const heroImageHeight = isCompact ? Math.min(240, Math.max(205, mobileWidth * 0.58)) : isDesktop ? 444 : 360;
+  const whyVisualHeight = isCompact ? Math.min(150, Math.max(124, mobileWidth * 0.34)) : isDesktop ? 260 : 220;
+  const skillImageWidth = isCompact ? Math.min(128, Math.max(104, mobileWidth * 0.32)) : isTablet ? 174 : 160;
+  const skillImageHeight = Math.round(skillImageWidth * 0.72);
+  const contactImageHeight = isCompact ? Math.min(230, Math.max(190, mobileWidth * 0.52)) : isDesktop ? 255 : 235;
+  const resourcesVisualWidth = isCompact ? Math.min(180, Math.max(146, mobileWidth * 0.45)) : isTablet ? 178 : 198;
+  const resourcesVisualHeight = Math.round(resourcesVisualWidth * 0.83);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const announcementRef = useRef<ScrollView>(null);
+  const testimonialRef = useRef<ScrollView>(null);
+  const [sectionTops, setSectionTops] = useState<Record<SectionKey, number>>({
+    home: 0,
+    why: 0,
+    toefl: 0,
+    resources: 0,
+    contact: 0,
+  });
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeAnnouncement, setActiveAnnouncement] = useState(0);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentUser] = useState<AuthUser | null>(() => getCurrentUser());
+
+  const [demoName, setDemoName] = useState('');
+  const [demoContact, setDemoContact] = useState('');
+  const [demoMessage, setDemoMessage] = useState('');
+  const [demoMessageTone, setDemoMessageTone] = useState<DemoRequestMessageTone>('success');
+  const markSection = (target: SectionKey) => (event: LayoutChangeEvent) => {
+    const nextTop = event.nativeEvent.layout.y;
+    setSectionTops((current) => ({ ...current, [target]: nextTop }));
+  };
+
+  const goToSection = (target: SectionKey) => {
+    setMobileMenuOpen(false);
+    const top = sectionTops[target] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, top - (isCompact ? 76 : 92)), animated: true });
+  };
+
+  const moveAnnouncement = (direction: number) => {
+    const next = (activeAnnouncement + direction + announcements.length) % announcements.length;
+    setActiveAnnouncement(next);
+    announcementRef.current?.scrollTo({ x: next * (cardWidth + 16), animated: true });
+  };
+
+  const moveTestimonial = (direction: number) => {
+    const next = (activeTestimonial + direction + testimonials.length) % testimonials.length;
+    setActiveTestimonial(next);
+    testimonialRef.current?.scrollTo({ x: next * (testimonialWidth + 16), animated: true });
+  };
+
+  const openAccount = () => {
+    setMobileMenuOpen(false);
+    router.push((currentUser ? '/dashboard' : '/login') as Href);
+  };
+  const handleDemoRequest = () => {
+    const result = submitDemoRequest({ name: demoName, contact: demoContact, source: 'public-home-contact' });
+
+    if (!result.ok) {
+      setDemoMessageTone('error');
+      setDemoMessage(result.message);
+      return;
+    }
+
+    setDemoName('');
+    setDemoContact('');
+    setDemoMessageTone('success');
+    setDemoMessage('Talebiniz alındı. En kısa sürede sizinle iletişime geçeceğiz.');
+  };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.pageContent}>
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <View style={styles.noticeBar}>
-          <Text style={styles.noticeText}>Yeni dönem hazırlığı: AI destekli speaking, writing ve video ders sistemi kuruluyor.</Text>
-          {isTablet ? <Text style={styles.noticeLink}>Canlı demo | Kurum tanıtımı</Text> : null}
+    <SafeAreaView testID="public-home" style={styles.safe}>
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.page} showsVerticalScrollIndicator={Platform.OS === 'web'}>
+        <View style={styles.topStrip}>
+          <View style={[styles.container, styles.topStripInner, isCompact ? styles.topStripInnerMobile : null]}>
+            <Text style={styles.topText}>AI destekli TOEFL iBT hazırlık platformu kuruluyor.</Text>
+            {!isCompact ? <Text style={styles.topLink}>Yeni video dersler ve ücretsiz kaynaklar yakında</Text> : null}
+          </View>
         </View>
 
-        <View style={styles.headerShell}>
-          {isTablet ? (
-            <View style={styles.utilityRow}>
-              <View style={styles.utilityLinks}>{audienceItems.map((item) => <Text key={item} style={styles.utilityLink}>{item}</Text>)}</View>
-              <Text style={styles.utilityHelp}>Sınava kaç gün kaldı? Hedef skora göre plan çıkar.</Text>
+        <View style={[styles.header, isCompact ? styles.headerMobile : null]} onLayout={markSection('home')}>
+          <View style={[styles.container, styles.headerInner, isHeaderCompact ? styles.headerInnerCompact : null, isTabletHeader ? styles.headerInnerTablet : null, isCompact ? styles.headerInnerMobile : null]}>
+            {isHeaderCompact ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Menüyü aç"
+                onPress={() => setMobileMenuOpen((value) => !value)}
+                style={({ pressed }) => [styles.menuButton, pressed ? styles.pressed : null]}
+              >
+                <View style={styles.menuLine} />
+                <View style={styles.menuLine} />
+                <View style={styles.menuLine} />
+              </Pressable>
+            ) : null}
+
+            <Pressable accessibilityRole="button" onPress={() => goToSection('home')} style={({ pressed }) => [styles.brand, isHeaderCompact ? styles.brandCompactHeader : null, isTabletHeader ? styles.brandTablet : null, isCompact ? styles.brandMobile : null, pressed ? styles.pressed : null]}>
+              <View style={[styles.logoMark, isTabletHeader ? styles.logoMarkTablet : null, isCompact ? styles.logoMarkMobile : null]}>
+                <Image source={homepageAssets.logo} style={[styles.logoImage, isCompact ? styles.logoImageMobile : null]} contentFit="contain" accessibilityLabel="Akademik Skor logosu" />
+              </View>
+              <View style={[styles.brandCopy, isTabletHeader ? styles.brandCopyTablet : null, isCompact ? styles.brandCopyMobile : null]}>
+                <Text
+                  style={[styles.brandTitle, isTabletHeader ? styles.brandTitleTablet : null, isCompact ? styles.brandTitleMobile : null]}
+                  numberOfLines={isCompact || isTabletHeader ? 1 : undefined}
+                  adjustsFontSizeToFit={isCompact}
+                  minimumFontScale={0.76}
+                >
+                  Akademik Skor
+                </Text>
+                <Text style={[styles.brandSub, isTabletHeader ? styles.brandSubTablet : null, isCompact ? styles.brandSubMobile : null]}>TOEFL Style Prep</Text>
+              </View>
+            </Pressable>
+            {!isHeaderCompact ? (
+              <View style={[styles.nav, isTabletHeader ? styles.navTablet : null]}>
+                {navItems.map((item, index) => (
+                  <Pressable
+                    key={item.label}
+                    accessibilityRole="button"
+                    onPress={() => goToSection(item.target)}
+                    style={({ pressed }) => [styles.navItem, isTabletHeader ? styles.navItemTablet : null, index === 0 ? styles.navItemActive : null, pressed ? styles.pressed : null]}
+                  >
+                    <NavIcon name={item.icon} color={index === 0 ? palette.yellow : palette.ink} />
+                    <Text style={[styles.navText, isTabletHeader ? styles.navTextTablet : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>{item.label}</Text>
+                    {index === 0 ? <View style={[styles.navActiveLine, isTabletHeader ? styles.navActiveLineTablet : null]} /> : null}
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {showHeaderActions ? (
+              <View style={styles.headerActions}>
+                <View style={styles.headerDivider} />
+                <Pressable accessibilityRole="button" onPress={openAccount} style={({ pressed }) => [styles.ghostButton, isTabletHeader ? styles.ghostButtonTablet : null, pressed ? styles.pressed : null]}>
+                  <Image source={homepageAssets.loginUser} style={[styles.headerUserImage, isTabletHeader ? styles.headerUserImageTablet : null]} contentFit="contain" accessibilityLabel="Giriş ikonu" />
+                  <Text style={[styles.ghostButtonText, isTabletHeader ? styles.ghostButtonTextTablet : null]}>{currentUser ? 'Panel' : 'Giriş'}</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => goToSection('contact')} style={({ pressed }) => [styles.headerButton, isTabletHeader ? styles.headerButtonTablet : null, pressed ? styles.pressed : null]}>
+                  <Text style={[styles.headerButtonText, isTabletHeader ? styles.headerButtonTextTablet : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Demo Talep Et</Text>
+                  <Text style={styles.headerButtonArrow}>{'>'}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+
+          {isHeaderCompact && mobileMenuOpen ? (
+            <View style={styles.mobileDrawer}>
+              {navItems.map((item) => (
+                <Pressable key={item.label} accessibilityRole="button" onPress={() => goToSection(item.target)} style={({ pressed }) => [styles.mobileNavItem, pressed ? styles.pressed : null]}>
+                  <NavIcon name={item.icon} color={palette.ink} />
+                  <Text style={styles.mobileNavText}>{item.label}</Text>
+                </Pressable>
+              ))}
+              <View style={styles.mobileActionRow}>
+                <Pressable accessibilityRole="button" onPress={openAccount} style={({ pressed }) => [styles.mobileGhost, pressed ? styles.pressed : null]}>
+                  <Text style={styles.mobileGhostText} numberOfLines={1}>{currentUser ? 'Panel' : 'Giriş'}</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => goToSection('contact')} style={({ pressed }) => [styles.mobilePrimary, pressed ? styles.pressed : null]}>
+                  <Text style={styles.mobilePrimaryText} numberOfLines={1}>Demo Talep Et</Text>
+                </Pressable>
+              </View>
             </View>
           ) : null}
+        </View>
 
-          <View style={styles.headerTop}>
-            <View style={styles.brandRow}>
-              <View style={styles.brandMark}><Text style={styles.brandMarkText}>A</Text></View>
-              <View>
-                <Text style={styles.brandName}>Akademik Skor</Text>
-                <Text style={styles.brandSub}>TOEFL Style Prep</Text>
+        <View style={[styles.heroSection, isCompact ? styles.heroSectionMobile : null]}>
+          <View style={[styles.container, styles.heroLayout, isDesktop ? styles.heroLayoutDesktop : styles.heroLayoutStack]}>
+            {!isCompact ? (
+              <View style={[styles.heroMedia, styles.heroMediaDesktop]}>
+                <Image source={require('@/assets/images/academic-hero.png')} style={[styles.heroImage, { height: heroImageHeight }]} contentFit="cover" accessibilityLabel="TOEFL iBT hazırlığı için çevrimiçi çalışma masası" />
+              </View>
+            ) : null}
+
+            <View style={[styles.heroCard, isDesktop ? styles.heroCardDesktop : null, isCompact ? styles.heroCardMobile : null]}>
+              <Text style={styles.heroEyebrow}>ONLINE TOEFL İBT HAZIRLIK</Text>
+              <Text style={[styles.heroTitle, isCompact ? styles.heroTitleMobile : null]}>Akademik İngilizce hedefiniz için doğru yerdesiniz.</Text>
+              <Text style={styles.heroText}>
+                Akademik Skor; çevrimiçi video dersleri, yapay zeka destekli konuşma analizi, writing değerlendirmesi ve kişiselleştirilmiş eğitim koçluğunu tek bir sade platformda buluşturur.
+              </Text>
+              <View style={[styles.heroActions, isCompact ? styles.heroActionsMobile : null]}>
+                <Pressable accessibilityRole="button" onPress={() => goToSection('why')} style={({ pressed }) => [styles.primaryButton, pressed ? styles.pressed : null]}>
+                  <Text style={styles.primaryButtonText}>Platformu İncele</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => goToSection('resources')} style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
+                  <Text style={styles.secondaryButtonText}>Ücretsiz Kaynaklar</Text>
+                </Pressable>
               </View>
             </View>
-
-            {isDesktop ? <View style={styles.searchBox}><Text style={styles.searchText}>Video ders, AI araç veya soru tipi ara</Text></View> : null}
-
-            <View style={styles.headerActions}>
-              {isTablet ? <Pressable accessibilityRole="button" style={({ pressed }) => [styles.loginButton, pressed ? styles.pressed : null]}><Text style={styles.loginText}>Giriş</Text></Pressable> : null}
-              <Pressable accessibilityRole="button" style={({ pressed }) => [styles.primaryButton, pressed ? styles.pressed : null]}><Text style={styles.primaryText}>{isTablet ? 'Ücretsiz Başla' : 'Başla'}</Text></Pressable>
-            </View>
-          </View>
-
-          {isTablet ? <View style={styles.navRow}>{navItems.map((item) => <Text key={item} style={styles.navItem}>{item}</Text>)}</View> : <Text style={styles.mobileNav}>4 beceri, video ders ve AI koç tek panelde</Text>}
-        </View>
-      </SafeAreaView>
-
-      <View style={[styles.hero, isDesktop ? styles.row : styles.stack]}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.kicker}>Türk öğrenciler için sınav odaklı akademik İngilizce</Text>
-          <Text style={[styles.heroTitle, !isTablet ? styles.heroTitleSmall : null]}>Hedef skoruna giden yolu tek panelde gör.</Text>
-          <Text style={styles.heroText}>Reading, Listening, Speaking ve Writing çalışmalarını video dersler, seviye testi, günlük plan, AI geri bildirim ve hata defteriyle birleştiren sade bir hazırlık platformu.</Text>
-          <View style={styles.heroButtons}>
-            <Pressable accessibilityRole="button" style={({ pressed }) => [styles.heroPrimary, pressed ? styles.pressed : null]}><Text style={styles.primaryText}>Seviyemi Ölç</Text></Pressable>
-            <Pressable accessibilityRole="button" style={({ pressed }) => [styles.heroSecondary, pressed ? styles.pressed : null]}><Text style={styles.secondaryText}>Demo Paneli Gör</Text></Pressable>
-          </View>
-          <View style={[styles.trustRow, !isTablet ? styles.stack : null]}>
-            <View style={styles.trustItem}><Text style={styles.trustValue}>4 / 4</Text><Text style={styles.trustLabel}>beceri takibi</Text></View>
-            <View style={styles.trustItem}><Text style={styles.trustValue}>28+</Text><Text style={styles.trustLabel}>video ders fikri</Text></View>
-            <View style={styles.trustItem}><Text style={styles.trustValue}>AI</Text><Text style={styles.trustLabel}>kişisel geri bildirim</Text></View>
           </View>
         </View>
 
-        <View style={[styles.heroVisual, !isDesktop ? styles.fullWidth : null]}>
-          <Image source={require('@/assets/images/academic-hero.png')} style={styles.heroImage} contentFit="cover" accessibilityLabel="Akademik İngilizce çalışması için laptop, kulaklık ve not defteri olan çalışma masası" />
-          <View style={styles.heroAiCard}><Text style={styles.aiLabel}>AI Koç</Text><Text style={styles.heroAiText}>Son speaking cevabında örnek kısmı zayıf. 1 somut akademik örnek ekle.</Text></View>
-          <View style={styles.dashboardCard}>
-            <View style={styles.cardHeader}><Text style={styles.cardTitle}>Bugünkü çalışma</Text><Text style={styles.scorePill}>4.5 tahmini</Text></View>
-            <View style={styles.taskRow}><View><Text style={styles.taskTitle}>Reading passage</Text><Text style={styles.taskMeta}>10 soru - çıkarım</Text></View><Text style={styles.taskScore}>5.0</Text></View>
-            <View style={styles.taskRow}><View><Text style={styles.taskTitle}>Video: note-taking</Text><Text style={styles.taskMeta}>8 dk - lecture</Text></View><Text style={styles.taskScore}>4.5</Text></View>
-            <View style={styles.taskRow}><View><Text style={styles.taskTitle}>Independent speaking</Text><Text style={styles.taskMeta}>45 sn - AI analiz</Text></View><Text style={styles.taskScore}>3.5</Text></View>
-          </View>
+        <View style={[styles.container, styles.capabilityTimeline, isCompact ? styles.capabilityTimelineMobile : null]}>
+          {!isCompact ? <View style={styles.capabilityConnector} /> : null}
+          {capabilities.map((item, index) => {
+            const tone = capabilityTones[index] ?? palette.yellow;
+            return (
+              <View key={item.code} style={[styles.capabilityStep, isCompact ? styles.capabilityStepMobile : null]}>
+                <View style={[styles.capabilityNode, isCompact ? styles.capabilityNodeMobile : null, { borderColor: tone, shadowColor: tone }]}>
+                  <Text style={[styles.capabilityNodeText, { color: tone }]}>{item.code}</Text>
+                </View>
+                {isCompact ? <View style={[styles.capabilityStem, styles.capabilityStemMobile, { backgroundColor: tone }]} /> : null}
+                <Text style={[styles.capabilityTitle, isCompact ? styles.capabilityTitleMobile : null]}>{item.title}</Text>
+                <Text style={[styles.capabilityText, isCompact ? styles.capabilityTextMobile : null]}>{item.text}</Text>
+              </View>
+            );
+          })}
         </View>
-      </View>
-
-      <View style={styles.quickBand}><View style={[styles.content, styles.quickLinks]}>{programs.map((program) => <Pressable key={program} accessibilityRole="button" style={({ pressed }) => [styles.quickLink, pressed ? styles.pressed : null]}><Text style={styles.quickText}>{program}</Text><Text style={styles.quickArrow}>{'>'}</Text></Pressable>)}</View></View>
-
-      <View style={styles.videoBand}>
-        <View style={styles.content}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionKicker}>Video dersler</Text>
-            <Text style={styles.sectionTitle}>Sınav stratejisini sadece okuyarak değil, görerek öğren.</Text>
-            <Text style={styles.sectionText}>Ana sayfada eğitim içerikleri katalog gibi görünür; öğrenci hangi beceride hangi stratejiyi çalışacağını hızlıca seçer.</Text>
-          </View>
-
-          <View style={[styles.videoLayout, isDesktop ? styles.row : styles.stack]}>
-            <View style={styles.featuredVideo}>
-              <View style={styles.poster}>
-                <Image source={require('@/assets/images/academic-hero.png')} style={styles.posterImage} contentFit="cover" accessibilityLabel="Video ders önizleme görseli" />
-                <View style={styles.posterOverlay} />
-                <View style={styles.playButton}><Text style={styles.playText}>▶</Text></View>
-                <Text style={styles.videoTime}>14 dk</Text>
+        <View style={[styles.programSection, isCompact ? styles.programSectionMobile : null]} onLayout={markSection('why')}>
+          <View style={styles.container}>
+            <View style={[styles.whyTop, isDesktop ? styles.whyTopDesktop : styles.whyTopStack]}>
+              <View style={[styles.sectionIntro, styles.whyIntroCopy, isDesktop ? styles.whyIntroCopyDesktop : null, isCompact ? styles.whyIntroCopyMobile : null, isCompact ? styles.sectionIntroMobile : null]}>
+                <Text style={styles.sectionKicker}>NEDEN BİZ?</Text>
+                <Text style={[styles.sectionTitle, isCompact ? styles.sectionTitleMobile : null]}>Sınav hazırlığını ölçülebilir ve anlaşılır hale getirir.</Text>
+                <Text style={styles.sectionText}>
+                  Akademik Skor; hedef belirleme, beceri takibi, video dersler ve yapay zeka destekli geri bildirimleri aynı öğrenme yolunda toplar.
+                </Text>
               </View>
-              <View style={styles.featuredBody}>
-                <Text style={styles.videoEyebrow}>Öne çıkan ders</Text>
-                <Text style={styles.featuredTitle}>TOEFL tarzı sınavda 4 beceri nasıl birlikte çalışılır?</Text>
-                <Text style={styles.featuredText}>Öğrenci ilk girişte video ders, mini görev ve AI geri bildirimi aynı sırada görür. Böylece içerik kalabalığı yerine günlük aksiyon oluşur.</Text>
-              </View>
+
+              {!isCompact ? (
+                <View style={[styles.whyVisual, isDesktop ? styles.whyVisualDesktop : null, { height: whyVisualHeight }]}>
+                  <Image
+                    source={require('@/assets/images/why-target.png')}
+                    style={styles.whyVisualImage}
+                    contentFit="contain"
+                    accessibilityLabel="Akademik Skor hedef ve ilerleme görseli"
+                  />
+                </View>
+              ) : null}
             </View>
 
-            <View style={[styles.videoList, isTablet && !isDesktop ? styles.twoCols : null]}>
-              {videos.map((video) => (
-                <View key={video.title} style={[styles.videoCard, { backgroundColor: video.bg, borderColor: video.accent }]}>
-                  <View style={styles.videoCardTop}><View style={[styles.smallPlay, { backgroundColor: video.accent }]}><Text style={styles.smallPlayText}>▶</Text></View><Text style={[styles.videoTag, { color: video.accent }]}>{video.time}</Text></View>
-                  <Text style={styles.videoTitle}>{video.title}</Text>
-                  <Text style={styles.videoText}>{video.text}</Text>
+            <View style={[styles.programGrid, isDesktop ? styles.programGridDesktop : null]}>
+              {programs.map((item) => (
+                <View key={item.title} style={[styles.programCard, isDesktop ? styles.programCardDesktop : null]}>
+                  <View style={[styles.programAccent, { backgroundColor: item.tone }]} />
+                  <Text style={styles.programTag}>{item.tag}</Text>
+                  <Text style={styles.programTitle}>{item.title}</Text>
+                  <Text style={styles.programText}>{item.text}</Text>
+                  <View style={[styles.programAction, { backgroundColor: item.actionBg }]}>
+                    <View style={[styles.programActionIcon, { backgroundColor: item.tone }]}>
+                      <Image source={homepageAssets.arrowRightWhite} style={styles.programActionArrowImage} contentFit="contain" accessibilityLabel="Detay ok ikonu" />
+                    </View>
+                    <Text style={styles.programActionText}>Detayları incele</Text>
+                  </View>
+                  <Text style={[styles.programGhost, { color: item.tone }]}>{item.tag === 'TOEFL iBT' ? '4' : item.tag === 'Speaking' ? 'S' : item.tag === 'Writing' ? 'W' : 'P'}</Text>
                 </View>
               ))}
             </View>
           </View>
         </View>
-      </View>
-
-      <View style={styles.aiBand}>
-        <View style={styles.content}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionKicker}>AI araçları</Text>
-            <Text style={styles.sectionTitle}>Yapay zeka sadece puan vermez; öğrencinin bir sonraki adımını da gösterir.</Text>
-            <Text style={styles.sectionText}>AI alanını ana sayfada daha görünür yapıyoruz: speaking, writing, çalışma planı ve hata defteri ayrı araçlar gibi sunulur.</Text>
-          </View>
-
-          <View style={[styles.aiLayout, isDesktop ? styles.row : styles.stack]}>
-            <View style={styles.aiWorkbench}>
-              <View style={styles.aiWorkbenchHeader}><Text style={styles.aiWorkbenchTitle}>AI çalışma masası</Text><Text style={styles.aiLive}>Canlı analiz</Text></View>
-              <View style={styles.transcriptBox}><Text style={styles.transcriptTitle}>Speaking transkripti</Text><Text style={styles.transcriptText}>I believe online education is useful because students can access lectures anytime...</Text></View>
-              <View style={styles.aiScores}>{['Akıcılık 3.8', 'Gramer 4.3', 'Örnek 3.3', 'Süre 4.1'].map((item) => <View key={item} style={styles.aiScoreCell}><Text style={styles.aiScoreText}>{item}</Text></View>)}</View>
-              <View style={styles.aiSuggestion}><Text style={styles.suggestionTitle}>AI önerisi</Text><Text style={styles.suggestionText}>Son cümleden önce kısa bir akademik örnek ekle; cevap daha ikna edici olur.</Text></View>
+        <View style={[styles.darkSection, isCompact ? styles.darkSectionMobile : null]} onLayout={markSection('toefl')}>
+          <View style={[styles.container, styles.darkContent, isDesktop ? null : styles.darkContentStack]}>
+            <View style={[styles.darkCopy, isDesktop ? styles.darkCopyDesktop : styles.darkCopyStack]}>
+              <Text style={styles.darkKicker}>TOEFL iBT</Text>
+              <Text style={[styles.darkTitle, isCompact ? styles.darkTitleMobile : null]}>Dört beceri ayrı çalışılır, sonuç tek hazırlık yolunda birleşir.</Text>
+              <Text style={[styles.darkText, isCompact ? styles.darkTextMobile : null]}>
+                Akademik Skor öğrencinin okuma, dinleme, konuşma ve yazma becerilerini ayrı ayrı tanıtır. Giriş sonrası bu beceriler hedefe göre planlanan çalışma akışına dönüşür.
+              </Text>
             </View>
-
-            <View style={[styles.aiGrid, isTablet ? styles.twoCols : styles.stack]}>
-              {aiTools.map((tool) => (
-                <View key={tool.title} style={[styles.aiToolCard, { backgroundColor: tool.bg, borderColor: tool.accent }]}>
-                  <View style={styles.aiToolTop}><Text style={[styles.aiToolTag, { color: tool.accent }]}>{tool.tag}</Text><View style={[styles.aiMark, { backgroundColor: tool.accent }]}><Text style={styles.aiMarkText}>AI</Text></View></View>
-                  <MiniVisual type={tool.type} color={tool.accent} />
-                  <Text style={styles.aiToolTitle}>{tool.title}</Text>
-                  <Text style={styles.aiToolText}>{tool.text}</Text>
+            <View style={[styles.skillGrid, isDesktop ? styles.skillGridDesktop : styles.skillGridStack, isTablet ? styles.skillGridWide : null, isCompact ? styles.skillGridMobile : null]}>
+              {toeflSkills.map((item) => (
+                <View
+                  key={item.title}
+                  style={[
+                    styles.skillCard,
+                    isTablet ? styles.skillCardWide : styles.skillCardMobile,
+                    { backgroundColor: item.bg, borderColor: item.color },
+                  ]}
+                >
+                  <View style={[styles.skillMedia, isCompact ? styles.skillMediaMobile : { minHeight: skillImageHeight + 18 }]}>
+                    <Image
+                      source={item.image}
+                      style={[styles.skillImage, isCompact ? styles.skillImageMobile : { width: skillImageWidth, height: skillImageHeight }]}
+                      contentFit="contain"
+                      accessibilityLabel={item.imageLabel}
+                    />
+                    <View style={[styles.skillIcon, isCompact ? styles.skillIconMobile : styles.skillIconFloating, { backgroundColor: item.color }]}>
+                      <Text style={styles.skillIconText}>{item.icon}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.skillTitle}>{item.title}</Text>
+                  <Text style={styles.skillText}>{item.text}</Text>
                 </View>
               ))}
             </View>
           </View>
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.content}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionKicker}>4 beceri sistemi</Text>
-            <Text style={styles.sectionTitle}>Her beceri ayrı tanıtılır, sonuçlar tek çalışma planında birleşir.</Text>
-            <Text style={styles.sectionText}>Öğrenci ana sayfadan hangi beceride ne çalışacağını anlar; panelde ise skor, görev ve tekrar döngüsünü görür.</Text>
-          </View>
-
-          <View style={[styles.skillGrid, isDesktop ? styles.fourCols : isTablet ? styles.twoCols : styles.stack]}>
-            {skills.map((skill) => (
-              <View key={skill.title} style={[styles.skillCard, { backgroundColor: skill.bg, borderColor: skill.accent }]}>
-                <View style={styles.skillTop}><View style={[styles.skillIcon, { backgroundColor: skill.accent }]}><Text style={styles.skillIconText}>{skill.short}</Text></View><View style={styles.scoreBox}><Text style={[styles.skillScore, { color: skill.accent }]}>{skill.score}</Text><Text style={styles.scoreLabel}>tahmini</Text></View></View>
-                <Text style={styles.skillLabel}>{skill.label}</Text>
-                <Text style={styles.skillTitle}>{skill.title}</Text>
-                <Text style={styles.skillText}>{skill.text}</Text>
-                <View style={styles.skillMeter}>{[0, 1, 2, 3, 4].map((dot) => <View key={dot} style={[styles.skillDot, dot < skill.dots ? { backgroundColor: skill.accent } : null]} />)}</View>
-                <View style={styles.chips}>{skill.chips.map((chip) => <Text key={chip} style={styles.chip}>{chip}</Text>)}</View>
-                <Text style={[styles.skillRoutine, { color: skill.accent }]}>{skill.routine}</Text>
+        <View style={styles.announcementSection}>
+          <View style={styles.container}>
+            <View style={styles.compactSliderHead}>
+              <Text style={styles.compactSliderTitle}>Duyurular ve Haberler</Text>
+              <View style={styles.sliderControls}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Önceki duyuru" onPress={() => moveAnnouncement(-1)} style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}>
+                  <Image source={homepageAssets.carouselLeft} style={styles.roundButtonImage} contentFit="contain" accessibilityLabel="Önceki" />
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Sonraki duyuru" onPress={() => moveAnnouncement(1)} style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}>
+                  <Image source={homepageAssets.carouselRight} style={styles.roundButtonImage} contentFit="contain" accessibilityLabel="Sonraki" />
+                </Pressable>
               </View>
-            ))}
+            </View>
+
+            <ScrollView ref={announcementRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalTrack}>
+              {announcements.map((item) => (
+                <View key={item.title} style={[styles.announcementCard, { width: cardWidth }]}>
+                  <View style={[styles.announcementMark, { backgroundColor: item.color }]} />
+                  <Text style={styles.announcementCategory}>{item.category}</Text>
+                  <Text style={styles.announcementTitle}>{item.title}</Text>
+                  <Text style={styles.announcementText}>{item.text}</Text>
+                  <View style={styles.announcementMetaRow}>
+                    <Text style={styles.announcementMeta}>{item.meta}</Text>
+                    <Text style={[styles.announcementMore, { color: item.color }]}>{'Detay >'}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.dots}>
+              {announcements.map((item, index) => (
+                <View key={item.title} style={[styles.dot, activeAnnouncement === index ? styles.dotActive : null]} />
+              ))}
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.resourceBand}>
-        <View style={[styles.content, isDesktop ? styles.row : styles.stack]}>
-          <View style={styles.resourceCopy}>
-            <Text style={styles.sectionKicker}>Kaynak merkezi</Text>
-            <Text style={styles.sectionTitle}>Öğrenci, öğretmen ve kurum için tek yerden yönetilen içerik.</Text>
-            <Text style={styles.sectionText}>Benchmark Education sayfasındaki düzenli kaynak merkezi yaklaşımını; sınav pratiği, AI raporları ve öğretmen paneliyle daha ürün odaklı hale getiriyoruz.</Text>
+        <View style={[styles.resourcesSection, isCompact ? styles.resourcesSectionMobile : null]} onLayout={markSection('resources')}>
+          <View style={[styles.container, styles.resourcesLayout, isDesktop ? null : styles.resourcesLayoutStack]}>
+            {!isCompact ? (
+              <View style={styles.resourcesVisualColumn}>
+                <Image
+                  source={require('@/assets/images/skill-listening.png')}
+                  style={[styles.resourcesImage, { width: resourcesVisualWidth, height: resourcesVisualHeight }]}
+                  contentFit="contain"
+                  accessibilityLabel="Ücretsiz kaynaklar için kulaklık ve çalışma görseli"
+                />
+                <Text style={styles.resourcesVisualArrow}>{'→'}</Text>
+              </View>
+            ) : null}
+
+            <View style={[styles.resourcesCopy, isDesktop ? styles.resourcesCopyDesktop : null, isCompact ? styles.resourcesCopyMobile : null]}>
+              <Text style={styles.sectionKicker}>ÜCRETSİZ KAYNAKLAR</Text>
+              <Text style={[styles.resourcesTitle, isCompact ? styles.resourcesTitleMobile : null]}>Başlamadan önce sınavı ve çalışma yolunu netleştirin.</Text>
+              <Text style={styles.resourcesText}>
+                Öğrencinin platforma girmeden önce inceleyebileceği rehberler, örnek çalışma sayfaları ve kısa video içerikleri bu bölümde toplanır.
+              </Text>
+              <Pressable accessibilityRole="button" onPress={() => goToSection('contact')} style={({ pressed }) => [styles.resourcesButton, isCompact ? styles.resourcesButtonMobile : null, pressed ? styles.pressed : null]}>
+                <Text style={styles.resourcesButtonText}>Kaynaklardan Haberdar Ol</Text>
+                <Text style={styles.resourcesButtonIcon}>{'>'}</Text>
+              </Pressable>
+            </View>
+
+            <View style={[styles.resourceList, isCompact ? styles.resourceListMobile : null]}>
+              {resources.map((item, index) => (
+                <View key={item.title} style={[styles.resourceRow, isCompact ? styles.resourceRowMobile : null, index === resources.length - 1 ? styles.resourceRowLast : null]}>
+                  <Image source={item.badgeImage} style={[styles.resourceBadgeImage, isCompact ? styles.resourceBadgeImageMobile : null]} contentFit="contain" accessibilityLabel={`${item.glyph} kaynak rozeti`} />
+                  <View style={styles.resourceTextBlock}>
+                    <Text style={[styles.resourceTitle, isCompact ? styles.resourceTitleMobile : null]}>{item.title}</Text>
+                    <Text style={[styles.resourceDescription, isCompact ? styles.resourceDescriptionMobile : null]}>{item.text}</Text>
+                  </View>
+                  <Image source={item.arrowImage} style={[styles.resourceArrowImage, isCompact ? styles.resourceArrowImageMobile : null]} contentFit="contain" accessibilityLabel="Kaynak aç" />
+                </View>
+              ))}
+            </View>
           </View>
-          <View style={[styles.resourceGrid, isTablet ? styles.twoCols : styles.stack]}>{resources.map((item) => <View key={item} style={styles.resourceItem}><Text style={styles.resourceDot}>•</Text><Text style={styles.resourceText}>{item}</Text></View>)}</View>
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.content}>
-          <View style={styles.sectionHead}><Text style={styles.sectionKicker}>Çalışma akışı</Text><Text style={styles.sectionTitle}>Basit, ölçülebilir ve tekrar edilebilir.</Text></View>
-          <View style={[styles.stepsGrid, isDesktop ? styles.fourCols : isTablet ? styles.twoCols : styles.stack]}>{steps.map((step) => <View key={step.number} style={styles.stepCard}><Text style={styles.stepNumber}>{step.number}</Text><Text style={styles.stepTitle}>{step.title}</Text><Text style={styles.stepText}>{step.text}</Text></View>)}</View>
-        </View>
-      </View>
-
-      <View style={styles.teacherBand}>
-        <View style={[styles.content, isDesktop ? styles.row : styles.stack]}>
-          <View style={styles.reportCard}>
-            <Text style={styles.reportTitle}>Haftalık AI raporu</Text>
-            <View style={styles.reportRow}><Text style={styles.reportLabel}>En hızlı gelişecek alan</Text><Text style={styles.reportValue}>Speaking</Text></View>
-            <View style={styles.reportRow}><Text style={styles.reportLabel}>Hata defteri</Text><Text style={styles.reportValue}>18 kayıt</Text></View>
-            <View style={styles.reportRow}><Text style={styles.reportLabel}>Önerilen çalışma</Text><Text style={styles.reportValue}>38 dk/gün</Text></View>
+        <View style={styles.testimonialSection}>
+          <View style={styles.container}>
+            <View style={[styles.sliderHead, isCompact ? styles.sliderHeadMobile : null]}>
+              <View style={styles.sectionIntro}>
+                <Text style={styles.sectionKicker}>ÖĞRENCİ GÖRÜŞLERİ</Text>
+                <Text style={styles.sectionTitle}>Akademik Skor öğrencileri ne söylüyor?</Text>
+                <Text style={styles.sectionText}>İlk yayında gerçek kullanıcı yorumları ve başarı hikayeleri bu alanda güncellenecek.</Text>
+              </View>
+              <View style={styles.sliderControls}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Önceki yorum" onPress={() => moveTestimonial(-1)} style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}>
+                  <Image source={homepageAssets.carouselLeft} style={styles.roundButtonImage} contentFit="contain" accessibilityLabel="Önceki" />
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Sonraki yorum" onPress={() => moveTestimonial(1)} style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}>
+                  <Image source={homepageAssets.carouselRight} style={styles.roundButtonImage} contentFit="contain" accessibilityLabel="Sonraki" />
+                </Pressable>
+              </View>
+            </View>
+            <ScrollView
+              ref={testimonialRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={testimonialWidth + 16}
+              decelerationRate="fast"
+              contentContainerStyle={styles.testimonialTrack}
+              onMomentumScrollEnd={(event) => {
+                const index = Math.round(event.nativeEvent.contentOffset.x / (testimonialWidth + 16));
+                setActiveTestimonial(Math.max(0, Math.min(testimonials.length - 1, index)));
+              }}
+            >
+              {testimonials.map((item) => (
+                <View key={item.name} style={[styles.testimonialCard, { width: testimonialWidth }]}>
+                  <Text style={styles.quoteMark}>{'“'}</Text>
+                  <Text style={styles.testimonialText}>{item.quote}</Text>
+                  <View style={styles.testimonialPerson}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{item.initials}</Text>
+                    </View>
+                    <View style={styles.personCopy}>
+                      <Text style={styles.personName}>{item.name}</Text>
+                      <Text style={styles.personMeta}>{item.meta}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            <View style={styles.dots}>
+              {testimonials.map((item, index) => (
+                <View key={item.name} style={[styles.dot, activeTestimonial === index ? styles.dotActive : null]} />
+              ))}
+            </View>
           </View>
-          <View style={styles.resourceCopy}>
-            <Text style={styles.lightKicker}>Öğretmen paneli</Text>
-            <Text style={styles.lightTitle}>Bireysel öğrenciyle başlayıp kurumsal kullanıma büyüyebilir.</Text>
-            <Text style={styles.lightText}>İlk sürüm öğrenci odaklı olur. Sonrasında öğretmenler sınıf açabilir, ödev atayabilir, speaking ve writing gelişimini toplu takip edebilir.</Text>
-            <Pressable accessibilityRole="button" style={({ pressed }) => [styles.outlineButton, pressed ? styles.pressed : null]} onPress={() => Linking.openURL('mailto:info@akademikskor.com')}><Text style={styles.outlineText}>Kurum paketi için iletişim</Text></Pressable>
+        </View>
+        <View style={styles.contactSection} onLayout={markSection('contact')}>
+          <View style={[styles.container, styles.contactLayout, isDesktop ? null : styles.contactLayoutStack]}>
+            <View style={[styles.contactLeftColumn, isDesktop ? styles.contactLeftColumnDesktop : styles.contactLeftColumnMobile]}>
+              {!isCompact ? (
+                <View style={[styles.contactImageShell, { height: contactImageHeight }]}>
+                  <Image
+                    source={require('@/assets/images/contact-support.png')}
+                    style={styles.contactImageStandalone}
+                    contentFit="contain"
+                    accessibilityLabel="Akademik Skor demo ve iletişim görüşmesi"
+                  />
+                </View>
+              ) : null}
+              <View style={styles.contactCopy}>
+                <Text style={styles.contactKicker}>İLETİŞİM</Text>
+                <Text style={[styles.contactTitle, isCompact ? styles.contactTitleMobile : null]}>Demo ve bilgilendirme için bize ulaşın.</Text>
+                <Text style={styles.contactText}>
+                  Akademik Skor platformunu öğrenci, öğretmen veya kurum kullanımı için birlikte planlayalım. İhtiyacınızı yazın; size uygun kullanım senaryosunu ve ilk kurulum adımlarını paylaşalım.
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.contactCard, isDesktop ? styles.contactCardDesktop : null, isCompact ? styles.contactCardMobile : null]}>
+              <Text style={styles.contactCardTitle}>Demo talebi</Text>
+              <Text style={styles.contactCardText}>Video ders, AI analiz ve kurum kullanım seçeneklerini kısa bir görüşmede birlikte netleştirelim.</Text>
+              <TextInput
+                accessibilityLabel="Ad Soyad"
+                autoCapitalize="words"
+                placeholder="Ad Soyad"
+                placeholderTextColor={palette.muted}
+                value={demoName}
+                onChangeText={setDemoName}
+                style={styles.contactInput}
+              />
+              <TextInput
+                accessibilityLabel="E-posta veya telefon"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="E-posta veya telefon"
+                placeholderTextColor={palette.muted}
+                value={demoContact}
+                onChangeText={setDemoContact}
+                onSubmitEditing={handleDemoRequest}
+                style={styles.contactInput}
+              />
+              {demoMessage ? (
+                <Text accessibilityLiveRegion="polite" style={[styles.contactFeedback, demoMessageTone === 'success' ? styles.contactFeedbackSuccess : styles.contactFeedbackError]}>
+                  {demoMessage}
+                </Text>
+              ) : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Demo talebi oluştur" onPress={handleDemoRequest} style={({ pressed }) => [styles.contactButton, pressed ? styles.pressed : null]}>
+                <Text style={styles.contactButtonText}>Talep Oluştur</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
-
-      <View style={styles.footer}>
-        <View style={[styles.content, styles.footerContent]}>
-          <View><Text style={styles.footerBrand}>Akademik Skor</Text><Text style={styles.footerText}>TOEFL tarzı akademik İngilizce hazırlık için bağımsız AI destekli çalışma platformu.</Text></View>
-          <View style={styles.footerLinks}><Text style={styles.footerLink}>Gizlilik</Text><Text style={styles.footerLink}>Kullanım</Text><Text style={styles.footerLink}>İletişim</Text></View>
+        <View style={styles.footer}>
+          <View style={[styles.container, styles.footerInner, isCompact ? styles.footerInnerMobile : null]}>
+            <View style={styles.footerBrandArea}>
+              <Text style={styles.footerBrand}>Akademik Skor</Text>
+              <Text style={styles.footerText}>TOEFL iBT ve akademik İngilizce hazırlığı için sade, ölçülebilir ve yapay zeka destekli öğrenme platformu.</Text>
+            </View>
+            <View style={styles.footerLinks}>
+              {navItems.map((item) => (
+                <Pressable key={item.label} accessibilityRole="button" onPress={() => goToSection(item.target)} style={({ pressed }) => [pressed ? styles.pressed : null]}>
+                  <Text style={styles.footerLink}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
         </View>
+      </ScrollView>
+
+      <View style={[styles.chatLayer, isCompact ? styles.chatLayerMobile : null]}>
+        {isChatOpen ? (
+          <View style={[styles.chatPanel, { width: isTablet ? 388 : mobileWidth }]}>
+            <View style={styles.chatHeader}>
+              <View style={styles.chatHeaderBrand}>
+                <View style={styles.chatMiniIcon}>
+                  <Text style={styles.chatMiniText}>AI</Text>
+                </View>
+                <View style={styles.chatHeaderText}>
+                  <Text style={styles.chatTitle}>Akademik Skor Asistanı</Text>
+                  <Text style={styles.chatSub}>Hedefinizi anlamak için hazır</Text>
+                </View>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Chatbot penceresini kapat" onPress={() => setIsChatOpen(false)} style={({ pressed }) => [styles.chatClose, pressed ? styles.pressed : null]}>
+                <Text style={styles.chatCloseText}>x</Text>
+              </Pressable>
+            </View>
+            <View style={styles.chatBody}>
+              <Text style={styles.chatNotice}>Bu alan giriş öncesi kısa bilgilendirme içindir. Kişisel çalışma planı için hesap açıldıktan sonra hedef skor ve sınav tarihi alınır.</Text>
+              <View style={[styles.chatBubble, styles.botBubble]}>
+                <Text style={styles.botText}>Merhaba, TOEFL iBT hedefin için hangi alanda destek arıyorsun?</Text>
+              </View>
+              <View style={[styles.chatBubble, styles.userBubble]}>
+                <Text style={styles.userText}>Speaking ve writing geliştirmek istiyorum.</Text>
+              </View>
+              <View style={[styles.chatBubble, styles.botBubble]}>
+                <Text style={styles.botText}>Harika. Sana video ders, speaking kaydı ve writing rubriğiyle başlayan bir yol önerebilirim.</Text>
+              </View>
+            </View>
+            <View style={styles.chatInput}>
+              <Text style={styles.chatInputText}>Mesajınızı yazın...</Text>
+              <Text style={styles.chatSend}>{'>'}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <Pressable accessibilityRole="button" accessibilityLabel="Akademik Skor chatbot" onPress={() => setIsChatOpen((value) => !value)} style={({ pressed }) => [styles.chatLauncher, isCompact ? styles.chatLauncherMobile : null, pressed ? styles.pressed : null]}>
+          <View style={[styles.chatFace, isCompact ? styles.chatFaceMobile : null]}>
+            <View style={styles.chatEyes}>
+              <View style={styles.chatEye} />
+              <View style={styles.chatEye} />
+            </View>
+            <View style={styles.chatMouth} />
+            <View style={styles.chatTail} />
+          </View>
+        </Pressable>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: palette.paper },
-  pageContent: { backgroundColor: palette.paper },
-  safeArea: { backgroundColor: palette.paper },
-  noticeBar: { backgroundColor: palette.seaDark, paddingVertical: 9, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 18 },
-  noticeText: { color: '#f4fbf8', fontSize: 13, lineHeight: 18, textAlign: 'center', fontWeight: '600' },
-  noticeLink: { color: '#d9f4ee', fontSize: 12, lineHeight: 17, fontWeight: '800' },
-  headerShell: { borderBottomWidth: 1, borderBottomColor: palette.line, backgroundColor: palette.paper },
-  utilityRow: { width: '100%', maxWidth: 1160, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 14 },
-  utilityLinks: { flexDirection: 'row', gap: 16 },
-  utilityLink: { color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '800' },
-  utilityHelp: { color: palette.seaDark, fontSize: 12, lineHeight: 17, fontWeight: '700', textAlign: 'right' },
-  headerTop: { width: '100%', maxWidth: 1160, alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0 },
-  brandMark: { width: 42, height: 42, borderRadius: 8, backgroundColor: palette.sea, alignItems: 'center', justifyContent: 'center' },
-  brandMarkText: { color: '#ffffff', fontSize: 22, fontWeight: '800' },
-  brandName: { color: palette.ink, fontSize: 20, lineHeight: 24, fontWeight: '800' },
-  brandSub: { color: palette.muted, fontSize: 11, lineHeight: 15, fontWeight: '600' },
-  searchBox: { flex: 1, maxWidth: 420, minHeight: 42, borderWidth: 1, borderColor: palette.line, borderRadius: 8, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: '#ffffff' },
-  searchText: { color: palette.muted, fontSize: 13 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
-  loginButton: { minHeight: 40, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: palette.line, justifyContent: 'center', backgroundColor: '#ffffff' },
-  loginText: { color: palette.ink, fontSize: 13, fontWeight: '700' },
-  primaryButton: { minHeight: 40, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', backgroundColor: palette.sea },
-  primaryText: { color: '#ffffff', fontSize: 14, fontWeight: '800', textAlign: 'center' },
-  navRow: { maxWidth: 1160, width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', gap: 22 },
-  navItem: { color: palette.seaDark, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  mobileNav: { color: palette.seaDark, fontSize: 12, lineHeight: 17, fontWeight: '800', paddingHorizontal: 20, paddingBottom: 12 },
-  content: { maxWidth: 1160, width: '100%', alignSelf: 'center', paddingHorizontal: 20 },
-  row: { flexDirection: 'row' },
-  stack: { flexDirection: 'column' },
-  fullWidth: { width: '100%' },
-  hero: { maxWidth: 1160, width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 42, gap: 28, alignItems: 'center' },
-  heroCopy: { flex: 1, gap: 18 },
-  kicker: { alignSelf: 'flex-start', backgroundColor: palette.seaSoft, color: palette.seaDark, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  heroTitle: { color: palette.ink, fontSize: 58, lineHeight: 62, fontWeight: '900', maxWidth: 650 },
-  heroTitleSmall: { fontSize: 36, lineHeight: 41 },
-  heroText: { color: palette.muted, fontSize: 17, lineHeight: 27, maxWidth: 610, fontWeight: '500' },
-  heroButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  heroPrimary: { minHeight: 48, paddingHorizontal: 20, borderRadius: 8, backgroundColor: palette.sea, justifyContent: 'center' },
-  heroSecondary: { minHeight: 48, paddingHorizontal: 20, borderRadius: 8, borderWidth: 1, borderColor: palette.line, backgroundColor: '#ffffff', justifyContent: 'center' },
-  secondaryText: { color: palette.ink, fontSize: 14, fontWeight: '800' },
-  trustRow: { flexDirection: 'row', gap: 22, paddingTop: 8 },
-  trustItem: { borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 10, minWidth: 110 },
-  trustValue: { color: palette.ink, fontSize: 24, lineHeight: 29, fontWeight: '900' },
-  trustLabel: { color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },
-  heroVisual: { flex: 1, minHeight: 440, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.seaDark, position: 'relative' },
-  heroImage: { width: '100%', height: '100%', minHeight: 440 },
-  heroAiCard: { position: 'absolute', top: 22, right: 22, width: 220, borderRadius: 8, backgroundColor: 'rgba(255,240,202,0.96)', borderWidth: 1, borderColor: 'rgba(201,131,33,0.45)', padding: 12, gap: 5 },
-  aiLabel: { color: palette.amber, fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  heroAiText: { color: palette.ink, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  dashboardCard: { position: 'absolute', left: 22, right: 22, bottom: 22, backgroundColor: 'rgba(255,253,247,0.94)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(216,222,216,0.86)', padding: 14, gap: 10 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  cardTitle: { color: palette.ink, fontSize: 18, lineHeight: 24, fontWeight: '900' },
-  scorePill: { backgroundColor: palette.sea, color: '#ffffff', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, overflow: 'hidden', fontSize: 12, fontWeight: '800' },
-  taskRow: { borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 9, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  taskTitle: { color: palette.ink, fontSize: 14, lineHeight: 19, fontWeight: '800' },
-  taskMeta: { color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },
-  taskScore: { color: palette.sea, fontSize: 13, lineHeight: 18, fontWeight: '900' },
-  quickBand: { backgroundColor: palette.seaDark },
-  quickLinks: { paddingVertical: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  quickLink: { flexGrow: 1, minWidth: 220, minHeight: 54, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  quickText: { color: '#ffffff', fontSize: 14, lineHeight: 19, fontWeight: '800' },
-  quickArrow: { color: '#ffffff', fontSize: 20, lineHeight: 24, fontWeight: '700' },
-  section: { backgroundColor: palette.paper, paddingVertical: 56 },
-  videoBand: { backgroundColor: '#f2f7f4', paddingVertical: 56, borderBottomWidth: 1, borderBottomColor: palette.line },
-  aiBand: { backgroundColor: '#fff8e6', paddingVertical: 56, borderBottomWidth: 1, borderBottomColor: palette.line },
-  sectionHead: { maxWidth: 780, gap: 10, marginBottom: 26 },
-  sectionKicker: { color: palette.sea, fontSize: 12, lineHeight: 17, fontWeight: '900', textTransform: 'uppercase' },
-  sectionTitle: { color: palette.ink, fontSize: 34, lineHeight: 40, fontWeight: '900' },
-  sectionText: { color: palette.muted, fontSize: 15, lineHeight: 24, fontWeight: '500' },
-  videoLayout: { gap: 16 },
-  featuredVideo: { flex: 1.25, borderRadius: 8, overflow: 'hidden', backgroundColor: '#ffffff', borderWidth: 1, borderColor: palette.line },
-  poster: { minHeight: 280, position: 'relative', backgroundColor: palette.seaDark },
-  posterImage: { width: '100%', height: '100%', minHeight: 280 },
-  posterOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(6,62,57,0.18)' },
-  playButton: { position: 'absolute', left: 22, bottom: 22, width: 58, height: 58, borderRadius: 29, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
-  playText: { color: palette.sea, fontSize: 22, lineHeight: 26, fontWeight: '900' },
-  videoTime: { position: 'absolute', right: 18, bottom: 18, backgroundColor: 'rgba(16,35,31,0.78)', color: '#ffffff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, overflow: 'hidden', fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  featuredBody: { padding: 20, gap: 8 },
-  videoEyebrow: { color: palette.sea, fontSize: 12, lineHeight: 16, fontWeight: '900', textTransform: 'uppercase' },
-  featuredTitle: { color: palette.ink, fontSize: 25, lineHeight: 31, fontWeight: '900' },
-  featuredText: { color: palette.muted, fontSize: 14, lineHeight: 23, fontWeight: '600' },
-  videoList: { flex: 1, gap: 12 },
-  twoCols: { flexDirection: 'row', flexWrap: 'wrap' },
-  fourCols: { flexDirection: 'row' },
-  videoCard: { flex: 1, minWidth: 235, borderRadius: 8, borderWidth: 1, padding: 16, gap: 10 },
-  videoCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  smallPlay: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  smallPlayText: { color: '#ffffff', fontSize: 13, lineHeight: 16, fontWeight: '900' },
-  videoTag: { fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  videoTitle: { color: palette.ink, fontSize: 17, lineHeight: 22, fontWeight: '900' },
-  videoText: { color: palette.muted, fontSize: 13, lineHeight: 20, fontWeight: '600' },
-  aiLayout: { gap: 18 },
-  aiWorkbench: { flex: 0.9, borderRadius: 8, backgroundColor: palette.seaDark, padding: 18, gap: 14 },
-  aiWorkbenchHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  aiWorkbenchTitle: { color: '#ffffff', fontSize: 22, lineHeight: 28, fontWeight: '900' },
-  aiLive: { color: palette.seaDark, backgroundColor: '#d9f4ee', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8, overflow: 'hidden', fontSize: 11, lineHeight: 15, fontWeight: '900' },
-  transcriptBox: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', padding: 14, backgroundColor: 'rgba(255,255,255,0.08)', gap: 7 },
-  transcriptTitle: { color: '#dff2ed', fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  transcriptText: { color: '#ffffff', fontSize: 14, lineHeight: 22, fontWeight: '600' },
-  aiScores: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  aiScoreCell: { flexGrow: 1, minWidth: 120, minHeight: 42, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
-  aiScoreText: { color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  aiSuggestion: { borderRadius: 8, backgroundColor: palette.amberSoft, padding: 14, gap: 6 },
-  suggestionTitle: { color: palette.amber, fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  suggestionText: { color: palette.ink, fontSize: 13, lineHeight: 20, fontWeight: '700' },
-  aiGrid: { flex: 1.35, gap: 12 },
-  aiToolCard: { flex: 1, minWidth: 245, borderRadius: 8, borderWidth: 1, padding: 16, gap: 12 },
-  aiToolTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  aiToolTag: { fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  aiMark: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  aiMarkText: { color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '900' },
-  aiToolTitle: { color: palette.ink, fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  aiToolText: { color: palette.muted, fontSize: 13, lineHeight: 20, fontWeight: '600' },
-  wave: { height: 58, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  waveBar: { width: 8, borderRadius: 4, opacity: 0.82 },
-  rubric: { gap: 8, paddingVertical: 4 },
-  rubricRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rubricLabel: { width: 64, color: palette.ink, fontSize: 11, lineHeight: 15, fontWeight: '800' },
-  rubricTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(16,35,31,0.1)', overflow: 'hidden' },
-  rubricFill: { height: '100%', borderRadius: 4 },
-  timeline: { flexDirection: 'row', alignItems: 'center', minHeight: 58 },
-  timelineItem: { flex: 1, alignItems: 'center', gap: 6, position: 'relative' },
-  timelineDot: { width: 14, height: 14, borderRadius: 7 },
-  timelineLine: { position: 'absolute', top: 6, left: '58%', right: '-42%', height: 2, backgroundColor: 'rgba(16,35,31,0.14)' },
-  timelineLabel: { color: palette.ink, fontSize: 11, lineHeight: 15, fontWeight: '800' },
-  notebook: { gap: 10, minHeight: 58, justifyContent: 'center' },
-  noteLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  noteBullet: { width: 9, height: 9, borderRadius: 5 },
-  noteTextLine: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(16,35,31,0.14)' },
-  noteTextShort: { maxWidth: '72%' },
-  skillGrid: { gap: 12 },
-  skillCard: { flex: 1, minWidth: 245, borderRadius: 8, borderWidth: 1, padding: 18, gap: 12 },
-  skillTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  skillIcon: { width: 42, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  skillIconText: { color: '#ffffff', fontSize: 19, fontWeight: '900' },
-  scoreBox: { alignItems: 'flex-end' },
-  skillScore: { fontSize: 19, lineHeight: 23, fontWeight: '900' },
-  scoreLabel: { color: palette.muted, fontSize: 10, lineHeight: 14, fontWeight: '800' },
-  skillLabel: { color: palette.muted, fontSize: 12, lineHeight: 16, fontWeight: '900', textTransform: 'uppercase' },
-  skillTitle: { color: palette.ink, fontSize: 22, lineHeight: 27, fontWeight: '900' },
-  skillText: { color: palette.muted, fontSize: 14, lineHeight: 22, fontWeight: '600' },
-  skillMeter: { flexDirection: 'row', gap: 6, paddingTop: 2 },
-  skillDot: { flex: 1, height: 7, borderRadius: 4, backgroundColor: 'rgba(16,35,31,0.12)' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  chip: { color: palette.ink, backgroundColor: 'rgba(255,255,255,0.62)', borderRadius: 8, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 5, fontSize: 11, lineHeight: 15, fontWeight: '800' },
-  skillRoutine: { fontSize: 13, lineHeight: 18, fontWeight: '900' },
-  resourceBand: { backgroundColor: '#edf5f1', paddingVertical: 56, borderTopWidth: 1, borderBottomWidth: 1, borderColor: palette.line },
-  resourceCopy: { flex: 1, gap: 10 },
-  resourceGrid: { flex: 1, gap: 10 },
-  resourceItem: { flex: 1, minWidth: 210, minHeight: 58, borderRadius: 8, borderWidth: 1, borderColor: palette.line, backgroundColor: '#ffffff', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  resourceDot: { color: palette.sea, fontSize: 24, lineHeight: 28, fontWeight: '900' },
-  resourceText: { color: palette.ink, fontSize: 14, lineHeight: 20, fontWeight: '800' },
-  stepsGrid: { gap: 12 },
-  stepCard: { flex: 1, minWidth: 220, borderTopWidth: 3, borderTopColor: palette.sea, paddingTop: 16, paddingRight: 16, gap: 8 },
-  stepNumber: { color: palette.sea, fontSize: 13, lineHeight: 18, fontWeight: '900' },
-  stepTitle: { color: palette.ink, fontSize: 21, lineHeight: 26, fontWeight: '900' },
-  stepText: { color: palette.muted, fontSize: 14, lineHeight: 22, fontWeight: '600' },
-  teacherBand: { backgroundColor: palette.seaDark, paddingVertical: 56 },
-  reportCard: { flex: 1, borderRadius: 8, backgroundColor: palette.paper, padding: 20, gap: 12 },
-  reportTitle: { color: palette.ink, fontSize: 24, lineHeight: 30, fontWeight: '900', marginBottom: 4 },
-  reportRow: { borderTopWidth: 1, borderTopColor: palette.line, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  reportLabel: { color: palette.muted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  reportValue: { color: palette.sea, fontSize: 14, lineHeight: 19, fontWeight: '900', textAlign: 'right' },
-  lightKicker: { color: '#9de4d6', fontSize: 12, lineHeight: 17, fontWeight: '900', textTransform: 'uppercase' },
-  lightTitle: { color: '#ffffff', fontSize: 34, lineHeight: 40, fontWeight: '900' },
-  lightText: { color: '#c9dfda', fontSize: 15, lineHeight: 24, fontWeight: '500' },
-  outlineButton: { alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.38)', justifyContent: 'center', marginTop: 6 },
-  outlineText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-  footer: { backgroundColor: '#082923', paddingVertical: 28 },
-  footerContent: { flexDirection: Platform.select({ web: 'row', default: 'column' }), justifyContent: 'space-between', gap: 18 },
-  footerBrand: { color: '#ffffff', fontSize: 22, lineHeight: 28, fontWeight: '900' },
-  footerText: { color: '#b9cbc6', fontSize: 13, lineHeight: 20, maxWidth: 560, marginTop: 6 },
-  footerLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  footerLink: { color: '#d9f0eb', fontSize: 13, lineHeight: 20, fontWeight: '700' },
-  pressed: { opacity: 0.76 },
+  safe: { flex: 1, backgroundColor: palette.page, fontFamily: homeFontFamily },
+  scroll: { flex: 1, backgroundColor: palette.page, fontFamily: homeFontFamily },
+  page: { minHeight: '100%', backgroundColor: palette.page, fontFamily: homeFontFamily },
+  container: { width: '100%', maxWidth: 1180, alignSelf: 'center', paddingHorizontal: 26 },
+  navLineIcon: { width: 28, height: 28, position: 'relative', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  homeRoofLeft: { position: 'absolute', top: 6, left: 5, width: 10, height: 2.5, borderRadius: 2, transform: [{ rotate: '-42deg' }] },
+  homeRoofRight: { position: 'absolute', top: 6, right: 5, width: 10, height: 2.5, borderRadius: 2, transform: [{ rotate: '42deg' }] },
+  homeBase: { position: 'absolute', left: 6, bottom: 4, width: 12, height: 11, borderWidth: 2.2, borderTopWidth: 0, borderRadius: 2 },
+  peopleHeadLeft: { position: 'absolute', left: 4, top: 4, width: 7, height: 7, borderWidth: 2, borderRadius: 4 },
+  peopleHeadRight: { position: 'absolute', right: 4, top: 4, width: 7, height: 7, borderWidth: 2, borderRadius: 4 },
+  peopleBodyLeft: { position: 'absolute', left: 2, bottom: 4, width: 11, height: 8, borderWidth: 2, borderBottomWidth: 0, borderRadius: 8 },
+  peopleBodyRight: { position: 'absolute', right: 2, bottom: 4, width: 11, height: 8, borderWidth: 2, borderBottomWidth: 0, borderRadius: 8 },
+  bookPageLeft: { position: 'absolute', left: 3, top: 4, width: 9, height: 16, borderWidth: 2, borderRightWidth: 1, borderRadius: 2 },
+  bookPageRight: { position: 'absolute', right: 3, top: 4, width: 9, height: 16, borderWidth: 2, borderLeftWidth: 1, borderRadius: 2 },
+  bookSpine: { position: 'absolute', top: 5, width: 2, height: 15, borderRadius: 1 },
+  documentFrame: { position: 'absolute', left: 5, top: 3, width: 14, height: 18, borderWidth: 2, borderRadius: 2 },
+  documentFold: { position: 'absolute', right: 5, top: 3, width: 6, height: 6, borderLeftWidth: 2, borderBottomWidth: 2 },
+  documentLineOne: { position: 'absolute', left: 8, top: 11, width: 8, height: 2, borderRadius: 1 },
+  documentLineTwo: { position: 'absolute', left: 8, top: 15, width: 7, height: 2, borderRadius: 1 },
+  mailFrame: { position: 'absolute', left: 3, top: 6, width: 18, height: 13, borderWidth: 2, borderRadius: 2 },
+  mailDiagonalLeft: { position: 'absolute', left: 5, top: 10, width: 10, height: 2, borderRadius: 1, transform: [{ rotate: '35deg' }] },
+  mailDiagonalRight: { position: 'absolute', right: 5, top: 10, width: 10, height: 2, borderRadius: 1, transform: [{ rotate: '-35deg' }] },
+  userHead: { position: 'absolute', top: 4, width: 8, height: 8, borderWidth: 2, borderRadius: 5 },
+  userBody: { position: 'absolute', bottom: 4, width: 15, height: 8, borderWidth: 2, borderBottomWidth: 0, borderRadius: 9 },  topStrip: { display: 'none', backgroundColor: palette.navyDeep },
+  topStripInner: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  topStripInnerMobile: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 18 },
+  topText: { fontFamily: homeFontFamily, color: palette.yellow, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  topLink: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  header: { backgroundColor: palette.navyDeep, paddingHorizontal: 12, paddingTop: 28, paddingBottom: 0 },
+  headerMobile: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
+  headerInner: { maxWidth: 2020, minHeight: 118, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 18, backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)', paddingHorizontal: 38, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 4 },
+  headerInnerCompact: { justifyContent: 'flex-start' },
+  headerInnerTablet: { minHeight: 110, flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: 24, paddingVertical: 14 },
+  headerInnerMobile: { minHeight: 74, paddingHorizontal: 12, justifyContent: 'flex-start', gap: 10, borderRadius: 12 },
+  menuButton: { width: 42, height: 42, borderRadius: 8, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#ffffff' },
+  menuLine: { width: 19, height: 2, borderRadius: 1, backgroundColor: palette.ink },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 14, minWidth: 0, flexShrink: 0 },
+  brandCompactHeader: { flex: 1, flexShrink: 1 },
+  brandTablet: { flexBasis: 286, flexGrow: 0, flexShrink: 1, minWidth: 210 },
+  brandMobile: { gap: 10 },
+  logoMark: { width: 66, height: 66, borderRadius: 8, backgroundColor: palette.yellow, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  logoMarkTablet: { width: 54, height: 54 },
+  logoMarkMobile: { width: 54, height: 54 },
+  logoImage: { width: '100%', height: '100%' },
+  logoImageMobile: { width: '100%', height: '100%' },
+  logoText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 31, lineHeight: 36, fontWeight: '700' },
+  logoTextMobile: { fontFamily: homeFontFamily, fontSize: 29, lineHeight: 34 },
+  brandCopy: { minWidth: 0, flexShrink: 1 },
+  brandCopyTablet: { flexShrink: 1 },
+  brandCopyMobile: { flex: 1, minWidth: 0 },
+  brandTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: '700', flexShrink: 1 },
+  brandTitleTablet: { fontSize: 24, lineHeight: 29 },
+  brandTitleMobile: { fontFamily: homeFontFamily, fontSize: 22, lineHeight: 26, flexShrink: 1 },
+  brandSub: { fontFamily: homeFontFamily, color: palette.text, fontSize: 15, lineHeight: 20, fontWeight: '600', flexShrink: 1 },
+  brandSubTablet: { fontSize: 12, lineHeight: 17 },
+  brandSubMobile: { fontFamily: homeFontFamily, fontSize: 13, lineHeight: 17 },
+  nav: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 22, minWidth: 0, marginLeft: 12 },
+  navItem: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 0, position: 'relative', minWidth: 0, flexShrink: 1 },
+  navItemActive: {},
+  navTablet: { flex: 1, flexBasis: 0, flexShrink: 1, width: 'auto', marginLeft: 0, justifyContent: 'space-between', gap: 10, paddingTop: 0, borderTopWidth: 0 },
+  navItemTablet: { minHeight: 50, gap: 6 },
+  navActiveLine: { position: 'absolute', bottom: -18, width: 100, height: 4, borderRadius: 2, backgroundColor: palette.yellow },
+  navActiveLineTablet: { bottom: -18, width: 70, height: 3 },
+  navText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: '600', flexShrink: 0 },
+  navTextTablet: { fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14, flexShrink: 0, marginLeft: 12 },
+  headerActionsTablet: { marginLeft: 8, gap: 10 },
+  headerDivider: { width: 1, height: 36, backgroundColor: palette.line, marginRight: 4 },
+  ghostButton: { minHeight: 64, borderRadius: 8, borderWidth: 1, borderColor: palette.line, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#ffffff', shadowColor: '#000000', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+  ghostButtonTablet: { minHeight: 52, paddingHorizontal: 14, gap: 7 },
+  headerUserImage: { width: 28, height: 28, flexShrink: 0 },
+  headerUserImageTablet: { width: 22, height: 22 },
+  ghostButtonText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 16, lineHeight: 21, fontWeight: '600' },
+  ghostButtonTextTablet: { fontSize: 14, lineHeight: 18 },
+  headerButton: { minHeight: 64, minWidth: 220, borderRadius: 8, paddingHorizontal: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: palette.yellow, shadowColor: '#d99b00', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
+  headerButtonTablet: { minHeight: 52, minWidth: 176, paddingHorizontal: 16, gap: 7 },
+  headerButtonText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 16, lineHeight: 21, fontWeight: '700' },
+  headerButtonTextTablet: { fontSize: 14, lineHeight: 18 },
+  headerButtonArrow: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 17, lineHeight: 21, fontWeight: '700' },
+  mobileDrawer: { marginHorizontal: 18, marginBottom: 14, borderRadius: 8, overflow: 'hidden', backgroundColor: '#ffffff', borderWidth: 1, borderColor: palette.line },
+  mobileNavItem: { minHeight: 50, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10, borderBottomWidth: 1, borderBottomColor: palette.line },
+  mobileNavText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  mobileActionRow: { flexDirection: 'row', gap: 8, padding: 12 },
+  mobileGhost: { flex: 0.82, minWidth: 0, minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: palette.line, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  mobileGhostText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  mobilePrimary: { flex: 1.18, minWidth: 0, minHeight: 44, borderRadius: 8, backgroundColor: palette.yellow, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  mobilePrimaryText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
+  heroSection: { backgroundColor: palette.navy, paddingTop: 46, paddingBottom: 64 },
+  heroSectionMobile: { paddingTop: 18, paddingBottom: 34 },
+  heroLayout: { alignItems: 'center' },
+  heroLayoutDesktop: { flexDirection: 'row' },
+  heroLayoutStack: { gap: 0 },
+  heroMedia: { minWidth: 0, width: '100%', backgroundColor: 'transparent', overflow: 'hidden' },
+  heroMediaDesktop: { flex: 1.08, backgroundColor: palette.yellow },
+  heroMediaMobile: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  heroImage: { width: '100%' },
+  heroCard: { minWidth: 0, backgroundColor: '#ffffff', padding: 38, borderRadius: 0, borderTopWidth: 8, borderTopColor: palette.yellow, shadowColor: '#000000', shadowOpacity: 0.14, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
+  heroCardDesktop: { flex: 0.92, marginLeft: -76 },
+  heroCardMobile: { width: '92%', alignSelf: 'center', marginTop: 0, padding: 24, flexGrow: 0, flexShrink: 0 },
+  heroEyebrow: { fontFamily: homeFontFamily, color: palette.orange, fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 12 },
+  heroTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 50, lineHeight: 55, fontWeight: '700', maxWidth: 560, flexShrink: 1 },
+  heroTitleMobile: { fontFamily: homeFontFamily, fontSize: 32, lineHeight: 37 },
+  heroText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 16, lineHeight: 26, fontWeight: '500', marginTop: 18, maxWidth: 560, flexShrink: 1 },
+  heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 28 },
+  heroActionsMobile: { flexDirection: 'column' },
+  primaryButton: { minHeight: 50, borderRadius: 6, backgroundColor: palette.yellow, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  primaryButtonText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  secondaryButton: { minHeight: 50, borderRadius: 6, borderWidth: 1, borderColor: palette.line, backgroundColor: '#ffffff', paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  secondaryButtonText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  capabilityTimeline: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    position: 'relative',
+    gap: 0,
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
+  capabilityTimelineMobile: {
+    flexDirection: 'column',
+    gap: 12,
+    paddingTop: 18,
+    paddingBottom: 26,
+  },
+  capabilityConnector: {
+    position: 'absolute',
+    left: 44,
+    right: 44,
+    top: 57,
+    height: 1,
+    backgroundColor: '#cfd2df',
+  },
+  capabilityStep: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 20,
+    paddingTop: 2,
+    paddingBottom: 6,
+  },
+  capabilityStepMobile: {
+    width: '100%',
+    minWidth: 0,
+    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    paddingVertical: 16,
+    paddingLeft: 72,
+    paddingRight: 18,
+    borderLeftWidth: 3,
+    borderLeftColor: '#e2e4ee',
+    backgroundColor: palette.surface,
+    borderRadius: 8,
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  capabilityNode: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    zIndex: 2,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+  },
+  capabilityNodeText: {
+    fontFamily: homeFontFamily, fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  capabilityNodeMobile: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    marginBottom: 0,
+  },
+  capabilityStem: {
+    position: 'absolute',
+    left: 44,
+    top: 56,
+    bottom: 6,
+    width: 1,
+    opacity: 0.28,
+  },
+  capabilityStemMobile: {
+    left: 40,
+    top: 66,
+    bottom: 16,
+  },
+  capabilityTitle: {
+    color: palette.ink,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    marginBottom: 9,
+    flexShrink: 1,
+  },
+  capabilityTitleMobile: {
+    fontFamily: homeFontFamily, fontSize: 20,
+    lineHeight: 26,
+  },
+  capabilityText: {
+    color: palette.text,
+    fontSize: 12,
+    lineHeight: 20,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  capabilityTextMobile: {
+    fontFamily: homeFontFamily, fontSize: 14,
+    lineHeight: 22,
+  },
+  programSection: { backgroundColor: '#fbfbf8', paddingVertical: 64 },
+  programSectionMobile: { paddingVertical: 42 },
+  whyTop: { marginBottom: 32 },
+  whyTopDesktop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 44 },
+  whyTopStack: { gap: 24 },
+  whyIntroCopy: { width: '100%', minWidth: 0, maxWidth: 860, flexGrow: 1, flexShrink: 1, flexBasis: 0 },
+  whyIntroCopyDesktop: { flexBasis: '58%', maxWidth: 760 },
+  whyIntroCopyMobile: { maxWidth: '100%', flexBasis: 'auto', flexGrow: 0, flexShrink: 0, marginBottom: 0 },
+  whyVisual: { minWidth: 0, alignItems: 'center', justifyContent: 'center', flexGrow: 0, flexShrink: 0 },
+  whyVisualDesktop: { flexBasis: 360, width: 360, maxWidth: 380 },
+  whyVisualMobile: { width: '74%', maxWidth: 260, alignSelf: 'center', marginTop: 0 },
+  whyVisualImage: { width: '100%', height: '100%' },
+  sectionIntro: { width: '100%', maxWidth: 820, marginBottom: 28 },
+  sectionIntroMobile: { marginBottom: 0 },
+  sectionKicker: { fontFamily: homeFontFamily, color: palette.teal, fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 10 },
+  sectionTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 40, lineHeight: 46, fontWeight: '700', flexShrink: 1 },
+  sectionTitleMobile: { fontFamily: homeFontFamily, fontSize: 30, lineHeight: 36 },
+  sectionText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 16, lineHeight: 26, fontWeight: '500', marginTop: 12, maxWidth: 820, flexShrink: 1 },
+  programGrid: { gap: 16 },
+  programGridDesktop: { flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap' },
+  programCard: { flexGrow: 0, flexShrink: 0, minWidth: 240, backgroundColor: '#ffffff', borderRadius: 6, padding: 26, borderWidth: 1, borderColor: palette.line, position: 'relative', overflow: 'hidden' },
+  programCardDesktop: { flex: 1, minHeight: 430 },
+  programAccent: { position: 'absolute', left: 0, top: 0, width: 7, bottom: 0 },
+  programTag: { fontFamily: homeFontFamily, color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '700', marginLeft: 2 },
+  programTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 23, lineHeight: 30, fontWeight: '700', marginTop: 20, flexShrink: 1 },
+  programText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 14, lineHeight: 23, fontWeight: '500', marginTop: 10, flexShrink: 1 },
+  programAction: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'flex-start', marginTop: 'auto', backgroundColor: '#fff8df', borderRadius: 28, paddingRight: 20, minHeight: 52 },
+  programActionIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  programActionArrowImage: { width: 34, height: 34 },
+  programActionArrow: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 22, lineHeight: 24, fontWeight: '700', marginTop: -1 },
+  programActionText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  programGhost: { fontFamily: homeFontFamily, position: 'absolute', right: 24, bottom: 76, fontSize: 60, lineHeight: 66, fontWeight: '700', opacity: 0.08 },
+  programArrow: { fontFamily: homeFontFamily, fontSize: 22, lineHeight: 26, fontWeight: '700', marginTop: 18 },
+  darkSection: { backgroundColor: palette.navyDeep, paddingVertical: 58 },
+  darkSectionMobile: { paddingTop: 42, paddingBottom: 36 },
+  darkContent: { flexDirection: 'row', alignItems: 'center', gap: 48 },
+  darkContentStack: { flexDirection: 'column', alignItems: 'stretch', gap: 22 },
+  darkCopy: { flex: 0.92, minWidth: 0 },
+  darkCopyDesktop: { maxWidth: 520 },
+  darkCopyStack: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
+  darkKicker: { fontFamily: homeFontFamily, color: palette.yellow, fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 14 },
+  darkTitle: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 42, lineHeight: 52, fontWeight: '700', flexShrink: 1 },
+  darkTitleMobile: { fontFamily: homeFontFamily, fontSize: 34, lineHeight: 42 },
+  darkText: { fontFamily: homeFontFamily, color: '#eef1fb', fontSize: 16, lineHeight: 27, fontWeight: '600', marginTop: 16, flexShrink: 1 },
+  darkTextMobile: { fontFamily: homeFontFamily, fontSize: 15, lineHeight: 25, marginTop: 14 },
+  skillGrid: { flex: 1.35, gap: 16 },
+  skillGridDesktop: { flexDirection: 'row', flexWrap: 'wrap' },
+  skillGridWide: { flexDirection: 'row', flexWrap: 'wrap' },
+  skillGridStack: { flexDirection: 'column', flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  skillGridMobile: { gap: 20 },
+  skillCard: { borderWidth: 1, borderRadius: 0, padding: 24, minHeight: 250, position: 'relative', overflow: 'hidden' },
+  skillCardWide: { flexBasis: '47.5%', flexGrow: 1 },
+  skillCardMobile: { width: '100%', minHeight: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingTop: 24, paddingBottom: 28 },
+  skillMedia: { alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  skillMediaMobile: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 18 },
+  skillImage: { maxWidth: '82%' },
+  skillImageMobile: { width: 128, height: 92, maxWidth: '46%', flexShrink: 1, opacity: 0.96 },
+  skillIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  skillIconMobile: { width: 58, height: 58, borderRadius: 29, flexShrink: 0 },
+  skillIconFloating: { position: 'absolute', left: 0, top: 0 },
+  skillIconText: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 17, lineHeight: 22, fontWeight: '700' },
+  skillTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 23, lineHeight: 30, fontWeight: '700', flexShrink: 1 },
+  skillText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 14, lineHeight: 23, fontWeight: '500', marginTop: 10, flexShrink: 1 },
+  announcementSection: { backgroundColor: palette.page, paddingVertical: 58 },
+  compactSliderHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 20 },
+  compactSliderTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  sliderControls: { flexDirection: 'row', gap: 10, flexShrink: 0 },
+  roundButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
+  roundButtonText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 28, lineHeight: 31, fontWeight: '700' },
+  roundButtonImage: { width: 34, height: 34 },
+  horizontalTrack: { gap: 16, paddingRight: 26 },
+  announcementCard: { minHeight: 238, backgroundColor: '#ffffff', borderRadius: 0, borderWidth: 1, borderColor: palette.line, padding: 22, overflow: 'hidden' },
+  announcementMark: { width: 46, height: 5, marginBottom: 18 },
+  announcementCategory: { fontFamily: homeFontFamily, color: palette.muted, fontSize: 12, lineHeight: 17, fontWeight: '700', textTransform: 'uppercase' },
+  announcementTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 22, lineHeight: 29, fontWeight: '700', marginTop: 10, flexShrink: 1 },
+  announcementText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 14, lineHeight: 23, fontWeight: '500', marginTop: 9, flexShrink: 1 },
+  announcementMetaRow: { marginTop: 'auto', paddingTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  announcementMeta: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  announcementMore: { fontFamily: homeFontFamily, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  dots: { flexDirection: 'row', alignSelf: 'center', gap: 8, marginTop: 22, backgroundColor: '#ffffff', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9 },
+  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#c4c8d3' },
+  dotActive: { width: 28, backgroundColor: palette.orange },
+  resourcesSection: { backgroundColor: '#e8f7f5', paddingVertical: 48, overflow: 'hidden' },
+  resourcesSectionMobile: { paddingVertical: 34 },
+  resourcesLayout: { flexDirection: 'row', gap: 28, alignItems: 'center' },
+  resourcesLayoutStack: { flexDirection: 'column', alignItems: 'stretch', gap: 22 },
+  resourcesVisualColumn: { flex: 0.42, minWidth: 170, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  resourcesVisualColumnMobile: { width: '100%', minWidth: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  resourcesImage: { flexShrink: 0 },
+  resourcesVisualArrow: { fontFamily: homeFontFamily, position: 'absolute', right: -16, color: '#a6adba', fontSize: 28, lineHeight: 32, fontWeight: '700' },
+  resourcesCopy: { flex: 0.86, minWidth: 0, maxWidth: 420 },
+  resourcesCopyDesktop: { paddingLeft: 30, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.86)' },
+  resourcesCopyMobile: { width: '100%', maxWidth: '100%', paddingLeft: 0, paddingBottom: 8, borderLeftWidth: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  resourcesTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: '700', flexShrink: 1 },
+  resourcesTitleMobile: { fontFamily: homeFontFamily, fontSize: 28, lineHeight: 34 },
+  resourcesText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 15, lineHeight: 24, fontWeight: '500', marginTop: 14, maxWidth: 500, flexShrink: 1 },
+  resourcesButton: { minHeight: 46, borderRadius: 6, backgroundColor: palette.yellow, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, alignSelf: 'flex-start', marginTop: 20, flexShrink: 0 },
+  resourcesButtonMobile: { minHeight: 46, width: '100%', maxWidth: 266, marginTop: 18, marginBottom: 10, zIndex: 1 },
+  resourcesButtonText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  resourcesButtonIcon: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 15, lineHeight: 17, fontWeight: '700' },
+  resourceList: { flex: 1.22, minWidth: 0, backgroundColor: '#ffffff', borderWidth: 1, borderColor: palette.line, borderRadius: 8, overflow: 'hidden', shadowColor: '#000000', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  resourceListMobile: { width: '100%', flexGrow: 0, flexShrink: 0, flexBasis: 'auto', marginTop: 24, zIndex: 0 },
+  resourceRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: palette.line },
+  resourceRowMobile: { minHeight: 74, gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  resourceRowLast: { borderBottomWidth: 0 },
+  resourceIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0, shadowColor: '#000000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  resourceBadgeImage: { width: 48, height: 48, flexShrink: 0 },
+  resourceBadgeImageMobile: { width: 44, height: 44 },
+  resourceIconMobile: { width: 42, height: 42, borderRadius: 21 },
+  resourceIconText: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 13, lineHeight: 17, fontWeight: '700', textAlign: 'center' },
+  resourceTextBlock: { flex: 1, minWidth: 0 },
+  resourceTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 13, lineHeight: 17, fontWeight: '700', flexShrink: 1 },
+  resourceTitleMobile: { fontFamily: homeFontFamily, fontSize: 15, lineHeight: 20 },
+  resourceDescription: { fontFamily: homeFontFamily, color: palette.text, fontSize: 11, lineHeight: 15, fontWeight: '500', marginTop: 2, flexShrink: 1 },
+  resourceDescriptionMobile: { fontFamily: homeFontFamily, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  resourceArrowIcon: { fontFamily: homeFontFamily, color: palette.teal, fontSize: 18, lineHeight: 20, fontWeight: '700', flexShrink: 0 },
+  resourceArrowImage: { width: 42, height: 42, flexShrink: 0 },
+  resourceArrowImageMobile: { width: 38, height: 38 },
+  testimonialSection: { backgroundColor: palette.page, paddingVertical: 58 },
+  sliderHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 18, marginBottom: 22 },
+  sliderHeadMobile: { flexDirection: 'column', alignItems: 'flex-start' },
+  testimonialTrack: { gap: 16, paddingRight: 26 },
+  testimonialCard: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: palette.line, borderRadius: 0, padding: 22, minHeight: 222 },
+  quoteMark: { fontFamily: homeFontFamily, color: palette.teal, fontSize: 38, lineHeight: 34, fontWeight: '700', marginBottom: 6 },
+  testimonialText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 15, lineHeight: 24, fontWeight: '700', flexShrink: 1 },
+  testimonialPerson: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, paddingTop: 18, borderTopWidth: 1, borderTopColor: palette.line },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: palette.teal, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarText: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  personCopy: { flex: 1, minWidth: 0 },
+  personName: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  personMeta: { fontFamily: homeFontFamily, color: palette.text, fontSize: 12, lineHeight: 17, fontWeight: '600' },  contactSection: { backgroundColor: palette.navy, paddingVertical: 40 },
+  contactLayout: { flexDirection: 'row', alignItems: 'center', gap: 42 },
+  contactLayoutStack: { flexDirection: 'column', alignItems: 'stretch', gap: 22 },
+  contactLeftColumn: { minWidth: 0, gap: 16 },
+  contactLeftColumnDesktop: { flex: 1 },
+  contactLeftColumnMobile: { width: '100%', flexGrow: 0, flexShrink: 0 },
+  contactImageShell: { width: '100%', maxWidth: 500, alignSelf: 'flex-start', justifyContent: 'center', overflow: 'hidden' },
+  contactImageStandalone: { width: '100%', height: '100%' },
+  contactCopy: { minWidth: 0, maxWidth: 620, flexGrow: 0, flexShrink: 0 },
+  contactKicker: { fontFamily: homeFontFamily, color: palette.yellow, fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 10 },
+  contactTitle: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 36, lineHeight: 42, fontWeight: '700', flexShrink: 1 },
+  contactTitleMobile: { fontFamily: homeFontFamily, fontSize: 29, lineHeight: 35 },
+  contactText: { fontFamily: homeFontFamily, color: '#e2e4ef', fontSize: 15, lineHeight: 25, fontWeight: '500', marginTop: 12, flexShrink: 1 },
+  contactCard: { minWidth: 0, backgroundColor: '#ffffff', borderRadius: 0, padding: 24, shadowColor: '#000000', shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  contactCardDesktop: { flex: 0.78, minWidth: 330, alignSelf: 'center' },
+  contactCardMobile: { width: '100%', alignSelf: 'stretch', padding: 20, flexGrow: 0, flexShrink: 0 },
+  contactCardTitle: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 22, lineHeight: 28, fontWeight: '700', flexShrink: 1 },
+  contactCardText: { fontFamily: homeFontFamily, color: palette.text, fontSize: 14, lineHeight: 22, fontWeight: '500', marginTop: 7, marginBottom: 14, flexShrink: 1 },
+  contactInput: { fontFamily: homeFontFamily, minHeight: 45, borderWidth: 1, borderColor: palette.line, color: palette.ink, justifyContent: 'center', paddingHorizontal: 13, marginBottom: 10, backgroundColor: '#fbfbf8', fontSize: 13, lineHeight: 18, fontWeight: '600', outlineStyle: 'none' as never },
+  contactFeedback: { fontFamily: homeFontFamily, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 10, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  contactFeedbackSuccess: { color: palette.teal, backgroundColor: palette.tealSoft, borderWidth: 1, borderColor: '#bfe3dd' },
+  contactFeedbackError: { color: '#b42318', backgroundColor: '#fff1f0', borderWidth: 1, borderColor: '#ffd0cb' },
+  contactButton: { minHeight: 47, borderRadius: 6, backgroundColor: palette.yellow, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
+  contactButtonText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  footer: { backgroundColor: '#151728', paddingVertical: 34 },
+  footerInner: { flexDirection: 'row', justifyContent: 'space-between', gap: 28 },
+  footerInnerMobile: { flexDirection: 'column' },
+  footerBrandArea: { flex: 1, minWidth: 0 },
+  footerBrand: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 22, lineHeight: 28, fontWeight: '700' },
+  footerText: { fontFamily: homeFontFamily, color: '#cfd2df', fontSize: 13, lineHeight: 21, fontWeight: '500', marginTop: 7, maxWidth: 520 },
+  footerLinks: { flex: 1.1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'flex-end' },
+  footerLink: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  chatLayer: { position: Platform.select({ web: 'fixed', default: 'absolute' }) as 'absolute', right: 20, bottom: 20, zIndex: 1000, alignItems: 'flex-end', gap: 12 },
+  chatLayerMobile: { right: 14, bottom: 14 },
+  chatLauncher: { width: 62, height: 62, borderRadius: 31, backgroundColor: palette.teal, borderWidth: 4, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  chatLauncherMobile: { width: 58, height: 58, borderRadius: 29 },
+  chatFace: { width: 38, height: 32, borderRadius: 13, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  chatFaceMobile: { width: 35, height: 30 },
+  chatEyes: { flexDirection: 'row', gap: 7, marginBottom: 5 },
+  chatEye: { width: 6, height: 6, borderRadius: 3, backgroundColor: palette.teal },
+  chatMouth: { width: 18, height: 4, borderRadius: 2, backgroundColor: palette.tealSoft },
+  chatTail: { position: 'absolute', right: -4, bottom: 6, width: 10, height: 10, borderRadius: 3, backgroundColor: '#ffffff', transform: [{ rotate: '45deg' }] },
+  chatPanel: { height: 520, maxHeight: 620, backgroundColor: '#ffffff', borderRadius: 0, borderWidth: 1, borderColor: palette.line, overflow: 'hidden', shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
+  chatHeader: { minHeight: 72, backgroundColor: palette.navyDeep, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  chatHeaderBrand: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
+  chatMiniIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: palette.yellow, alignItems: 'center', justifyContent: 'center' },
+  chatMiniText: { fontFamily: homeFontFamily, color: palette.navyDeep, fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  chatHeaderText: { flex: 1, minWidth: 0 },
+  chatTitle: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 16, lineHeight: 21, fontWeight: '700' },
+  chatSub: { fontFamily: homeFontFamily, color: '#d8dbea', fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  chatClose: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  chatCloseText: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 24, lineHeight: 28, fontWeight: '600' },
+  chatBody: { flex: 1, padding: 16, gap: 10 },
+  chatNotice: { fontFamily: homeFontFamily, color: palette.text, fontSize: 13, lineHeight: 21, fontWeight: '500', borderWidth: 1, borderColor: palette.line, padding: 12 },
+  chatBubble: { maxWidth: '88%', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  botBubble: { alignSelf: 'flex-start', backgroundColor: palette.soft },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: palette.teal },
+  botText: { fontFamily: homeFontFamily, color: palette.ink, fontSize: 13, lineHeight: 20, fontWeight: '500' },
+  userText: { fontFamily: homeFontFamily, color: '#ffffff', fontSize: 13, lineHeight: 20, fontWeight: '700' },
+  chatInput: { minHeight: 56, margin: 14, borderWidth: 1, borderColor: palette.line, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  chatInputText: { fontFamily: homeFontFamily, flex: 1, minWidth: 0, color: palette.muted, fontSize: 14, lineHeight: 19, fontWeight: '500', paddingHorizontal: 14 },
+  chatSend: { fontFamily: homeFontFamily, width: 52, textAlign: 'center', color: palette.teal, fontSize: 22, lineHeight: 27, fontWeight: '700' },
+  pressed: { opacity: 0.72 },
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

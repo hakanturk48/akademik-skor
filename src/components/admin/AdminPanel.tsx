@@ -1,0 +1,914 @@
+import { useMemo, useState } from 'react';
+import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
+import { Modal as NativeModal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+
+import { AdminShell } from '@/components/admin/AdminShell';
+import { PageBuilderPanel } from '@/components/admin/PageBuilderPanel';
+import { AdminQuestionFields } from './AdminQuestionFields';
+import { adminAuditSummary, adminLabel, adminMessage } from '@/lib/admin/labels';
+import { AdminContentPreview, PublicationBadge, PublicationMetadata, VersionHistory } from './AdminPublishingTools';
+import { Badge, Button, Card, EmptyState, studentFontFamily, studentTokens } from '@/components/student/ui';
+import type { AuthUser } from '@/lib/auth';
+import {
+  adminModuleCollections,
+  adminModules,
+  publicationStatuses,
+  adminVisibilityOptions,
+  collectionSupportsPremium,
+  saveAdminContent,
+  defaultQuestionFilters,
+  archiveAdminEntity,
+  getAdminDashboardMetrics,
+  initialAdminDraft,
+  listAdminQuestionRows,
+  listAdminRows,
+  loadAdminWorkspaceState,
+  reorderAdminEntity,
+  saveAdminWorkspaceState,
+  toggleAdminNavigationVisibility,
+  getAdminDocument,
+  previewAdminDraft,
+  restoreAdminVersion,
+  type AdminSnapshot,
+  type PublicationStatus,
+  validateAdminEntityDraft,
+  validateAdminQuestion,
+  type AdminCollectionConfig,
+  type AdminEntityDraft,
+  type AdminEntityRow,
+  type AdminModuleConfig,
+  type AdminModuleKey,
+  type AdminMutableCollectionKey,
+  type AdminQuestionFilters,
+  type AdminWorkspaceState,
+  defaultPageBuilderState,
+} from '@/lib/admin';
+import type { Visibility } from '@/lib/content';
+import { videoMediaProviders, type VideoMediaProvider } from '@/lib/video-media';
+import { saveVideoUpload } from '@/lib/video-upload';
+
+type AdminPanelProps = {
+  user: AuthUser;
+  onLogout: () => void;
+};
+
+type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
+
+type EditorState = {
+  mode: 'create' | 'edit';
+  module: AdminModuleKey;
+  collection: AdminMutableCollectionKey;
+  config: AdminCollectionConfig;
+  row?: AdminEntityRow;
+  draft: AdminEntityDraft;
+};
+
+type DisableTarget = {
+  module: AdminModuleKey;
+  collection: AdminMutableCollectionKey;
+  row: AdminEntityRow;
+};
+
+const symbolName = (ios: string, web: string): AppSymbolName => ({ ios: ios as SFSymbol, android: web as AndroidSymbol, web: web as AndroidSymbol });
+
+const plusSymbol = symbolName('plus', 'add');
+const editSymbol = symbolName('square.and.pencil', 'edit');
+const disableSymbol = symbolName('nosign', 'block');
+const upSymbol = symbolName('chevron.up', 'keyboard_arrow_up');
+const downSymbol = symbolName('chevron.down', 'keyboard_arrow_down');
+const filterSymbol = symbolName('line.3.horizontal.decrease.circle', 'filter_alt');
+const warningSymbol = symbolName('exclamationmark.triangle', 'warning');
+const checkSymbol = symbolName('checkmark.circle', 'check_circle');
+const eyeSymbol = symbolName('eye', 'visibility');
+const hiddenEyeSymbol = symbolName('eye.slash', 'visibility_off');
+
+
+const initialCollectionByModule: Partial<Record<AdminModuleKey, AdminMutableCollectionKey>> = {
+  navigation: 'navigationGroups',
+  taxonomy: 'exams',
+  courses: 'courses',
+  'video-lessons': 'lessons',
+  vocabulary: 'vocabularySets',
+  grammar: 'grammarCategories',
+  'question-bank': 'questions',
+  'practice-sets': 'practiceSets',
+  'mini-tests': 'tests',
+};
+
+function makeSelectOptions<T extends string>(items: { id: T; title: string }[], allLabel: string) {
+  return [{ value: 'all', label: allLabel }, ...items.map((item) => ({ value: item.id, label: item.title }))];
+}
+
+function shortDate(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return 'Bekleniyor';
+  return new Intl.DateTimeFormat('tr-TR', { month: 'short', day: '2-digit' }).format(new Date(parsed));
+}
+
+function statusLabel(status: string) {
+  return adminLabel(status);
+}
+
+function visibilityLabel(visibility: Visibility) {
+  return adminLabel(visibility);
+}
+
+function MetricCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: 'yellow' | 'teal' | 'blue' | 'orange' }) {
+  const color = tone === 'yellow' ? studentTokens.yellowDeep : tone === 'teal' ? studentTokens.teal : tone === 'orange' ? studentTokens.orange : studentTokens.blue;
+  return (
+    <Card style={styles.metricCard} contentStyle={styles.metricBody}>
+      <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]} />
+      <View style={styles.metricCopy}>
+        <Text style={styles.metricLabel} numberOfLines={1}>{label}</Text>
+        <Text style={styles.metricValue} numberOfLines={1}>{value}</Text>
+        <Text style={[styles.metricDetail, { color }]} numberOfLines={1}>{detail}</Text>
+      </View>
+    </Card>
+  );
+}
+
+function DashboardView({ state, onQuickAction }: { state: AdminWorkspaceState; onQuickAction: (module: AdminModuleKey) => void }) {
+  const metrics = useMemo(() => getAdminDashboardMetrics(state), [state]);
+  const quickModules = adminModules.filter((module) => module.key !== 'dashboard').slice(0, 6);
+
+  return (
+    <View style={styles.stack}>
+      <View style={styles.pageHeader}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.kicker}>YÖNETİM PANELİ</Text>
+          <Text style={styles.pageTitle}>İçerik Yönetimi</Text>
+          <Text style={styles.pageText}>Taslakları inceleyin, içerikleri yayınlayın ve son değişiklikleri takip edin.</Text>
+        </View>
+      </View>
+
+      <View style={styles.metricGrid}>
+        <MetricCard label="Yayınlanan İçerikler" value={String(metrics.publishedContent)} detail="Yayındaki sürümler" tone="teal" />
+        <MetricCard label="Taslaklar" value={String(metrics.drafts)} detail="İnceleme bekleyen" tone="blue" />
+        <MetricCard label="Devre Dışı" value={String(metrics.disabledContent)} detail="Pasif veya arşivlenmiş" tone="orange" />
+        <MetricCard label="Aktif Kullanıcılar" value={metrics.activeUsers === null ? 'API' : String(metrics.activeUsers)} detail="Sunucu bağlantısı bekleniyor" tone="yellow" />
+      </View>
+
+      <View style={styles.dashboardGrid}>
+        <Card testID="admin-quick-actions" title="Hızlı İşlemler" eyebrow="Oluştur veya incele" style={styles.dashboardPanel}>
+          <View style={styles.quickGrid}>
+            {quickModules.map((module) => (
+              <Pressable key={module.key} accessibilityRole="button" onPress={() => onQuickAction(module.key)} style={({ pressed }) => [styles.quickCard, pressed ? styles.pressed : null]}>
+                <Text style={styles.quickTitle}>{module.title}</Text>
+                <Text style={styles.quickText}>{module.description}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Card>
+
+        <Card testID="admin-recent-changes" title="Son İçerik Değişiklikleri" eyebrow="İşlem geçmişi" style={styles.dashboardPanel}>
+          <View style={styles.changeList}>
+            {(state.workflow?.audit.length ?? 0) > 0 ? state.workflow!.audit.slice(0, 6).map((change) => (
+              <View key={change.id} style={styles.changeRow}>
+                <View style={styles.changeDot} />
+                <View style={styles.changeCopy}>
+                  <Text style={styles.changeTitle}>{adminAuditSummary(state, change)}</Text>
+                  <Text style={styles.changeText}>{change.user?.email ?? 'Kullanıcı kaydedilmemiş'} / {adminLabel(change.entityType)}</Text>
+                  <Text style={styles.changeText}>{change.entityId}</Text>
+                </View>
+                <Text style={styles.changeDate}>{new Date(change.timestamp).toLocaleString('tr-TR')}</Text>
+              </View>
+            )) : <Text style={styles.mutedText}>Henüz değişiklik yok.</Text>}
+          </View>
+        </Card>
+      </View>
+
+      <Card title="Katalog Kontrolü" eyebrow="İlişkiler">
+        {metrics.validationIssues.length === 0 ? (
+          <View style={styles.validationOk}>
+            <SymbolView name={checkSymbol} tintColor={studentTokens.teal} size={22} style={styles.inlineIcon} />
+            <Text style={styles.bodyText}>İlişkiler, bağlantı adları, durumlar, sıralama ve erişim ayarları geçerli.</Text>
+          </View>
+        ) : (
+          <View style={styles.validationList}>
+            {metrics.validationIssues.slice(0, 5).map((issue, index) => (
+              <View key={`${issue.code}-${issue.entityId ?? index}`} style={styles.validationIssue}>
+                <SymbolView name={warningSymbol} tintColor={studentTokens.orange} size={17} style={styles.inlineIcon} />
+                <Text style={styles.bodyText}>{adminLabel(issue.collection ?? '')}: {adminMessage(issue.message)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card>
+    </View>
+  );
+}
+
+function CollectionTabs({ collections, value, onChange }: { collections: AdminCollectionConfig[]; value: AdminMutableCollectionKey; onChange: (value: AdminMutableCollectionKey) => void }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.collectionTabs}>
+      {collections.map((item) => {
+        const selected = item.key === value;
+        return (
+          <Pressable key={item.key} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onChange(item.key)} style={({ pressed }) => [styles.collectionTab, selected ? styles.collectionTabActive : null, pressed ? styles.pressed : null]}>
+            <Text style={[styles.collectionTabText, selected ? styles.collectionTabTextActive : null]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function CycleFilter<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
+  const currentIndex = Math.max(0, options.findIndex((item) => item.value === value));
+  const current = options[currentIndex] ?? options[0];
+  const next = () => onChange(options[(currentIndex + 1) % options.length].value);
+
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${current.label}`} onPress={next} style={({ pressed }) => [styles.filterButton, pressed ? styles.pressed : null]}>
+      <Text style={styles.filterLabel}>{label}</Text>
+      <Text style={styles.filterValue} numberOfLines={1}>{current.label}</Text>
+    </Pressable>
+  );
+}
+
+function QuestionFilters({ state, value, onChange }: { state: AdminWorkspaceState; value: AdminQuestionFilters; onChange: (value: AdminQuestionFilters) => void }) {
+  const statusOptions = [{ value: 'all', label: 'Tüm Durumlar' }, ...publicationStatuses.map((status) => ({ value: status, label: statusLabel(status) }))] as { value: AdminQuestionFilters['status']; label: string }[];
+
+  return (
+    <Card style={styles.filterCard} contentStyle={styles.filterCardBody}>
+      <View style={styles.filterHeader}>
+        <SymbolView name={filterSymbol} tintColor={studentTokens.teal} size={18} style={styles.inlineIcon} />
+        <Text style={styles.filterTitle}>Soru filtreleri</Text>
+      </View>
+      <View style={styles.filterGrid}>
+        <CycleFilter label="Beceri" value={value.skillId} options={makeSelectOptions(state.catalog.skills, 'Tüm Beceriler')} onChange={(skillId) => onChange({ ...value, skillId })} />
+        <CycleFilter label="Soru Türü" value={value.taskTypeId} options={makeSelectOptions(state.catalog.taskTypes, 'Tüm Soru Türleri')} onChange={(taskTypeId) => onChange({ ...value, taskTypeId })} />
+        <CycleFilter label="Alt Beceri" value={value.subskillId} options={makeSelectOptions(state.catalog.subskills, 'Tüm Alt Beceriler')} onChange={(subskillId) => onChange({ ...value, subskillId })} />
+        <CycleFilter label="Konu" value={value.topicId} options={makeSelectOptions(state.catalog.topics, 'Tüm Konular')} onChange={(topicId) => onChange({ ...value, topicId })} />
+        <CycleFilter label="Zorluk" value={value.levelId} options={makeSelectOptions(state.catalog.levels, 'Tüm Seviyeler')} onChange={(levelId) => onChange({ ...value, levelId })} />
+        <CycleFilter label="Durum" value={value.status} options={statusOptions} onChange={(status) => onChange({ ...value, status })} />
+      </View>
+    </Card>
+  );
+}
+function RowActions({ row, onEdit, onDisable, onMoveUp, onMoveDown, onToggle, isNavigation }: { row: AdminEntityRow; onEdit: () => void; onDisable: () => void; onMoveUp: () => void; onMoveDown: () => void; onToggle?: () => void; isNavigation?: boolean }) {
+  const disabled = row.status === 'inactive' || row.status === 'archived';
+  const navigationEnabled = 'isEnabled' in row.raw ? row.raw.isEnabled : true;
+  return (
+    <View style={styles.rowActions}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Düzenle: ${row.title}`} onPress={onEdit} style={({ pressed }) => [styles.actionIcon, pressed ? styles.pressed : null]}>
+        <SymbolView name={editSymbol} tintColor={studentTokens.navy} size={15} style={styles.actionSymbol} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Yukarı taşı: ${row.title}`} onPress={onMoveUp} style={({ pressed }) => [styles.actionIcon, pressed ? styles.pressed : null]}>
+        <SymbolView name={upSymbol} tintColor={studentTokens.text} size={15} style={styles.actionSymbol} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Aşağı taşı: ${row.title}`} onPress={onMoveDown} style={({ pressed }) => [styles.actionIcon, pressed ? styles.pressed : null]}>
+        <SymbolView name={downSymbol} tintColor={studentTokens.text} size={15} style={styles.actionSymbol} />
+      </Pressable>
+      <Pressable disabled={disabled} accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={`Arşivle: ${row.title}`} onPress={onDisable} style={({ pressed }) => [styles.actionIcon, disabled ? styles.actionDisabled : null, pressed ? styles.pressed : null]}>
+        <SymbolView name={disableSymbol} tintColor={disabled ? studentTokens.muted : studentTokens.danger} size={15} style={styles.actionSymbol} />
+      </Pressable>
+      {isNavigation && onToggle ? <Pressable accessibilityRole="button" accessibilityLabel={`${navigationEnabled ? 'Gizle' : 'Göster'}: ${row.title}`} onPress={onToggle} style={({ pressed }) => [styles.actionIcon, pressed ? styles.pressed : null]}><SymbolView name={navigationEnabled ? eyeSymbol : hiddenEyeSymbol} tintColor={studentTokens.navy} size={15} style={styles.actionSymbol} /></Pressable> : null}
+    </View>
+  );
+}
+
+function AdminTable({ rows, isMobile, isNavigation, onEdit, onDisable, onToggle, onMove }: { rows: AdminEntityRow[]; isMobile: boolean; isNavigation?: boolean; onEdit: (row: AdminEntityRow) => void; onDisable: (row: AdminEntityRow) => void; onToggle?: (row: AdminEntityRow) => void; onMove: (row: AdminEntityRow, direction: 'up' | 'down') => void }) {
+  if (rows.length === 0) {
+    return <EmptyState title="Kayıt bulunamadı" text="Filtreleri değiştirin veya bu bölüme ilk kaydı ekleyin." />;
+  }
+
+  if (isMobile) {
+    return (
+      <View style={styles.mobileList}>
+        {rows.map((row) => (
+          <Card key={row.id} style={styles.mobileRecordCard} contentStyle={styles.mobileRecordBody}>
+            <View style={styles.mobileRecordTop}>
+              <View style={styles.recordTitleWrap}>
+                <Text style={styles.recordTitle}>{row.title}</Text>
+                <Text style={styles.recordSlug}>{row.slug}</Text>
+              </View>
+              <PublicationBadge status={row.publicationStatus} version={row.version} />
+            </View>
+            <Text style={styles.recordDescription}>{row.description || row.relationSummary}</Text>
+            <View style={styles.recordMetaGrid}>
+              <Text style={styles.recordMeta}>Görünürlük: {visibilityLabel(row.visibility)}</Text>
+              <Text style={styles.recordMeta}>Erişim: {row.isPremium ? 'Premium' : 'Ücretsiz'}</Text>
+              <Text style={styles.recordMeta}>İlişkiler: {row.referenceCount}</Text>
+              <Text style={styles.recordMeta}>Sıra: {row.sortOrder}</Text>
+            </View>
+            <RowActions row={row} isNavigation={isNavigation} onToggle={() => onToggle?.(row)} onEdit={() => onEdit(row)} onDisable={() => onDisable(row)} onMoveUp={() => onMove(row, 'up')} onMoveDown={() => onMove(row, 'down')} />
+          </Card>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.tableScrollContent}>
+      <View style={styles.table}>
+        <View style={[styles.tableRow, styles.tableHead]}>
+          <Text style={[styles.tableHeadText, styles.colTitle]}>Başlık</Text>
+          <Text style={[styles.tableHeadText, styles.colStatus]}>Durum</Text>
+          <Text style={[styles.tableHeadText, styles.colRelation]}>Sınıflandırma / ilişki</Text>
+          <Text style={[styles.tableHeadText, styles.colSmall]}>Erişim</Text>
+          <Text style={[styles.tableHeadText, styles.colSmall]}>Sıra</Text>
+          <Text style={[styles.tableHeadText, styles.colDate]}>Güncelleme</Text>
+          <Text style={[styles.tableHeadText, styles.colActions]}>İşlemler</Text>
+        </View>
+        {rows.map((row) => (
+          <View key={row.id} style={styles.tableRow}>
+            <View style={styles.colTitle}>
+              <Text style={styles.recordTitle} numberOfLines={1}>{row.title}</Text>
+              <Text style={styles.recordSlug} numberOfLines={1}>{row.slug}</Text>
+            </View>
+            <View style={styles.colStatus}><PublicationBadge status={row.publicationStatus} version={row.version} /></View>
+            <Text style={[styles.recordDescription, styles.colRelation]} numberOfLines={2}>{row.relationSummary}</Text>
+            <Text style={[styles.recordMeta, styles.colSmall]}>{row.isPremium ? 'Premium' : 'Ücretsiz'}</Text>
+            <Text style={[styles.recordMeta, styles.colSmall]}>{row.sortOrder}</Text>
+            <Text style={[styles.recordMeta, styles.colDate]}>{shortDate(row.updatedAt)}</Text>
+            <View style={styles.colActions}><RowActions row={row} isNavigation={isNavigation} onToggle={() => onToggle?.(row)} onEdit={() => onEdit(row)} onDisable={() => onDisable(row)} onMoveUp={() => onMove(row, 'up')} onMoveDown={() => onMove(row, 'down')} /></View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+function QuestionValidationPanel({ state, rows }: { state: AdminWorkspaceState; rows: AdminEntityRow[] }) {
+  const issues = rows.flatMap((row) => validateAdminQuestion(state, row.id).map((issue) => ({ row, issue })));
+  if (issues.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card title="Soru Kontrolü" eyebrow="İnceleme gerekiyor" style={styles.validationCard}>
+      <View style={styles.validationList}>
+        {issues.slice(0, 4).map(({ row, issue }) => (
+          <View key={`${row.id}-${issue}`} style={styles.validationIssue}>
+            <SymbolView name={warningSymbol} tintColor={studentTokens.orange} size={17} style={styles.inlineIcon} />
+            <Text style={styles.bodyText}>{row.title}: {adminMessage(issue)}</Text>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function ModuleManager({ module, state, collection, onCollectionChange, query, onQueryChange, questionFilters, onQuestionFiltersChange, isMobile, onCreate, onEdit, onDisable, onToggle, onMove }: { module: AdminModuleConfig; state: AdminWorkspaceState; collection: AdminMutableCollectionKey; onCollectionChange: (collection: AdminMutableCollectionKey) => void; query: string; onQueryChange: (query: string) => void; questionFilters: AdminQuestionFilters; onQuestionFiltersChange: (filters: AdminQuestionFilters) => void; isMobile: boolean; onCreate: (config: AdminCollectionConfig) => void; onEdit: (row: AdminEntityRow, config: AdminCollectionConfig) => void; onDisable: (row: AdminEntityRow, config: AdminCollectionConfig) => void; onToggle: (row: AdminEntityRow, config: AdminCollectionConfig) => void; onMove: (row: AdminEntityRow, config: AdminCollectionConfig, direction: 'up' | 'down') => void }) {
+  const collections = adminModuleCollections[module.key as Exclude<AdminModuleKey, 'dashboard'>] ?? [];
+  const activeConfig = collections.find((item) => item.key === collection) ?? collections[0];
+  const rows = useMemo(() => {
+    const baseRows = module.key === 'question-bank' ? listAdminQuestionRows(state, questionFilters) : listAdminRows(state, activeConfig.key, activeConfig);
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return baseRows;
+    return baseRows.filter((row) => `${row.title} ${row.slug} ${row.description} ${row.relationSummary}`.toLowerCase().includes(normalizedQuery));
+  }, [activeConfig, module.key, query, questionFilters, state]);
+
+  return (
+    <View style={styles.stack}>
+      <View style={styles.pageHeader}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.kicker}>YÖNETİM BÖLÜMÜ</Text>
+          <Text style={styles.pageTitle}>{module.title}</Text>
+          <Text style={styles.pageText}>{module.description}</Text>
+        </View>
+        <Button label={`${activeConfig.singularLabel} Oluştur`} left={<SymbolView name={plusSymbol} tintColor={studentTokens.navy} size={16} style={styles.inlineIcon} />} onPress={() => onCreate(activeConfig)} style={styles.createButton} />
+      </View>
+
+      {collections.length > 1 ? <CollectionTabs collections={collections} value={activeConfig.key} onChange={onCollectionChange} /> : null}
+
+      {module.key === 'question-bank' ? <QuestionFilters state={state} value={questionFilters} onChange={onQuestionFiltersChange} /> : null}
+
+      <Card style={styles.managerCard} contentStyle={styles.managerBody}>
+        <View style={styles.managerToolbar}>
+          <View style={styles.searchBox}>
+            <TextInput accessibilityLabel="Yönetim kayıtlarında ara" value={query} onChangeText={onQueryChange} placeholder="Kayıtlarda ara..." placeholderTextColor={studentTokens.muted} style={styles.searchInput} />
+          </View>
+          <View style={styles.toolbarMeta}>
+            <Badge label={`${rows.length} kayıt`} tone="blue" />
+            <Badge label={activeConfig.label} tone="default" />
+          </View>
+        </View>
+        <Text style={styles.collectionDescription}>{activeConfig.description}</Text>
+      <AdminTable rows={rows} isMobile={isMobile} isNavigation={module.key === 'navigation'} onEdit={(row) => onEdit(row, activeConfig)} onDisable={(row) => onDisable(row, activeConfig)} onToggle={(row) => onToggle(row, activeConfig)} onMove={(row, direction) => onMove(row, activeConfig, direction)} />
+      </Card>
+
+      {module.key === 'question-bank' ? <QuestionValidationPanel state={state} rows={rows} /> : null}
+    </View>
+  );
+}
+function OptionSelector<T extends string>({ label, options, value, onChange }: { label: string; options: T[]; value: T; onChange: (value: T) => void }) {
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>{label}</Text>
+      <View style={styles.optionWrap}>
+        {options.map((option) => {
+          const selected = option === value;
+          return (
+            <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => onChange(option)} style={({ pressed }) => [styles.optionPill, selected ? styles.optionPillActive : null, pressed ? styles.pressed : null]}>
+              <Text style={[styles.optionText, selected ? styles.optionTextActive : null]}>{adminLabel(option)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function VideoProviderSelector({ value, onChange }: { value: VideoMediaProvider; onChange: (value: VideoMediaProvider) => void }) {
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>Video sağlayıcısı</Text>
+      <View style={styles.optionWrap}>
+        {videoMediaProviders.map((provider) => {
+          const selected = provider.value === value;
+          return (
+            <Pressable key={provider.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(provider.value)} style={({ pressed }) => [styles.optionPill, selected ? styles.optionPillActive : null, pressed ? styles.pressed : null]}>
+              <Text style={[styles.optionText, selected ? styles.optionTextActive : null]}>{provider.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function CatalogSelector({ label, options, value, onChange }: { label: string; options: { id: string; title: string }[]; value?: string; onChange: (value: string) => void }) {
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>{label}</Text>
+      <View style={styles.optionWrap}>
+        {options.map((option) => {
+          const selected = option.id === value;
+          return (
+            <Pressable key={option.id} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => onChange(option.id)} style={({ pressed }) => [styles.optionPill, selected ? styles.optionPillActive : null, pressed ? styles.pressed : null]}>
+              <Text style={[styles.optionText, selected ? styles.optionTextActive : null]} numberOfLines={1}>{option.title}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave, onPublish, onReview, onRestore, state, user, message, error }: { editor: EditorState; issues: string[]; isMobile: boolean; onChange: (draft: AdminEntityDraft) => void; onClose: () => void; onSave: () => void; onPublish: () => void; onReview: () => void; onRestore: (version: number) => void; state: AdminWorkspaceState; user: AuthUser; message: string; error: string }) {
+  const [tab, setTab] = useState<'edit' | 'preview' | 'history'>('edit');
+  const [historicalPreview, setHistoricalPreview] = useState<AdminSnapshot | null>(null);
+  const [confirmation, setConfirmation] = useState<'publish' | number | null>(null);
+  if (!editor) return null;
+
+  const draft = editor.draft;
+  const supportsPremium = collectionSupportsPremium(editor.collection);
+  const setField = <TKey extends keyof AdminEntityDraft>(key: TKey, value: AdminEntityDraft[TKey]) => onChange({ ...draft, [key]: value });
+  const document = editor.row ? getAdminDocument(state, editor.collection, editor.row.id) : undefined;
+  const preview = historicalPreview ?? previewAdminDraft(state, editor.collection, draft, editor.row?.id);
+
+  return (
+    <NativeModal transparent visible animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onClose}>
+      <View style={[styles.modalOverlay, isMobile ? styles.modalOverlayMobile : null]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Düzenleyiciyi kapat" onPress={onClose} style={styles.modalBackdrop} />
+        <View testID="admin-content-editor" style={[styles.editorCard, isMobile ? styles.editorCardMobile : null]}>
+          <View style={styles.editorHead}>
+            <View style={styles.editorTitleGroup}>
+              <Text style={styles.kicker}>{editor.mode === 'create' ? 'OLUŞTUR' : 'DÜZENLE'}</Text>
+              <Text style={styles.editorTitle}>{editor.config.singularLabel}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Düzenleyiciyi kapat" onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed ? styles.pressed : null]}>
+              <Text style={styles.closeText}>x</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.editorTabs}>
+            {(['edit', 'preview', 'history'] as const).map((value) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => { setTab(value); setHistoricalPreview(null); setConfirmation(null); }} style={[styles.editorTab, tab === value ? styles.collectionTabActive : null]}><Text style={[styles.collectionTabText, tab === value ? styles.collectionTabTextActive : null]}>{value === 'history' ? 'Sürümler' : value === 'preview' ? 'Önizleme' : 'Düzenle'}</Text></Pressable>)}
+          </View>
+
+          <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
+            {error ? <Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text> : null}
+            {message ? <Text accessibilityLiveRegion="polite" style={styles.bodyText}>{message}</Text> : null}
+            {confirmation !== null ? <View style={styles.stack}>
+              <Text style={styles.editorTitle}>{confirmation === 'publish' ? 'Bu sürüm yayınlansın mı?' : `Sürüm ${confirmation} geri yüklensin mi?`}</Text>
+              <Text style={styles.bodyText}>{confirmation === 'publish' ? 'Kontroller tamamlandıktan sonra mevcut değişiklikler yayınlanan sürümün yerini alacak.' : 'Bu sürümden yeni bir taslak oluşturulacak. Formdaki kaydedilmemiş değişiklikler değiştirilecek. Yayınlanan sürüm ve tüm geçmiş korunacak.'}</Text>
+            </View> : tab === 'preview' ? <>
+              {historicalPreview ? <Text style={styles.kicker}>SÜRÜM {historicalPreview.version}</Text> : <Text style={styles.kicker}>GÜNCEL DEĞİŞİKLİKLER</Text>}
+              <AdminContentPreview snapshot={preview} collection={editor.collection} state={state} user={user} />
+            </> : tab === 'history' ? <VersionHistory document={document} onPreview={(snapshot) => { setHistoricalPreview(snapshot); setTab('preview'); }} onRestore={setConfirmation} /> : <>
+            <PublicationMetadata document={document} />
+            <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Başlık</Text>
+                <TextInput accessibilityLabel="Başlık" value={draft.title} onChangeText={(value) => setField('title', value)} placeholder="Kayıt başlığı" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+              </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Bağlantı adı</Text>
+                <TextInput accessibilityLabel="Bağlantı adı" value={draft.slug} onChangeText={(value) => setField('slug', value)} placeholder="Başlıktan otomatik oluşturulur" placeholderTextColor={studentTokens.muted} autoCapitalize="none" style={styles.formInput} />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>{editor.collection === 'questions' ? 'Soru metni' : 'Açıklama'}</Text>
+              <TextInput accessibilityLabel={editor.collection === 'questions' ? 'Soru metni' : 'Açıklama'} value={editor.collection === 'questions' ? draft.prompt : draft.description} onChangeText={(value) => setField(editor.collection === 'questions' ? 'prompt' : 'description', value)} placeholder="Kısa açıklama" placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+            </View>
+
+            {editor.collection === 'lessons' ? (
+              <View style={styles.videoSourceSection}>
+                <View>
+                  <Text style={styles.formLabel}>Video kaynağı</Text>
+                  <Text style={styles.formHelper}>YouTube/Vimeo bağlantısı veya tarayıcıya yüklenen video kullanılabilir. Serbest embed kodu çalıştırılmaz.</Text>
+                </View>
+                <VideoProviderSelector value={draft.mediaProvider ?? 'youtube'} onChange={(mediaProvider) => setField('mediaProvider', mediaProvider)} />
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <CatalogSelector label="Kurs" options={state.catalog.courses} value={draft.courseId} onChange={(courseId) => {
+                    const nextModule = state.catalog.modules.find((module) => module.courseId === courseId);
+                    onChange({ ...draft, courseId, moduleId: nextModule?.id ?? draft.moduleId });
+                  }} />
+                  <CatalogSelector label="Modül" options={state.catalog.modules.filter((module) => !draft.courseId || module.courseId === draft.courseId)} value={draft.moduleId} onChange={(moduleId) => setField('moduleId', moduleId)} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  {draft.mediaProvider === 'upload' ? (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>Video dosyası</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Video dosyası seç"
+                        disabled={Platform.OS !== 'web'}
+                        onPress={() => {
+                          if (Platform.OS !== 'web' || typeof globalThis.document === 'undefined') return;
+                          const input = globalThis.document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'video/*';
+                          input.onchange = () => {
+                            const file = input.files?.[0];
+                            if (!file) return;
+                            void saveVideoUpload(file).then((asset) => onChange({ ...draft, mediaProvider: 'upload', mediaUrl: asset.storageKey })).catch(() => {});
+                          };
+                          input.click();
+                        }}
+                        style={({ pressed }) => [styles.uploadButton, pressed ? styles.pressed : null, Platform.OS !== 'web' ? styles.uploadButtonDisabled : null]}
+                      >
+                        <Text style={styles.uploadButtonText}>{draft.mediaUrl?.startsWith('asset:') ? 'Video dosyası seçildi' : 'Video dosyası seç'}</Text>
+                      </Pressable>
+                      <Text style={styles.formHelper}>{Platform.OS === 'web' ? 'Video tarayıcı IndexedDB depolamasına yazılır; admin workspace içine binary veri yazılmaz.' : 'Dosya seçimi bu platformda henüz etkin değil.'}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>Video bağlantısı</Text>
+                      <TextInput accessibilityLabel="Video bağlantısı" value={draft.mediaUrl ?? ''} onChangeText={(value) => setField('mediaUrl', value)} placeholder="https://www.youtube.com/watch?v=..." placeholderTextColor={studentTokens.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.formInput} />
+                    </View>
+                  )}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Süre (saniye)</Text>
+                    <TextInput accessibilityLabel="Video süresi" value={String(draft.durationSeconds ?? 900)} onChangeText={(value) => { const seconds = Number(value.replace(/[^0-9]/g, '')); onChange({ ...draft, durationSeconds: seconds, estimatedMinutes: Math.ceil(seconds / 60) }); }} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Önizleme süresi (saniye)</Text>
+                    <TextInput accessibilityLabel="Önizleme süresi" value={String(draft.previewDurationSeconds ?? 0)} onChangeText={(value) => setField('previewDurationSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Thumbnail bağlantısı</Text>
+                  <TextInput accessibilityLabel="Thumbnail bağlantısı" value={draft.thumbnailUrl ?? ''} onChangeText={(value) => setField('thumbnailUrl', value)} placeholder="https://.../thumbnail.jpg" placeholderTextColor={studentTokens.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.formInput} />
+                  <Text style={styles.formHelper}>Thumbnail için şimdilik HTTPS görsel bağlantısı kullanılır.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Bölümler</Text>
+                  <TextInput accessibilityLabel="Bölümler" value={draft.chaptersText ?? ''} onChangeText={(value) => setField('chaptersText', value)} placeholder={'00:00|Giriş\n04:30|Ana strateji'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: zaman|başlık. Zaman biçimi mm:ss veya hh:mm:ss.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Altyazı / transkript</Text>
+                  <TextInput accessibilityLabel="Altyazı / transkript" value={draft.transcriptText ?? ''} onChangeText={(value) => setField('transcriptText', value)} placeholder={'00:00|Dersin giriş cümlesi\n00:18|İlk önemli nokta'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: zaman|metin. Satırlar öğrenci VideoPlayer içindeki Transcript sekmesine taşınır.</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {editor.collection === 'questions' ? (
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Cevap açıklaması</Text>
+                <TextInput accessibilityLabel="Cevap açıklaması" value={draft.explanation} onChangeText={(value) => setField('explanation', value)} placeholder="Cevabın açıklaması" placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                {draft.question ? <AdminQuestionFields catalog={state.catalog} value={draft.question} onChange={(question) => setField('question', question)} /> : null}
+              </View>
+            ) : null}
+
+            <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+              <OptionSelector label="Görünürlük" options={adminVisibilityOptions} value={draft.visibility} onChange={(visibility) => setField('visibility', visibility)} />
+            </View>
+
+            <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Sıralama</Text>
+                <TextInput value={String(draft.sortOrder)} onChangeText={(value) => setField('sortOrder', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+              </View>
+              {supportsPremium ? (
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Erişim</Text>
+                  <Pressable accessibilityRole="switch" accessibilityState={{ checked: draft.isPremium }} onPress={() => setField('isPremium', !draft.isPremium)} style={({ pressed }) => [styles.switchRow, draft.isPremium ? styles.switchRowActive : null, pressed ? styles.pressed : null]}>
+                    <View style={[styles.switchDot, draft.isPremium ? styles.switchDotActive : null]} />
+                    <Text style={styles.switchText}>{draft.isPremium ? 'Premium içerik' : 'Ücretsiz içerik'}</Text>
+                  </Pressable>
+                </View>
+              ) : <View />}
+            </View>
+
+            {issues.length > 0 ? (
+              <View style={styles.formIssues}>
+                {issues.map((issue) => <Text key={issue} style={styles.formIssueText}>{adminMessage(issue)}</Text>)}
+              </View>
+            ) : null}
+            <Button label="İncelemeye Gönder" variant="secondary" onPress={onReview} disabled={issues.length > 0} />
+            </>}
+          </ScrollView>
+
+          <View style={[styles.editorActions, isMobile ? styles.editorActionsMobile : null]}>
+            {confirmation !== null ? <>
+              <Button label="Vazgeç" variant="secondary" onPress={() => setConfirmation(null)} style={styles.editorActionButton} />
+              <Button label={confirmation === 'publish' ? 'Yayınlamayı Onayla' : 'Taslak Olarak Geri Yükle'} onPress={() => { if (confirmation === 'publish') onPublish(); else onRestore(confirmation); setConfirmation(null); }} style={styles.editorActionButton} />
+            </> : <>
+              <Button label="Taslağı Kaydet" variant="secondary" onPress={onSave} disabled={issues.length > 0} style={styles.editorActionButton} />
+              <Button label="Önizleme" variant="secondary" onPress={() => { setHistoricalPreview(null); setTab('preview'); }} style={styles.editorActionButton} />
+              <Button label="Yayınla" onPress={() => setConfirmation('publish')} disabled={issues.length > 0} style={styles.editorActionButton} />
+            </>}
+          </View>
+        </View>
+      </View>
+    </NativeModal>
+  );
+}
+
+function DisableConfirmation({ target, isMobile, onCancel, onConfirm, error }: { target: DisableTarget | null; isMobile: boolean; onCancel: () => void; onConfirm: () => void; error: string }) {
+  if (!target) return null;
+  return (
+    <NativeModal transparent visible animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onCancel}>
+      <View style={[styles.modalOverlay, isMobile ? styles.modalOverlayMobile : null]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Arşivlemekten vazgeç" onPress={onCancel} style={styles.modalBackdrop} />
+        <View style={[styles.confirmCard, isMobile ? styles.confirmCardMobile : null]}>
+          <View style={styles.confirmIcon}>
+            <SymbolView name={warningSymbol} tintColor={studentTokens.orange} size={24} style={styles.confirmSymbol} />
+          </View>
+          <Text style={styles.confirmTitle}>Bu kayıt arşivlensin mi?</Text>
+          <Text style={styles.confirmText}>{target.row.title} yayınlanan katalogdan kaldırılacak. Geçmişi korunacak. Yayındaki içeriklerle ilişkileri varsa işlem engellenebilir.</Text>
+          <View style={styles.confirmMeta}>
+            <Text style={styles.recordMeta}>Tespit edilen ilişkiler: {target.row.referenceCount}</Text>
+            <Text style={styles.recordMeta}>Kayıt türü: {adminLabel(target.collection)}</Text>
+          </View>
+          <View style={styles.confirmActions}>
+            <Button label="Vazgeç" variant="secondary" onPress={onCancel} style={styles.confirmButton} />
+            <Button label="Arşivle" onPress={onConfirm} style={styles.confirmButton} />
+          </View>
+          {error ? <Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text> : null}
+        </View>
+      </View>
+    </NativeModal>
+  );
+}
+
+export function AdminPanel(props: AdminPanelProps) {
+  const read = () => { try { return { state: loadAdminWorkspaceState(), error: '' }; } catch (error) { return { state: null, error: error instanceof Error ? adminMessage(error.message) : 'Yönetim verileri yüklenemedi.' }; } };
+  const [initial, setInitial] = useState(read);
+  if (!initial.state) return <AdminShell {...props} activeModule="dashboard" onModuleChange={() => {}}><EmptyState title="Yönetim verilerine erişilemiyor" text={initial.error} action={<Button label="Yeniden Dene" onPress={() => setInitial(read())} />} /></AdminShell>;
+  return <AdminPanelContent {...props} initialState={initial.state} />;
+}
+
+function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & { initialState: AdminWorkspaceState }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 760;
+  const [state, setState] = useState<AdminWorkspaceState>(initialState);
+  const [activeModule, setActiveModule] = useState<AdminModuleKey>('dashboard');
+  const [collectionByModule, setCollectionByModule] = useState<Partial<Record<AdminModuleKey, AdminMutableCollectionKey>>>(initialCollectionByModule);
+  const [query, setQuery] = useState('');
+  const [questionFilters, setQuestionFilters] = useState<AdminQuestionFilters>(() => defaultQuestionFilters());
+  const [editor, setEditor] = useState<EditorState | null>(null);
+  const [disableTarget, setDisableTarget] = useState<DisableTarget | null>(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  const activeConfig = adminModules.find((module) => module.key === activeModule) ?? adminModules[0];
+  const collections = activeModule === 'dashboard' || activeModule === 'page-builder' ? [] : adminModuleCollections[activeModule as Exclude<AdminModuleKey, 'dashboard'>];
+  const activeCollection = collectionByModule[activeModule] ?? collections?.[0]?.key ?? 'exams';
+  const editorIssues = editor ? validateAdminEntityDraft(editor.collection, editor.draft) : [];
+
+  const commit = (next: AdminWorkspaceState) => {
+    saveAdminWorkspaceState(next, state.workflow?.revision ?? 0);
+    setState(next);
+    setError('');
+  };
+  const attempt = (action: () => void) => { try { action(); } catch (cause) { setError(cause instanceof Error ? adminMessage(cause.message) : 'İşlem tamamlanamadı.'); setMessage(''); } };
+
+  const handleCollectionChange = (collection: AdminMutableCollectionKey) => {
+    setCollectionByModule((current) => ({ ...current, [activeModule]: collection }));
+    setQuery('');
+  };
+
+  const openCreate = (config: AdminCollectionConfig) => {
+    setError(''); setMessage('');
+    setEditor({ mode: 'create', module: activeModule, collection: config.key, config, draft: initialAdminDraft(config.key, undefined, state.catalog) });
+  };
+
+  const openEdit = (row: AdminEntityRow, config: AdminCollectionConfig) => {
+    setError(''); setMessage('');
+    setEditor({ mode: 'edit', module: activeModule, collection: config.key, config, row, draft: initialAdminDraft(config.key, row, state.catalog) });
+  };
+
+  const saveEditor = (status: Exclude<PublicationStatus, 'archived'>) => attempt(() => {
+    if (!editor) return;
+    const next = saveAdminContent(state, editor.module, editor.collection, editor.draft, user, status, editor.row?.id, editor.row?.version ?? 0);
+    commit(next);
+    const id = next.workflow!.audit[0].entityId;
+    const row = listAdminRows(next, editor.collection).find((item) => item.id === id)!;
+    setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
+    setMessage(status === 'published' ? `Sürüm ${row.version} yayınlandı.` : status === 'review' ? `Sürüm ${row.version} incelemeye gönderildi.` : `Taslak sürüm ${row.version} kaydedildi.`);
+  });
+
+  const restoreVersion = (version: number) => attempt(() => {
+    if (!editor?.row) return;
+    const next = restoreAdminVersion(state, editor.collection, editor.row.id, version, user, editor.row.version ?? 0);
+    commit(next);
+    const row = listAdminRows(next, editor.collection).find((item) => item.id === editor.row!.id)!;
+    setEditor({ ...editor, row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
+    setMessage(`Sürüm ${version}, taslak sürüm ${row.version} olarak geri yüklendi.`);
+  });
+
+  const handleDisable = () => attempt(() => {
+    if (!disableTarget) return;
+    commit(archiveAdminEntity(state, disableTarget.collection, disableTarget.row.id, user, disableTarget.row.version ?? 0));
+    setDisableTarget(null);
+    setMessage('İçerik arşivlendi. Sürüm geçmişi korundu.');
+  });
+
+  const moveRow = (row: AdminEntityRow, config: AdminCollectionConfig, direction: 'up' | 'down') => {
+    attempt(() => { commit(reorderAdminEntity(state, activeModule, config.key, row.id, direction, user)); setMessage('Sıralama taslak olarak kaydedildi. Yayındaki kataloğa uygulamak için yayınlayın.'); });
+  };
+
+  const toggleNavigation = (row: AdminEntityRow, config: AdminCollectionConfig) => attempt(() => { commit(toggleAdminNavigationVisibility(state, config.key, row.id, user)); setMessage(`${row.title} menüde ${'isEnabled' in row.raw && row.raw.isEnabled ? 'gösterildi' : 'gizlendi'}.`); });
+
+  const pageBuilder = state.pageBuilder ?? defaultPageBuilderState();
+  const updatePageBuilder = (nextPageBuilder: NonNullable<AdminWorkspaceState['pageBuilder']>) => commit({ ...state, pageBuilder: nextPageBuilder });
+
+  return (
+    <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); }} onLogout={onLogout}>
+      {!editor && error ? <View style={styles.formIssues}><Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text><Button label="Paneli Yeniden Yükle" variant="secondary" onPress={() => attempt(() => { setState(loadAdminWorkspaceState()); setError(''); })} /></View> : null}
+      {!editor && message ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>{message}</Text> : null}
+      {activeModule === 'dashboard' ? (
+        <DashboardView state={state} onQuickAction={(module) => { setActiveModule(module); setQuery(''); }} />
+      ) : activeModule === 'page-builder' ? (
+        <PageBuilderPanel state={pageBuilder} user={user} isMobile={isMobile} onChange={updatePageBuilder} />
+      ) : (
+        <ModuleManager
+          module={activeConfig}
+          state={state}
+          collection={activeCollection}
+          onCollectionChange={handleCollectionChange}
+          query={query}
+          onQueryChange={setQuery}
+          questionFilters={questionFilters}
+          onQuestionFiltersChange={setQuestionFilters}
+          isMobile={isMobile}
+          onCreate={openCreate}
+          onEdit={openEdit}
+          onDisable={(row, config) => setDisableTarget({ module: activeModule, collection: config.key, row })}
+          onToggle={toggleNavigation}
+          onMove={moveRow}
+        />
+      )}
+      {editor ? <AdminEntityEditor editor={editor} issues={editorIssues} isMobile={isMobile} state={state} user={user} message={message} error={error} onChange={(draft) => { setMessage(''); setEditor((current) => current ? { ...current, draft } : current); }} onClose={() => setEditor(null)} onSave={() => saveEditor('draft')} onReview={() => saveEditor('review')} onPublish={() => saveEditor('published')} onRestore={restoreVersion} /> : null}
+      <DisableConfirmation target={disableTarget} isMobile={isMobile} error={error} onCancel={() => setDisableTarget(null)} onConfirm={handleDisable} />
+    </AdminShell>
+  );
+}
+const styles = StyleSheet.create({
+  stack: { gap: 16 },
+  pageHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' },
+  headerCopy: { flex: 1, minWidth: 0 },
+  kicker: { fontFamily: studentFontFamily, color: studentTokens.teal, fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase', marginBottom: 5 },
+  pageTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 28, lineHeight: 35, fontWeight: '700' },
+  pageText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 22, fontWeight: '500', marginTop: 6, maxWidth: 720 },
+  bodyText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 21, fontWeight: '500', flex: 1, minWidth: 0 },
+  mutedText: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 14, lineHeight: 21, fontWeight: '500' },
+  pressed: { opacity: 0.72 },
+  inlineIcon: { width: 18, height: 18 },
+
+  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  metricCard: { flexGrow: 1, flexShrink: 1, flexBasis: 210, minWidth: 210 },
+  metricBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  metricIcon: { width: 42, height: 42, borderRadius: 14, flexShrink: 0 },
+  metricCopy: { flex: 1, minWidth: 0 },
+  metricLabel: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  metricValue: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  metricDetail: { fontFamily: studentFontFamily, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+
+  dashboardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  dashboardPanel: { flexGrow: 1, flexShrink: 1, flexBasis: 440, minWidth: 0, maxWidth: '100%' },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  quickCard: { flexGrow: 1, flexShrink: 1, flexBasis: 210, minWidth: 180, minHeight: 98, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.lineSoft, backgroundColor: studentTokens.neutral, padding: 14, justifyContent: 'center' },
+  quickTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  quickText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 18, fontWeight: '500', marginTop: 5 },
+  changeList: { gap: 11 },
+  changeRow: { minHeight: 48, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  changeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: studentTokens.yellow, marginTop: 6 },
+  changeCopy: { flex: 1, minWidth: 0 },
+  changeTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  changeText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 18, fontWeight: '500', marginTop: 2 },
+  changeDate: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 11, lineHeight: 16, maxWidth: 95, flexShrink: 1 },
+  validationOk: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, backgroundColor: studentTokens.tealSoft, padding: 13 },
+  validationList: { gap: 10 },
+  validationIssue: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderRadius: 13, backgroundColor: studentTokens.yellowSoft, padding: 11 },
+  validationCard: { borderColor: '#f3dfa3', backgroundColor: '#fffdf6' },
+
+  collectionTabs: { gap: 9, paddingVertical: 2, paddingRight: 6 },
+  collectionTab: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.surface, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+  collectionTabActive: { backgroundColor: studentTokens.navy, borderColor: studentTokens.navy },
+  collectionTabText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  collectionTabTextActive: { color: '#ffffff' },
+
+  filterCard: { backgroundColor: '#ffffff' },
+  filterCardBody: { gap: 12 },
+  filterHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  filterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  filterButton: { minHeight: 58, flexGrow: 1, flexShrink: 1, flexBasis: 154, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, paddingHorizontal: 14, justifyContent: 'center' },
+  filterLabel: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 11, lineHeight: 15, fontWeight: '700' },
+  filterValue: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 14, lineHeight: 20, fontWeight: '700', marginTop: 2 },
+
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
+  actionIcon: { width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: studentTokens.lineSoft, backgroundColor: studentTokens.surface, alignItems: 'center', justifyContent: 'center' },
+  actionDisabled: { backgroundColor: studentTokens.neutral, opacity: 0.5 },
+  actionSymbol: { width: 15, height: 15 },
+
+  mobileList: { gap: 12 },
+  mobileRecordCard: { padding: 15 },
+  mobileRecordBody: { gap: 12 },
+  mobileRecordTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  recordTitleWrap: { flex: 1, minWidth: 0 },
+  recordTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  recordSlug: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 17, fontWeight: '600', marginTop: 2 },
+  recordDescription: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 13, lineHeight: 19, fontWeight: '500' },
+  recordMetaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  recordMeta: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 17, fontWeight: '600' },
+
+  tableScrollContent: { paddingBottom: 6 },
+  table: { minWidth: 980, width: '100%', borderRadius: 16, borderWidth: 1, borderColor: studentTokens.lineSoft, overflow: 'hidden', backgroundColor: studentTokens.surface },
+  tableRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: studentTokens.lineSoft },
+  tableHead: { minHeight: 44, backgroundColor: studentTokens.neutral },
+  tableHeadText: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase' },
+  colTitle: { width: 220, minWidth: 220 },
+  colStatus: { width: 116, minWidth: 116 },
+  colRelation: { width: 260, minWidth: 260 },
+  colSmall: { width: 84, minWidth: 84 },
+  colDate: { width: 92, minWidth: 92 },
+  colActions: { width: 212, minWidth: 212 },
+
+  managerCard: { backgroundColor: studentTokens.surface },
+  managerBody: { gap: 14 },
+  managerToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  searchBox: { minHeight: 48, flexGrow: 1, flexShrink: 1, flexBasis: 260, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, justifyContent: 'center' },
+  searchInput: { fontFamily: studentFontFamily, minHeight: 46, paddingHorizontal: 14, color: studentTokens.ink, fontSize: 14, lineHeight: 20, fontWeight: '500', outlineStyle: 'none' as never },
+  toolbarMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  collectionDescription: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 13, lineHeight: 19, fontWeight: '500' },
+  createButton: { minWidth: 170 },
+
+  formGroup: { gap: 7, minWidth: 0, flexGrow: 1, flexShrink: 1 },
+  videoSourceSection: { gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: '#f7fbfc' },
+  uploadButton: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: studentTokens.teal, backgroundColor: '#eaf7f5', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  uploadButtonDisabled: { opacity: 0.55 },
+  uploadButtonText: { fontFamily: studentFontFamily, color: studentTokens.navy, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  formHelper: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 18, fontWeight: '500', marginTop: 3 },
+  formLabel: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  optionPill: { minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.surface, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  optionPillActive: { backgroundColor: studentTokens.navy, borderColor: studentTokens.navy },
+  optionText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  optionTextActive: { color: '#ffffff' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(20, 22, 35, 0.5)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalOverlayMobile: { justifyContent: 'flex-end', padding: 0 },
+  modalBackdrop: { ...StyleSheet.absoluteFill },
+  editorCard: { width: '100%', maxWidth: 800, height: '90%', maxHeight: '90%', borderRadius: 8, backgroundColor: studentTokens.surface, overflow: 'hidden', shadowColor: '#000000', shadowOpacity: 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+  editorCardMobile: { maxWidth: '100%', maxHeight: '92%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  editorHead: { minHeight: 78, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: studentTokens.lineSoft },
+  editorTitleGroup: { flex: 1, minWidth: 0 },
+  editorTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: studentTokens.neutral, alignItems: 'center', justifyContent: 'center' },
+  closeText: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 22, lineHeight: 24, fontWeight: '700' },
+  editorScroll: { flex: 1 },
+  editorContent: { padding: 18, gap: 15 },
+  formGrid: { flexDirection: 'row', gap: 12 },
+  formGridMobile: { flexDirection: 'column' },
+  formInput: { fontFamily: studentFontFamily, flex: 1, minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, paddingHorizontal: 13, color: studentTokens.ink, fontSize: 14, lineHeight: 20, fontWeight: '500', outlineStyle: 'none' as never },
+  textArea: { minHeight: 92, paddingTop: 12, textAlignVertical: 'top' },
+  switchRow: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  switchRowActive: { borderColor: '#c7e8e3', backgroundColor: studentTokens.tealSoft },
+  switchDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.surface },
+  switchDotActive: { backgroundColor: studentTokens.teal, borderColor: studentTokens.teal },
+  switchText: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  formIssues: { borderRadius: 14, backgroundColor: studentTokens.dangerSoft, borderWidth: 1, borderColor: '#ffd0cb', padding: 12, gap: 5 },
+  formIssueText: { fontFamily: studentFontFamily, color: studentTokens.danger, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  editorActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, padding: 14, borderTopWidth: 1, borderTopColor: studentTokens.lineSoft, backgroundColor: studentTokens.surface },
+  editorActionsMobile: { paddingHorizontal: 12, paddingBottom: 20 },
+  editorActionButton: { flexGrow: 1, flexBasis: 110, minHeight: 44 },
+  editorTabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  editorTab: { flex: 1, minHeight: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: studentTokens.neutral },
+  confirmCard: { width: '100%', maxWidth: 460, borderRadius: 22, backgroundColor: studentTokens.surface, padding: 20, alignItems: 'flex-start', gap: 12, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+  confirmCardMobile: { maxWidth: '100%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  confirmIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: studentTokens.yellowSoft, alignItems: 'center', justifyContent: 'center' },
+  confirmSymbol: { width: 24, height: 24 },
+  confirmTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  confirmText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 22, fontWeight: '500' },
+  confirmMeta: { width: '100%', borderRadius: 14, backgroundColor: studentTokens.neutral, borderWidth: 1, borderColor: studentTokens.lineSoft, padding: 12, gap: 4 },
+  confirmActions: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
+  confirmButton: { minWidth: 132 },
+});

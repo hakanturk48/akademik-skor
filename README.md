@@ -54,3 +54,22 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Web yayınlama
+
+Bu proje GitHub Pages için Expo Router'ın static web export çıktısını kullanır. `main` dalına yapılan her push, `.github/workflows/deploy-pages.yml` workflow'u ile otomatik olarak yayınlanır.
+
+Yerel production export:
+
+```bash
+npm ci
+npm run lint
+npx tsc --noEmit
+EXPO_BASE_URL=akademik-skor npx expo export --platform web
+```
+
+GitHub repository ayarlarında **Settings > Pages > Build and deployment > Source** değeri **GitHub Actions** olmalıdır. Repository Pages adresi:
+
+`https://hakanturk48.github.io/akademik-skor/`
+
+GitHub Pages yalnızca statik frontend önizlemesidir. Gerçek kullanıcı doğrulama, admin rol kontrolü, merkezi içerik verisi ve medya storage sonraki backend aşamasında kurulacaktır.

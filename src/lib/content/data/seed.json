@@ -1,0 +1,1709 @@
+{
+  "exams": [
+    {
+      "id": "exam-toefl",
+      "slug": "toefl",
+      "title": "TOEFL",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "description": "TOEFL iBT preparation catalog.",
+      "familySlug": "toefl"
+    }
+  ],
+  "examVersions": [
+    {
+      "id": "version-toefl-current",
+      "slug": "toefl-current",
+      "title": "TOEFL Current",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "description": "Current TOEFL iBT structure.",
+      "examId": "exam-toefl",
+      "versionCode": "current",
+      "effectiveFrom": "2025-01-01"
+    }
+  ],
+  "skills": [
+    {
+      "id": "skill-reading",
+      "slug": "reading",
+      "title": "Reading",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "R",
+      "colorToken": "blue",
+      "iconToken": "book-open"
+    },
+    {
+      "id": "skill-listening",
+      "slug": "listening",
+      "title": "Listening",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "L",
+      "colorToken": "green",
+      "iconToken": "headphones"
+    },
+    {
+      "id": "skill-speaking",
+      "slug": "speaking",
+      "title": "Speaking",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "S",
+      "colorToken": "purple",
+      "iconToken": "mic"
+    },
+    {
+      "id": "skill-writing",
+      "slug": "writing",
+      "title": "Writing",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "W",
+      "colorToken": "orange",
+      "iconToken": "pencil"
+    },
+    {
+      "id": "skill-vocabulary",
+      "slug": "vocabulary",
+      "title": "Vocabulary",
+      "status": "active",
+      "sortOrder": 50,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "V",
+      "colorToken": "navy",
+      "iconToken": "type"
+    },
+    {
+      "id": "skill-grammar",
+      "slug": "grammar",
+      "title": "Grammar",
+      "status": "active",
+      "sortOrder": 60,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "shortCode": "G",
+      "colorToken": "amber",
+      "iconToken": "target"
+    }
+  ],
+  "taskTypes": [
+    {
+      "id": "task-reading-passage",
+      "slug": "reading-passage",
+      "title": "Reading Passage",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-reading"
+    },
+    {
+      "id": "task-academic-talk",
+      "slug": "academic-talk",
+      "title": "Academic Talk",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-listening"
+    },
+    {
+      "id": "task-independent-speaking",
+      "slug": "independent-speaking",
+      "title": "Independent Speaking",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-speaking"
+    },
+    {
+      "id": "task-integrated-writing",
+      "slug": "integrated-writing",
+      "title": "Integrated Writing",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-writing"
+    },
+    {
+      "id": "task-vocabulary-review",
+      "slug": "vocabulary-review",
+      "title": "Vocabulary Review",
+      "status": "active",
+      "sortOrder": 50,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-vocabulary"
+    },
+    {
+      "id": "task-grammar-practice",
+      "slug": "grammar-practice",
+      "title": "Grammar Practice",
+      "status": "active",
+      "sortOrder": 60,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-grammar"
+    },
+    {
+      "id": "task-full-mock",
+      "slug": "full-mock",
+      "title": "Full Mock",
+      "status": "active",
+      "sortOrder": 70,
+      "visibility": "authenticated",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-reading"
+    }
+  ],
+  "subskills": [
+    {
+      "id": "sub-main-idea",
+      "slug": "main-idea",
+      "title": "Main Idea",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-listening",
+      "taskTypeIds": [
+        "task-academic-talk",
+        "task-reading-passage"
+      ]
+    },
+    {
+      "id": "sub-detail",
+      "slug": "detail",
+      "title": "Detail",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-listening",
+      "taskTypeIds": [
+        "task-academic-talk"
+      ]
+    },
+    {
+      "id": "sub-inference",
+      "slug": "inference",
+      "title": "Inference",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-reading",
+      "taskTypeIds": [
+        "task-reading-passage"
+      ]
+    },
+    {
+      "id": "sub-fluency-coherence",
+      "slug": "fluency-coherence",
+      "title": "Fluency & Coherence",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-speaking",
+      "taskTypeIds": [
+        "task-independent-speaking"
+      ]
+    },
+    {
+      "id": "sub-organization",
+      "slug": "organization",
+      "title": "Organization",
+      "status": "active",
+      "sortOrder": 50,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-writing",
+      "taskTypeIds": [
+        "task-integrated-writing"
+      ]
+    },
+    {
+      "id": "sub-academic-collocations",
+      "slug": "academic-collocations",
+      "title": "Academic Collocations",
+      "status": "active",
+      "sortOrder": 60,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-vocabulary",
+      "taskTypeIds": [
+        "task-vocabulary-review"
+      ]
+    },
+    {
+      "id": "sub-complex-clauses",
+      "slug": "complex-clauses",
+      "title": "Complex Clauses",
+      "status": "active",
+      "sortOrder": 70,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-grammar",
+      "taskTypeIds": [
+        "task-grammar-practice"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "topic-biology",
+      "slug": "biology",
+      "title": "Biology",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-listening",
+        "skill-reading"
+      ]
+    },
+    {
+      "id": "topic-campus-life",
+      "slug": "campus-life",
+      "title": "Campus Life",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-listening",
+        "skill-speaking"
+      ]
+    },
+    {
+      "id": "topic-urban-transportation",
+      "slug": "urban-transportation",
+      "title": "Urban Transportation",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-reading",
+        "skill-writing"
+      ]
+    },
+    {
+      "id": "topic-sleep-science",
+      "slug": "sleep-science",
+      "title": "Sleep Science",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-reading"
+      ]
+    },
+    {
+      "id": "topic-academic-language",
+      "slug": "academic-language",
+      "title": "Academic Language",
+      "status": "active",
+      "sortOrder": 50,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-vocabulary"
+      ]
+    },
+    {
+      "id": "topic-grammar-clauses",
+      "slug": "grammar-clauses",
+      "title": "Grammar Clauses",
+      "status": "active",
+      "sortOrder": 60,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillIds": [
+        "skill-grammar"
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "id": "level-foundation",
+      "slug": "foundation",
+      "title": "Foundation",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "scale": "platform",
+      "rank": 1
+    },
+    {
+      "id": "level-intermediate",
+      "slug": "intermediate",
+      "title": "Intermediate",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "scale": "platform",
+      "rank": 2
+    },
+    {
+      "id": "level-advanced",
+      "slug": "advanced",
+      "title": "Advanced",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "scale": "platform",
+      "rank": 3
+    }
+  ],
+  "contentTypes": [
+    {
+      "id": "ctype-course",
+      "slug": "course",
+      "title": "Course",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "courses"
+    },
+    {
+      "id": "ctype-module",
+      "slug": "module",
+      "title": "Module",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "modules"
+    },
+    {
+      "id": "ctype-video-lesson",
+      "slug": "video-lesson",
+      "title": "Video Lesson",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "lessons"
+    },
+    {
+      "id": "ctype-practice-set",
+      "slug": "practice-set",
+      "title": "Practice Set",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "practiceSets"
+    },
+    {
+      "id": "ctype-question",
+      "slug": "question",
+      "title": "Question",
+      "status": "active",
+      "sortOrder": 45,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "questions"
+    },
+    {
+      "id": "ctype-mini-test",
+      "slug": "mini-test",
+      "title": "Mini Test",
+      "status": "active",
+      "sortOrder": 50,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "tests"
+    },
+    {
+      "id": "ctype-mock-test",
+      "slug": "mock-test",
+      "title": "Mock Test",
+      "status": "active",
+      "sortOrder": 60,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "tests"
+    },
+    {
+      "id": "ctype-vocabulary-set",
+      "slug": "vocabulary-set",
+      "title": "Vocabulary Set",
+      "status": "active",
+      "sortOrder": 70,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "vocabularySets"
+    },
+    {
+      "id": "ctype-grammar-lesson",
+      "slug": "grammar-lesson",
+      "title": "Grammar Lesson",
+      "status": "active",
+      "sortOrder": 80,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "grammarLessons"
+    },
+    {
+      "id": "ctype-speaking-task",
+      "slug": "speaking-task",
+      "title": "Speaking Task",
+      "status": "active",
+      "sortOrder": 90,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "speakingTasks"
+    },
+    {
+      "id": "ctype-writing-task",
+      "slug": "writing-task",
+      "title": "Writing Task",
+      "status": "active",
+      "sortOrder": 100,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "collection": "writingTasks"
+    }
+  ],
+  "contentTags": [
+    {
+      "id": "tag-high-yield",
+      "slug": "high-yield",
+      "title": "High Yield",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "groupSlug": "pedagogy"
+    },
+    {
+      "id": "tag-free-preview",
+      "slug": "free-preview",
+      "title": "Free Preview",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "groupSlug": "access"
+    },
+    {
+      "id": "tag-timed",
+      "slug": "timed",
+      "title": "Timed",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "groupSlug": "mode"
+    },
+    {
+      "id": "tag-review",
+      "slug": "review",
+      "title": "Review",
+      "status": "active",
+      "sortOrder": 40,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "groupSlug": "mode"
+    }
+  ],
+  "courses": [
+    {
+      "id": "course-academic-listening",
+      "slug": "academic-listening",
+      "title": "Academic Listening",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "description": "Structured listening course for academic talks.",
+      "examVersionId": "version-toefl-current",
+      "primarySkillId": "skill-listening",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-course",
+        "tagIds": [
+          "tag-high-yield"
+        ]
+      },
+      "moduleIds": [
+        "module-listening-foundations"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "module-listening-foundations",
+      "slug": "listening-foundations",
+      "title": "Listening Foundations",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "courseId": "course-academic-listening",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-module",
+        "tagIds": [
+          "tag-high-yield"
+        ]
+      },
+      "lessonIds": [
+        "lesson-listening-note-map",
+        "lesson-listening-archived-outline"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "lesson-listening-note-map",
+      "slug": "listening-note-map-lecture",
+      "title": "Lecture 03: Note Taking",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "description": "Note-map strategy for academic talks.",
+      "courseId": "course-academic-listening",
+      "moduleId": "module-listening-foundations",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-video-lesson",
+        "tagIds": [
+          "tag-high-yield",
+          "tag-free-preview"
+        ]
+      },
+      "durationSeconds": 2060,
+      "estimatedMinutes": 34,
+      "mediaUrl": "demo://videos/listening-note-map",
+      "transcriptId": "transcript-listening-note-map"
+    },
+    {
+      "id": "lesson-listening-archived-outline",
+      "slug": "archived-outline-lecture",
+      "title": "Archived Outline Lecture",
+      "status": "inactive",
+      "sortOrder": 90,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "courseId": "course-academic-listening",
+      "moduleId": "module-listening-foundations",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-detail"
+        ],
+        "topicIds": [
+          "topic-campus-life"
+        ],
+        "levelId": "level-foundation",
+        "contentTypeId": "ctype-video-lesson",
+        "tagIds": [
+          "tag-review"
+        ]
+      },
+      "durationSeconds": 900,
+      "estimatedMinutes": 15,
+      "mediaUrl": "demo://videos/archived-outline"
+    }
+  ],
+  "vocabularySets": [
+    {
+      "id": "vocab-set-academic-collocations",
+      "slug": "academic-collocations-set-08",
+      "title": "Academic Collocations 08",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-vocabulary",
+        "taskTypeId": "task-vocabulary-review",
+        "subskillIds": [
+          "sub-academic-collocations"
+        ],
+        "topicIds": [
+          "topic-academic-language"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-vocabulary-set",
+        "tagIds": [
+          "tag-review"
+        ]
+      },
+      "wordIds": [
+        "word-ubiquitous",
+        "word-mitigate"
+      ],
+      "targetLevelId": "level-intermediate"
+    }
+  ],
+  "vocabularyWords": [
+    {
+      "id": "word-ubiquitous",
+      "slug": "ubiquitous",
+      "title": "ubiquitous",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "setId": "vocab-set-academic-collocations",
+      "term": "ubiquitous",
+      "meaning": "present or found everywhere",
+      "partOfSpeech": "adjective",
+      "example": "Digital tools are ubiquitous in modern education.",
+      "levelId": "level-intermediate",
+      "tagIds": [
+        "tag-high-yield"
+      ]
+    },
+    {
+      "id": "word-mitigate",
+      "slug": "mitigate",
+      "title": "mitigate",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "setId": "vocab-set-academic-collocations",
+      "term": "mitigate",
+      "meaning": "to make less severe",
+      "partOfSpeech": "verb",
+      "example": "Planning can mitigate traffic congestion.",
+      "levelId": "level-intermediate",
+      "tagIds": [
+        "tag-review"
+      ]
+    }
+  ],
+  "vocabularyProgress": [
+    {
+      "id": "vocab-progress-demo-ubiquitous",
+      "slug": "demo-ubiquitous-progress",
+      "title": "Demo ubiquitous progress",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "wordId": "word-ubiquitous",
+      "masteryPercent": 78,
+      "reviewDueAt": "2026-09-05T00:00:00.000Z",
+      "lastReviewedAt": "2026-09-03T00:00:00.000Z"
+    }
+  ],
+  "grammarCategories": [
+    {
+      "id": "grammar-category-clauses",
+      "slug": "academic-clauses",
+      "title": "Academic Clauses",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "skillId": "skill-grammar",
+      "topicIds": [
+        "grammar-topic-complex-clauses"
+      ]
+    }
+  ],
+  "grammarTopics": [
+    {
+      "id": "grammar-topic-complex-clauses",
+      "slug": "complex-sentences-academic-clauses",
+      "title": "Complex Sentences & Academic Clauses",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "grammar-category-clauses",
+      "levelId": "level-advanced",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-grammar",
+        "taskTypeId": "task-grammar-practice",
+        "subskillIds": [
+          "sub-complex-clauses"
+        ],
+        "topicIds": [
+          "topic-grammar-clauses"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-grammar-lesson",
+        "tagIds": [
+          "tag-high-yield"
+        ]
+      },
+      "lessonIds": [
+        "grammar-lesson-complex-clauses"
+      ]
+    }
+  ],
+  "grammarLessons": [
+    {
+      "id": "grammar-lesson-complex-clauses",
+      "slug": "complex-clauses-review",
+      "title": "Complex Clauses Review",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "topicId": "grammar-topic-complex-clauses",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-grammar",
+        "taskTypeId": "task-grammar-practice",
+        "subskillIds": [
+          "sub-complex-clauses"
+        ],
+        "topicIds": [
+          "topic-grammar-clauses"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-grammar-lesson",
+        "tagIds": [
+          "tag-review"
+        ]
+      },
+      "estimatedMinutes": 12,
+      "practiceSetIds": [
+        "practice-grammar-clauses-01"
+      ]
+    }
+  ],
+  "grammarProgress": [
+    {
+      "id": "grammar-progress-demo-clauses",
+      "slug": "demo-complex-clauses-progress",
+      "title": "Demo complex clauses progress",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "grammarTopicId": "grammar-topic-complex-clauses",
+      "masteryPercent": 68,
+      "completedLessonIds": [
+        "grammar-lesson-complex-clauses"
+      ]
+    }
+  ],
+  "practiceSets": [
+    {
+      "id": "practice-listening-note-map-01",
+      "slug": "note-map-main-idea-practice",
+      "title": "Note Map Main Idea Practice",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-practice-set",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "questionIds": [
+        "question-listening-main-idea"
+      ],
+      "estimatedMinutes": 10,
+      "timeLimitSeconds": 600
+    },
+    {
+      "id": "practice-grammar-clauses-01",
+      "slug": "complex-clauses-check",
+      "title": "Complex Clauses Check",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-grammar",
+        "taskTypeId": "task-grammar-practice",
+        "subskillIds": [
+          "sub-complex-clauses"
+        ],
+        "topicIds": [
+          "topic-grammar-clauses"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-practice-set",
+        "tagIds": [
+          "tag-review"
+        ]
+      },
+      "questionIds": [
+        "question-grammar-transition"
+      ],
+      "estimatedMinutes": 8,
+      "timeLimitSeconds": 480
+    }
+  ],
+  "questions": [
+    {
+      "id": "question-listening-main-idea",
+      "slug": "listening-main-idea-campus-facilities",
+      "title": "Main idea question",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-question",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "prompt": "What is the lecture mainly about?",
+      "stimulus": "A professor explains how students can identify the main point of an academic talk.",
+      "optionIds": [
+        "option-listening-main-idea-a",
+        "option-listening-main-idea-b",
+        "option-listening-main-idea-c"
+      ],
+      "correctOptionId": "option-listening-main-idea-b",
+      "explanation": "The correct answer captures the central purpose rather than one detail."
+    },
+    {
+      "id": "question-reading-inference",
+      "slug": "reading-inference-green-infrastructure",
+      "title": "Inference question",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-reading",
+        "taskTypeId": "task-reading-passage",
+        "subskillIds": [
+          "sub-inference"
+        ],
+        "topicIds": [
+          "topic-urban-transportation"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-question",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "prompt": "What can be inferred about recent planning strategies?",
+      "stimulus": "Urban planners increasingly connect environmental and social goals.",
+      "optionIds": [
+        "option-reading-inference-a",
+        "option-reading-inference-b",
+        "option-reading-inference-c"
+      ],
+      "correctOptionId": "option-reading-inference-b",
+      "explanation": "The passage implies that newer strategies combine several objectives."
+    },
+    {
+      "id": "question-grammar-transition",
+      "slug": "grammar-transition-nevertheless",
+      "title": "Transition question",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-grammar",
+        "taskTypeId": "task-grammar-practice",
+        "subskillIds": [
+          "sub-complex-clauses"
+        ],
+        "topicIds": [
+          "topic-grammar-clauses"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-question",
+        "tagIds": [
+          "tag-review"
+        ]
+      },
+      "prompt": "Choose the best transition: The study was limited. __, the findings remain valuable.",
+      "optionIds": [
+        "option-grammar-a",
+        "option-grammar-b",
+        "option-grammar-c"
+      ],
+      "correctOptionId": "option-grammar-b",
+      "explanation": "Nevertheless introduces contrast."
+    }
+  ],
+  "questionOptions": [
+    {
+      "id": "option-listening-main-idea-a",
+      "slug": "listening-main-idea-a",
+      "title": "Option A",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-listening-main-idea",
+      "optionKey": "A",
+      "body": "A minor example from the lecture.",
+      "isCorrect": false
+    },
+    {
+      "id": "option-listening-main-idea-b",
+      "slug": "listening-main-idea-b",
+      "title": "Option B",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-listening-main-idea",
+      "optionKey": "B",
+      "body": "How to identify and record a lecture central idea.",
+      "isCorrect": true
+    },
+    {
+      "id": "option-listening-main-idea-c",
+      "slug": "listening-main-idea-c",
+      "title": "Option C",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-listening-main-idea",
+      "optionKey": "C",
+      "body": "A list of unrelated note symbols.",
+      "isCorrect": false
+    },
+    {
+      "id": "option-reading-inference-a",
+      "slug": "reading-inference-a",
+      "title": "Option A",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-reading-inference",
+      "optionKey": "A",
+      "body": "They focus only on visual improvements.",
+      "isCorrect": false
+    },
+    {
+      "id": "option-reading-inference-b",
+      "slug": "reading-inference-b",
+      "title": "Option B",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-reading-inference",
+      "optionKey": "B",
+      "body": "They combine environmental and social objectives.",
+      "isCorrect": true
+    },
+    {
+      "id": "option-reading-inference-c",
+      "slug": "reading-inference-c",
+      "title": "Option C",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-reading-inference",
+      "optionKey": "C",
+      "body": "They avoid community participation.",
+      "isCorrect": false
+    },
+    {
+      "id": "option-grammar-a",
+      "slug": "grammar-transition-a",
+      "title": "Option A",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-grammar-transition",
+      "optionKey": "A",
+      "body": "Therefore",
+      "isCorrect": false
+    },
+    {
+      "id": "option-grammar-b",
+      "slug": "grammar-transition-b",
+      "title": "Option B",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-grammar-transition",
+      "optionKey": "B",
+      "body": "Nevertheless",
+      "isCorrect": true
+    },
+    {
+      "id": "option-grammar-c",
+      "slug": "grammar-transition-c",
+      "title": "Option C",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "questionId": "question-grammar-transition",
+      "optionKey": "C",
+      "body": "In addition",
+      "isCorrect": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "test-mini-listening-note-map",
+      "slug": "listening-note-map-mini-test",
+      "title": "Listening Note Map Mini Test",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-listening",
+        "taskTypeId": "task-academic-talk",
+        "subskillIds": [
+          "sub-main-idea"
+        ],
+        "topicIds": [
+          "topic-biology"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-mini-test",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "sectionIds": [
+        "section-mini-listening"
+      ],
+      "totalMinutes": 12,
+      "totalQuestions": 1
+    },
+    {
+      "id": "test-mock-03",
+      "slug": "mock-test-03",
+      "title": "Mock Test 03",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-reading",
+        "taskTypeId": "task-full-mock",
+        "subskillIds": [
+          "sub-inference"
+        ],
+        "topicIds": [
+          "topic-urban-transportation"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-mock-test",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "sectionIds": [
+        "section-mock-reading"
+      ],
+      "totalMinutes": 120,
+      "totalQuestions": 100
+    }
+  ],
+  "testSections": [
+    {
+      "id": "section-mini-listening",
+      "slug": "mini-listening-section",
+      "title": "Listening Section",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "testId": "test-mini-listening-note-map",
+      "skillId": "skill-listening",
+      "taskTypeId": "task-academic-talk",
+      "questionIds": [
+        "question-listening-main-idea"
+      ],
+      "timeLimitSeconds": 720
+    },
+    {
+      "id": "section-mock-reading",
+      "slug": "mock-reading-section",
+      "title": "Reading Section",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "authenticated",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "testId": "test-mock-03",
+      "skillId": "skill-reading",
+      "taskTypeId": "task-reading-passage",
+      "questionIds": [
+        "question-reading-inference"
+      ],
+      "timeLimitSeconds": 2160
+    }
+  ],
+  "attempts": [
+    {
+      "id": "attempt-demo-mock-03",
+      "slug": "demo-mock-03-attempt",
+      "title": "Demo Mock 03 Attempt",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "testId": "test-mock-03",
+      "startedAt": "2026-05-30T09:00:00.000Z",
+      "submittedAt": "2026-05-30T10:53:00.000Z",
+      "score": 94,
+      "answerIds": [
+        "answer-demo-reading-inference"
+      ]
+    }
+  ],
+  "answers": [
+    {
+      "id": "answer-demo-reading-inference",
+      "slug": "demo-reading-inference-answer",
+      "title": "Demo reading inference answer",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "attemptId": "attempt-demo-mock-03",
+      "questionId": "question-reading-inference",
+      "selectedOptionId": "option-reading-inference-b",
+      "isCorrect": true,
+      "score": 1
+    }
+  ],
+  "speakingTasks": [
+    {
+      "id": "speaking-independent-role-models",
+      "slug": "independent-role-models-task",
+      "title": "Independent Speaking Task 2",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-speaking",
+        "taskTypeId": "task-independent-speaking",
+        "subskillIds": [
+          "sub-fluency-coherence"
+        ],
+        "topicIds": [
+          "topic-campus-life"
+        ],
+        "levelId": "level-intermediate",
+        "contentTypeId": "ctype-speaking-task",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "prompt": "Do you agree that celebrities are good role models for young people?",
+      "preparationSeconds": 60,
+      "responseSeconds": 120,
+      "rubricTagIds": [
+        "tag-high-yield"
+      ]
+    }
+  ],
+  "speakingAttempts": [
+    {
+      "id": "speaking-attempt-demo-role-models",
+      "slug": "demo-role-models-speaking-attempt",
+      "title": "Demo speaking attempt",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "speakingTaskId": "speaking-independent-role-models",
+      "startedAt": "2026-05-30T09:45:00.000Z",
+      "submittedAt": "2026-05-30T09:47:00.000Z",
+      "audioUrl": "demo://audio/role-models",
+      "score": 7.5,
+      "feedback": "Fluency and pronunciation improved."
+    }
+  ],
+  "writingTasks": [
+    {
+      "id": "writing-integrated-remote-work",
+      "slug": "integrated-remote-work-transportation",
+      "title": "Integrated Writing: Remote Work",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examId": "exam-toefl",
+        "examVersionId": "version-toefl-current",
+        "skillId": "skill-writing",
+        "taskTypeId": "task-integrated-writing",
+        "subskillIds": [
+          "sub-organization"
+        ],
+        "topicIds": [
+          "topic-urban-transportation"
+        ],
+        "levelId": "level-advanced",
+        "contentTypeId": "ctype-writing-task",
+        "tagIds": [
+          "tag-timed"
+        ]
+      },
+      "prompt": "Summarize how the lecture responds to the reading about remote work and transportation.",
+      "stimulusIds": [
+        "stimulus-reading-remote-work",
+        "stimulus-listening-urban-planning"
+      ],
+      "minWords": 150,
+      "maxWords": 225,
+      "timeLimitSeconds": 1200,
+      "rubricTagIds": [
+        "tag-high-yield"
+      ]
+    }
+  ],
+  "writingSubmissions": [
+    {
+      "id": "writing-submission-demo-remote-work",
+      "slug": "demo-remote-work-writing-submission",
+      "title": "Demo writing submission",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "writingTaskId": "writing-integrated-remote-work",
+      "submittedAt": "2026-05-29T08:45:00.000Z",
+      "wordCount": 278,
+      "score": 4,
+      "body": "The reading says remote work affected commuting, while the lecture adds planning strategies.",
+      "feedback": "Clear organization; add more precise lecture detail."
+    }
+  ],
+  "contentProgress": [
+    {
+      "id": "content-progress-demo-note-map",
+      "slug": "demo-note-map-progress",
+      "title": "Demo note map progress",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "contentTypeId": "ctype-video-lesson",
+      "contentId": "lesson-listening-note-map",
+      "startedAt": "2026-05-26T09:00:00.000Z",
+      "progressPercent": 43,
+      "lastPositionSeconds": 520
+    }
+  ],
+  "studyPlans": [
+    {
+      "id": "study-plan-demo",
+      "slug": "demo-study-plan",
+      "title": "Demo Study Plan",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "userId": "demo-user",
+      "examVersionId": "version-toefl-current",
+      "targetScore": 105,
+      "targetDate": "2026-08-20",
+      "taskIds": [
+        "study-plan-task-note-map",
+        "study-plan-task-speaking"
+      ]
+    }
+  ],
+  "studyPlanTasks": [
+    {
+      "id": "study-plan-task-note-map",
+      "slug": "demo-note-map-study-task",
+      "title": "Lecture 03 - Note Taking",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "studyPlanId": "study-plan-demo",
+      "contentTypeId": "ctype-video-lesson",
+      "contentId": "lesson-listening-note-map",
+      "skillId": "skill-listening",
+      "scheduledFor": "2026-06-03",
+      "estimatedMinutes": 25
+    },
+    {
+      "id": "study-plan-task-speaking",
+      "slug": "demo-speaking-study-task",
+      "title": "Speaking Task 02",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "studyPlanId": "study-plan-demo",
+      "contentTypeId": "ctype-speaking-task",
+      "contentId": "speaking-independent-role-models",
+      "skillId": "skill-speaking",
+      "scheduledFor": "2026-06-05",
+      "estimatedMinutes": 15
+    }
+  ],
+  "entitlements": [
+    {
+      "id": "ent-free-video-preview",
+      "slug": "free-video-preview",
+      "title": "Free video preview",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "planKey": "free",
+      "featureKey": "video.previewMinutes",
+      "limit": 5,
+      "enabled": true
+    },
+    {
+      "id": "ent-premium-video-full-access",
+      "slug": "premium-video-full-access",
+      "title": "Premium video full access",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "private",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "planKey": "premium",
+      "featureKey": "video.fullAccess",
+      "enabled": true
+    },
+    {
+      "id": "ent-premium-mock-tests",
+      "slug": "premium-mock-tests",
+      "title": "Premium mock tests",
+      "status": "active",
+      "sortOrder": 30,
+      "visibility": "private",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "planKey": "premium",
+      "featureKey": "tests.fullMockAccess",
+      "enabled": true
+    }
+  ],
+  "featureConfigs": [
+    {
+      "id": "feature-free-video-preview",
+      "slug": "free-video-preview-config",
+      "title": "Free video preview config",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "private",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "featureKey": "video.previewMinutes",
+      "planKey": "free",
+      "enabled": true,
+      "limit": 5,
+      "metadata": {
+        "unit": "minutes"
+      }
+    },
+    {
+      "id": "feature-premium-content-access",
+      "slug": "premium-content-access-config",
+      "title": "Premium content access config",
+      "status": "active",
+      "sortOrder": 20,
+      "visibility": "private",
+      "isPremium": true,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "featureKey": "content.fullAccess",
+      "planKey": "premium",
+      "enabled": true,
+      "metadata": {
+        "includesPractice": true,
+        "includesMockTests": true
+      }
+    }
+  ]
+}

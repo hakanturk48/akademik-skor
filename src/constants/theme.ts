@@ -7,6 +7,8 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const appFontFamily = 'Quicksand';
+
 export const Colors = {
   light: {
     text: '#000000',
@@ -29,7 +31,7 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
+    sans: appFontFamily,
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
     /** iOS `UIFontDescriptorSystemDesignRounded` */
@@ -38,7 +40,7 @@ export const Fonts = Platform.select({
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: appFontFamily,
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',

@@ -1,0 +1,1267 @@
+{
+  "practiceTypes": [
+    {
+      "id": "learn-new",
+      "title": "Learn New Words",
+      "slug": "learn-new-words",
+      "description": "Start a short session with unseen academic words and guided first exposure.",
+      "tone": "blue",
+      "iconKey": "book",
+      "defaultSetId": "academic-core",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 10,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z"
+    },
+    {
+      "id": "review-due",
+      "title": "Review Due Words",
+      "slug": "review-due-words",
+      "description": "Practice words scheduled for today with deterministic spaced review.",
+      "tone": "teal",
+      "iconKey": "refresh",
+      "defaultSetId": "academic-core",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 20,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z"
+    },
+    {
+      "id": "weak-words",
+      "title": "Weak Words",
+      "slug": "weak-words",
+      "description": "Focus on low mastery words and the cards you have missed before.",
+      "tone": "orange",
+      "iconKey": "target",
+      "defaultSetId": "academic-core",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 30,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z"
+    },
+    {
+      "id": "saved-words",
+      "title": "Saved Words",
+      "slug": "saved-words",
+      "description": "Review the vocabulary you marked for personal follow-up.",
+      "tone": "yellow",
+      "iconKey": "bookmark",
+      "defaultSetId": "campus-life",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 40,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z"
+    },
+    {
+      "id": "toefl-sets",
+      "title": "TOEFL Vocabulary Sets",
+      "slug": "toefl-vocabulary-sets",
+      "description": "Choose a curated set organized by TOEFL topic and academic context.",
+      "tone": "navy",
+      "iconKey": "layers",
+      "defaultSetId": "academic-core",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 50,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z"
+    }
+  ],
+  "sets": [
+    {
+      "id": "academic-core",
+      "title": "Academic Core",
+      "slug": "academic-core",
+      "description": "High-frequency academic words used across TOEFL reading, listening, and writing.",
+      "topic": "Academic Language",
+      "level": "B2-C1",
+      "wordCount": 42,
+      "estimatedMinutes": 12,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 10,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "academic-language",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "core",
+        "cross-skill"
+      ],
+      "wordIds": [
+        "academic-core-ubiquitous",
+        "academic-core-mitigate"
+      ]
+    },
+    {
+      "id": "campus-life",
+      "title": "Campus Life",
+      "slug": "campus-life",
+      "description": "Words for lectures, services, student support, and everyday university settings.",
+      "topic": "Campus Life",
+      "level": "B1-B2",
+      "wordCount": 36,
+      "estimatedMinutes": 10,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 20,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "campus-life",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "campus",
+        "student-life"
+      ],
+      "wordIds": [
+        "campus-life-enroll",
+        "campus-life-facility"
+      ]
+    },
+    {
+      "id": "science",
+      "title": "Science",
+      "slug": "science",
+      "description": "Research vocabulary for biology, health, experiments, and evidence-based talks.",
+      "topic": "Science",
+      "level": "B2-C1",
+      "wordCount": 48,
+      "estimatedMinutes": 14,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 30,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "science",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "science",
+        "research"
+      ],
+      "wordIds": [
+        "science-empirical",
+        "science-hypothesis"
+      ]
+    },
+    {
+      "id": "social-sciences",
+      "title": "Social Sciences",
+      "slug": "social-sciences",
+      "description": "Terms for society, policy, economics, history, and academic debate.",
+      "topic": "Social Sciences",
+      "level": "B2-C1",
+      "wordCount": 44,
+      "estimatedMinutes": 13,
+      "isPremium": true,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 40,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "social-sciences",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "policy",
+        "society"
+      ],
+      "wordIds": [
+        "social-sciences-demographic",
+        "social-sciences-policy"
+      ]
+    },
+    {
+      "id": "environment",
+      "title": "Environment",
+      "slug": "environment",
+      "description": "Vocabulary for sustainability, climate, ecosystems, and resource use.",
+      "topic": "Environment",
+      "level": "B2-C1",
+      "wordCount": 40,
+      "estimatedMinutes": 11,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 50,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "environment",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "environment",
+        "sustainability"
+      ],
+      "wordIds": [
+        "environment-sustainable",
+        "environment-ecosystem"
+      ]
+    },
+    {
+      "id": "technology",
+      "title": "Technology",
+      "slug": "technology",
+      "description": "Words for digital systems, innovation, automation, and research tools.",
+      "topic": "Technology",
+      "level": "B2-C1",
+      "wordCount": 38,
+      "estimatedMinutes": 11,
+      "isPremium": true,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 60,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "technology",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "technology",
+        "digital"
+      ],
+      "wordIds": [
+        "technology-automate",
+        "technology-innovation"
+      ]
+    },
+    {
+      "id": "academic-discussion",
+      "title": "Academic Discussion",
+      "slug": "academic-discussion",
+      "description": "Argument language for classroom discussion, claims, and support.",
+      "topic": "Academic Discussion",
+      "level": "B2",
+      "wordCount": 34,
+      "estimatedMinutes": 9,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 70,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "academic-discussion",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "discussion",
+        "speaking"
+      ],
+      "wordIds": [
+        "academic-discussion-assert",
+        "academic-discussion-counterargument"
+      ]
+    },
+    {
+      "id": "connectors-transitions",
+      "title": "Connectors & Transitions",
+      "slug": "connectors-transitions",
+      "description": "Cohesion phrases for contrast, cause, result, concession, and sequence.",
+      "topic": "Connectors",
+      "level": "B1-C1",
+      "wordCount": 32,
+      "estimatedMinutes": 8,
+      "isPremium": false,
+      "status": "active",
+      "visibility": "authenticated",
+      "sortOrder": 80,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "vocabulary",
+        "taskTypeSlug": "vocabulary-review",
+        "subskillSlug": "academic-vocabulary",
+        "topicSlug": "connectors-transitions",
+        "levelSlug": "intermediate",
+        "contentTypeSlug": "vocabulary-set",
+        "tagSlugs": [
+          "student-practice",
+          "review-ready"
+        ]
+      },
+      "contentTags": [
+        "cohesion",
+        "writing"
+      ],
+      "wordIds": [
+        "connectors-transitions-nevertheless",
+        "connectors-transitions-consequently"
+      ]
+    }
+  ],
+  "words": [
+    {
+      "id": "academic-core-ubiquitous",
+      "setId": "academic-core",
+      "word": "ubiquitous",
+      "slug": "ubiquitous",
+      "ipa": "/juːˈbɪkwɪtəs/",
+      "pronunciationLabel": "you-BIK-wi-tuhs",
+      "partOfSpeech": "adjective",
+      "definition": "Present, appearing, or found everywhere, especially across many academic or social contexts.",
+      "translation": "her yerde bulunan, yaygın",
+      "academicExample": "Digital access has become ubiquitous in modern education systems.",
+      "toeflExample": "The professor argues that portable sensors are now ubiquitous in field research.",
+      "collocations": [
+        "ubiquitous technology",
+        "ubiquitous presence",
+        "become ubiquitous"
+      ],
+      "wordFamily": [
+        "ubiquity",
+        "ubiquitously"
+      ],
+      "synonyms": [
+        "widespread",
+        "prevalent",
+        "pervasive"
+      ],
+      "antonyms": [
+        "rare",
+        "limited",
+        "scarce"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 10,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "core",
+        "cross-skill"
+      ]
+    },
+    {
+      "id": "academic-core-mitigate",
+      "setId": "academic-core",
+      "word": "mitigate",
+      "slug": "mitigate",
+      "ipa": "/ˈmɪtɪɡeɪt/",
+      "pronunciationLabel": "MIT-i-gayt",
+      "partOfSpeech": "verb",
+      "definition": "To make a problem, effect, or risk less severe.",
+      "translation": "hafifletmek, azaltmak",
+      "academicExample": "Urban planners use green roofs to mitigate heat in dense neighborhoods.",
+      "toeflExample": "The reading claims that wetlands mitigate flooding by absorbing excess water.",
+      "collocations": [
+        "mitigate risk",
+        "mitigate damage",
+        "mitigate the impact"
+      ],
+      "wordFamily": [
+        "mitigation",
+        "mitigated"
+      ],
+      "synonyms": [
+        "reduce",
+        "lessen",
+        "alleviate"
+      ],
+      "antonyms": [
+        "worsen",
+        "intensify",
+        "aggravate"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 20,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "core",
+        "cross-skill"
+      ]
+    },
+    {
+      "id": "campus-life-enroll",
+      "setId": "campus-life",
+      "word": "enroll",
+      "slug": "enroll",
+      "ipa": "/ɪnˈroʊl/",
+      "pronunciationLabel": "in-ROHL",
+      "partOfSpeech": "verb",
+      "definition": "To officially join a course, program, or institution.",
+      "translation": "kaydolmak",
+      "academicExample": "Students must enroll before the registration deadline.",
+      "toeflExample": "The advisor suggests that the student enroll in a smaller seminar.",
+      "collocations": [
+        "enroll in a course",
+        "enrollment deadline",
+        "newly enrolled"
+      ],
+      "wordFamily": [
+        "enrollment",
+        "enrolled"
+      ],
+      "synonyms": [
+        "register",
+        "join",
+        "sign up"
+      ],
+      "antonyms": [
+        "withdraw",
+        "drop",
+        "leave"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 30,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "campus",
+        "student-life"
+      ]
+    },
+    {
+      "id": "campus-life-facility",
+      "setId": "campus-life",
+      "word": "facility",
+      "slug": "facility",
+      "ipa": "/fəˈsɪləti/",
+      "pronunciationLabel": "fuh-SIL-i-tee",
+      "partOfSpeech": "noun",
+      "definition": "A building, service, or place provided for a particular purpose.",
+      "translation": "tesis, olanak",
+      "academicExample": "The campus added a new facility for collaborative study.",
+      "toeflExample": "The speaker explains that the sports facility will be closed for repairs.",
+      "collocations": [
+        "research facility",
+        "campus facility",
+        "facility access"
+      ],
+      "wordFamily": [
+        "facilitate",
+        "facilitation"
+      ],
+      "synonyms": [
+        "amenity",
+        "center",
+        "resource"
+      ],
+      "antonyms": [
+        "obstacle",
+        "barrier"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 40,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "campus",
+        "student-life"
+      ]
+    },
+    {
+      "id": "science-empirical",
+      "setId": "science",
+      "word": "empirical",
+      "slug": "empirical",
+      "ipa": "/ɪmˈpɪrɪkəl/",
+      "pronunciationLabel": "em-PIR-i-kuhl",
+      "partOfSpeech": "adjective",
+      "definition": "Based on observation, measurement, or experiment rather than theory alone.",
+      "translation": "deneysel, gözleme dayalı",
+      "academicExample": "The study provides empirical evidence for the new model.",
+      "toeflExample": "The lecture contrasts empirical data with earlier assumptions.",
+      "collocations": [
+        "empirical evidence",
+        "empirical research",
+        "empirical findings"
+      ],
+      "wordFamily": [
+        "empirically",
+        "empiricism"
+      ],
+      "synonyms": [
+        "observational",
+        "measured",
+        "evidence-based"
+      ],
+      "antonyms": [
+        "theoretical",
+        "speculative"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 50,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "science",
+        "research"
+      ]
+    },
+    {
+      "id": "science-hypothesis",
+      "setId": "science",
+      "word": "hypothesis",
+      "slug": "hypothesis",
+      "ipa": "/haɪˈpɑːθəsɪs/",
+      "pronunciationLabel": "hy-POTH-uh-sis",
+      "partOfSpeech": "noun",
+      "definition": "A proposed explanation that can be tested through research or observation.",
+      "translation": "hipotez",
+      "academicExample": "The hypothesis was tested through repeated experiments.",
+      "toeflExample": "The professor introduces a hypothesis about why the species migrated.",
+      "collocations": [
+        "test a hypothesis",
+        "support a hypothesis",
+        "working hypothesis"
+      ],
+      "wordFamily": [
+        "hypothesize",
+        "hypothetical"
+      ],
+      "synonyms": [
+        "theory",
+        "proposal",
+        "assumption"
+      ],
+      "antonyms": [
+        "fact",
+        "certainty"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 60,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "science",
+        "research"
+      ]
+    },
+    {
+      "id": "social-sciences-demographic",
+      "setId": "social-sciences",
+      "word": "demographic",
+      "slug": "demographic",
+      "ipa": "/ˌdeməˈɡræfɪk/",
+      "pronunciationLabel": "dem-uh-GRAF-ik",
+      "partOfSpeech": "adjective",
+      "definition": "Related to population groups and their characteristics.",
+      "translation": "demografik",
+      "academicExample": "Demographic shifts can change housing demand over time.",
+      "toeflExample": "The reading connects demographic trends to school enrollment.",
+      "collocations": [
+        "demographic change",
+        "demographic data",
+        "demographic group"
+      ],
+      "wordFamily": [
+        "demography",
+        "demographer"
+      ],
+      "synonyms": [
+        "population-based",
+        "societal"
+      ],
+      "antonyms": [
+        "individual",
+        "personal"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 70,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "policy",
+        "society"
+      ]
+    },
+    {
+      "id": "social-sciences-policy",
+      "setId": "social-sciences",
+      "word": "policy",
+      "slug": "policy",
+      "ipa": "/ˈpɑːləsi/",
+      "pronunciationLabel": "PAH-luh-see",
+      "partOfSpeech": "noun",
+      "definition": "A plan or rule adopted by an organization, institution, or government.",
+      "translation": "politika, ilke",
+      "academicExample": "The new policy increased access to public transportation.",
+      "toeflExample": "The student questions whether the library policy is fair during exam week.",
+      "collocations": [
+        "public policy",
+        "policy change",
+        "adopt a policy"
+      ],
+      "wordFamily": [
+        "policymaker",
+        "policy-based"
+      ],
+      "synonyms": [
+        "rule",
+        "strategy",
+        "guideline"
+      ],
+      "antonyms": [
+        "improvisation",
+        "exception"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 80,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "policy",
+        "society"
+      ]
+    },
+    {
+      "id": "environment-sustainable",
+      "setId": "environment",
+      "word": "sustainable",
+      "slug": "sustainable",
+      "ipa": "/səˈsteɪnəbəl/",
+      "pronunciationLabel": "suh-STAY-nuh-buhl",
+      "partOfSpeech": "adjective",
+      "definition": "Able to continue over time without exhausting resources or causing serious harm.",
+      "translation": "sürdürülebilir",
+      "academicExample": "Sustainable agriculture protects soil while maintaining productivity.",
+      "toeflExample": "The lecture describes sustainable design features in a new dormitory.",
+      "collocations": [
+        "sustainable energy",
+        "sustainable growth",
+        "sustainable practice"
+      ],
+      "wordFamily": [
+        "sustainability",
+        "sustainably"
+      ],
+      "synonyms": [
+        "renewable",
+        "lasting",
+        "viable"
+      ],
+      "antonyms": [
+        "unsustainable",
+        "wasteful"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 90,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "environment",
+        "sustainability"
+      ]
+    },
+    {
+      "id": "environment-ecosystem",
+      "setId": "environment",
+      "word": "ecosystem",
+      "slug": "ecosystem",
+      "ipa": "/ˈiːkoʊsɪstəm/",
+      "pronunciationLabel": "EE-koh-sis-tuhm",
+      "partOfSpeech": "noun",
+      "definition": "A community of living organisms and the physical environment they interact with.",
+      "translation": "ekosistem",
+      "academicExample": "A wetland ecosystem filters water and supports biodiversity.",
+      "toeflExample": "The professor explains how invasive plants disrupt the ecosystem.",
+      "collocations": [
+        "marine ecosystem",
+        "ecosystem balance",
+        "restore an ecosystem"
+      ],
+      "wordFamily": [
+        "ecological",
+        "ecology"
+      ],
+      "synonyms": [
+        "habitat",
+        "environment",
+        "biome"
+      ],
+      "antonyms": [
+        "artificial system"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 100,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "environment",
+        "sustainability"
+      ]
+    },
+    {
+      "id": "technology-automate",
+      "setId": "technology",
+      "word": "automate",
+      "slug": "automate",
+      "ipa": "/ˈɔːtəmeɪt/",
+      "pronunciationLabel": "AW-tuh-mayt",
+      "partOfSpeech": "verb",
+      "definition": "To make a process operate with little or no direct human control.",
+      "translation": "otomatikleştirmek",
+      "academicExample": "Researchers automate data collection to reduce human error.",
+      "toeflExample": "The lecture says factories began to automate repetitive tasks.",
+      "collocations": [
+        "automate a process",
+        "automated system",
+        "automation tools"
+      ],
+      "wordFamily": [
+        "automation",
+        "automated"
+      ],
+      "synonyms": [
+        "mechanize",
+        "streamline"
+      ],
+      "antonyms": [
+        "manualize",
+        "operate manually"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 110,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "technology",
+        "digital"
+      ]
+    },
+    {
+      "id": "technology-innovation",
+      "setId": "technology",
+      "word": "innovation",
+      "slug": "innovation",
+      "ipa": "/ˌɪnəˈveɪʃən/",
+      "pronunciationLabel": "in-uh-VAY-shun",
+      "partOfSpeech": "noun",
+      "definition": "A new method, idea, or product that improves how something is done.",
+      "translation": "yenilik, inovasyon",
+      "academicExample": "Innovation often depends on collaboration across disciplines.",
+      "toeflExample": "The passage describes an innovation that made ocean mapping cheaper.",
+      "collocations": [
+        "technological innovation",
+        "drive innovation",
+        "innovation cycle"
+      ],
+      "wordFamily": [
+        "innovate",
+        "innovative"
+      ],
+      "synonyms": [
+        "advance",
+        "breakthrough",
+        "improvement"
+      ],
+      "antonyms": [
+        "stagnation",
+        "tradition"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 120,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "technology",
+        "digital"
+      ]
+    },
+    {
+      "id": "academic-discussion-assert",
+      "setId": "academic-discussion",
+      "word": "assert",
+      "slug": "assert",
+      "ipa": "/əˈsɜːrt/",
+      "pronunciationLabel": "uh-SURT",
+      "partOfSpeech": "verb",
+      "definition": "To state an idea confidently as true or important.",
+      "translation": "öne sürmek, iddia etmek",
+      "academicExample": "The author asserts that early feedback improves performance.",
+      "toeflExample": "In the discussion, the student asserts that the policy may reduce participation.",
+      "collocations": [
+        "assert a claim",
+        "assert confidently",
+        "assert authority"
+      ],
+      "wordFamily": [
+        "assertion",
+        "assertive"
+      ],
+      "synonyms": [
+        "claim",
+        "state",
+        "maintain"
+      ],
+      "antonyms": [
+        "deny",
+        "question"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 130,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "discussion",
+        "speaking"
+      ]
+    },
+    {
+      "id": "academic-discussion-counterargument",
+      "setId": "academic-discussion",
+      "word": "counterargument",
+      "slug": "counterargument",
+      "ipa": "/ˈkaʊntərˌɑːrɡjumənt/",
+      "pronunciationLabel": "KOWN-ter-AR-gyuh-ment",
+      "partOfSpeech": "noun",
+      "definition": "An argument that challenges or responds to another argument.",
+      "translation": "karşı argüman",
+      "academicExample": "A strong essay addresses at least one counterargument.",
+      "toeflExample": "The professor asks for a counterargument to the student proposal.",
+      "collocations": [
+        "address a counterargument",
+        "raise a counterargument",
+        "valid counterargument"
+      ],
+      "wordFamily": [
+        "counterargue"
+      ],
+      "synonyms": [
+        "objection",
+        "rebuttal",
+        "opposing point"
+      ],
+      "antonyms": [
+        "supporting reason",
+        "evidence"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 140,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "discussion",
+        "speaking"
+      ]
+    },
+    {
+      "id": "connectors-transitions-nevertheless",
+      "setId": "connectors-transitions",
+      "word": "nevertheless",
+      "slug": "nevertheless",
+      "ipa": "/ˌnevərðəˈles/",
+      "pronunciationLabel": "nev-er-thuh-LESS",
+      "partOfSpeech": "adverb",
+      "definition": "Despite what has just been said; however.",
+      "translation": "yine de, buna rağmen",
+      "academicExample": "The sample was small; nevertheless, the results were consistent.",
+      "toeflExample": "The reading is critical of the plan. Nevertheless, the lecturer sees some benefits.",
+      "collocations": [
+        "nevertheless important",
+        "nevertheless useful",
+        "nevertheless remains"
+      ],
+      "wordFamily": [
+        "none"
+      ],
+      "synonyms": [
+        "however",
+        "still",
+        "nonetheless"
+      ],
+      "antonyms": [
+        "therefore",
+        "consequently"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 150,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "cohesion",
+        "writing"
+      ]
+    },
+    {
+      "id": "connectors-transitions-consequently",
+      "setId": "connectors-transitions",
+      "word": "consequently",
+      "slug": "consequently",
+      "ipa": "/ˈkɑːnsəkwentli/",
+      "pronunciationLabel": "KON-suh-kwent-lee",
+      "partOfSpeech": "adverb",
+      "definition": "As a result of something that happened before.",
+      "translation": "sonuç olarak, bu nedenle",
+      "academicExample": "Rainfall declined; consequently, crop yields fell.",
+      "toeflExample": "Consequently, the university will expand evening shuttle service.",
+      "collocations": [
+        "consequently increased",
+        "consequently reduced",
+        "and consequently"
+      ],
+      "wordFamily": [
+        "consequence",
+        "consequent"
+      ],
+      "synonyms": [
+        "therefore",
+        "thus",
+        "as a result"
+      ],
+      "antonyms": [
+        "nevertheless",
+        "however"
+      ],
+      "audioUrl": null,
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 160,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "contentTags": [
+        "cohesion",
+        "writing"
+      ]
+    }
+  ],
+  "progress": [
+    {
+      "wordId": "academic-core-ubiquitous",
+      "state": "learning",
+      "lastReviewedAt": "2026-09-03T09:15:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 1,
+      "reviewCount": 3,
+      "difficulty": 3,
+      "interval": 1,
+      "mastery": 48,
+      "saved": true
+    },
+    {
+      "wordId": "academic-core-mitigate",
+      "state": "improving",
+      "lastReviewedAt": "2026-09-03T09:15:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 0,
+      "reviewCount": 4,
+      "difficulty": 2,
+      "interval": 3,
+      "mastery": 62,
+      "saved": false
+    },
+    {
+      "wordId": "campus-life-enroll",
+      "state": "strong",
+      "lastReviewedAt": "2026-09-01T10:30:00.000Z",
+      "nextReviewAt": "2026-09-11T08:00:00.000Z",
+      "correctStreak": 3,
+      "incorrectCount": 0,
+      "reviewCount": 5,
+      "difficulty": 2,
+      "interval": 7,
+      "mastery": 78,
+      "saved": true
+    },
+    {
+      "wordId": "campus-life-facility",
+      "state": "learning",
+      "lastReviewedAt": "2026-09-02T15:40:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 2,
+      "reviewCount": 4,
+      "difficulty": 4,
+      "interval": 1,
+      "mastery": 44,
+      "saved": false
+    },
+    {
+      "wordId": "science-empirical",
+      "state": "strong",
+      "lastReviewedAt": "2026-09-03T12:10:00.000Z",
+      "nextReviewAt": "2026-09-05T08:00:00.000Z",
+      "correctStreak": 3,
+      "incorrectCount": 0,
+      "reviewCount": 6,
+      "difficulty": 2,
+      "interval": 7,
+      "mastery": 82,
+      "saved": true
+    },
+    {
+      "wordId": "science-hypothesis",
+      "state": "mastered",
+      "lastReviewedAt": "2026-08-30T09:00:00.000Z",
+      "nextReviewAt": "2026-09-18T08:00:00.000Z",
+      "correctStreak": 5,
+      "incorrectCount": 0,
+      "reviewCount": 8,
+      "difficulty": 1,
+      "interval": 14,
+      "mastery": 94,
+      "saved": false
+    },
+    {
+      "wordId": "social-sciences-demographic",
+      "state": "improving",
+      "lastReviewedAt": "2026-09-02T18:00:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 1,
+      "reviewCount": 5,
+      "difficulty": 3,
+      "interval": 3,
+      "mastery": 67,
+      "saved": false
+    },
+    {
+      "wordId": "social-sciences-policy",
+      "state": "new",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "correctStreak": 0,
+      "incorrectCount": 0,
+      "reviewCount": 0,
+      "difficulty": 3,
+      "interval": 0,
+      "mastery": 8,
+      "saved": false
+    },
+    {
+      "wordId": "environment-sustainable",
+      "state": "improving",
+      "lastReviewedAt": "2026-09-03T08:20:00.000Z",
+      "nextReviewAt": "2026-09-05T08:00:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 0,
+      "reviewCount": 4,
+      "difficulty": 2,
+      "interval": 3,
+      "mastery": 69,
+      "saved": true
+    },
+    {
+      "wordId": "environment-ecosystem",
+      "state": "learning",
+      "lastReviewedAt": "2026-09-03T08:25:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 1,
+      "reviewCount": 3,
+      "difficulty": 3,
+      "interval": 1,
+      "mastery": 51,
+      "saved": false
+    },
+    {
+      "wordId": "technology-automate",
+      "state": "new",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "correctStreak": 0,
+      "incorrectCount": 0,
+      "reviewCount": 0,
+      "difficulty": 3,
+      "interval": 0,
+      "mastery": 5,
+      "saved": false
+    },
+    {
+      "wordId": "technology-innovation",
+      "state": "strong",
+      "lastReviewedAt": "2026-09-01T09:45:00.000Z",
+      "nextReviewAt": "2026-09-11T08:00:00.000Z",
+      "correctStreak": 4,
+      "incorrectCount": 0,
+      "reviewCount": 6,
+      "difficulty": 2,
+      "interval": 7,
+      "mastery": 86,
+      "saved": false
+    },
+    {
+      "wordId": "academic-discussion-assert",
+      "state": "learning",
+      "lastReviewedAt": "2026-09-03T16:30:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 1,
+      "reviewCount": 3,
+      "difficulty": 3,
+      "interval": 1,
+      "mastery": 46,
+      "saved": true
+    },
+    {
+      "wordId": "academic-discussion-counterargument",
+      "state": "new",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "correctStreak": 0,
+      "incorrectCount": 0,
+      "reviewCount": 0,
+      "difficulty": 4,
+      "interval": 0,
+      "mastery": 10,
+      "saved": false
+    },
+    {
+      "wordId": "connectors-transitions-nevertheless",
+      "state": "mastered",
+      "lastReviewedAt": "2026-08-29T11:10:00.000Z",
+      "nextReviewAt": "2026-09-20T08:00:00.000Z",
+      "correctStreak": 5,
+      "incorrectCount": 0,
+      "reviewCount": 9,
+      "difficulty": 1,
+      "interval": 14,
+      "mastery": 92,
+      "saved": true
+    },
+    {
+      "wordId": "connectors-transitions-consequently",
+      "state": "improving",
+      "lastReviewedAt": "2026-09-02T13:05:00.000Z",
+      "nextReviewAt": "2026-09-04T00:00:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 1,
+      "reviewCount": 5,
+      "difficulty": 2,
+      "interval": 3,
+      "mastery": 71,
+      "saved": false
+    }
+  ]
+}

@@ -1,0 +1,4090 @@
+{
+  "categories": [
+    {
+      "id": "sentence-structure",
+      "slug": "sentence-structure",
+      "title": "Sentence Structure",
+      "description": "Build clear simple, compound, and complex academic sentences.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 10,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "structure",
+      "tone": "blue",
+      "topicIds": [
+        "simple-compound-complex",
+        "parallel-structure"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "sentence-structure",
+        "topicSlug": "sentence-structure",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "sentence-structure"
+        ]
+      }
+    },
+    {
+      "id": "verb-forms",
+      "slug": "verb-forms",
+      "title": "Verb Forms",
+      "description": "Control tense, aspect, and verb patterns in academic contexts.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 20,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "bolt",
+      "tone": "teal",
+      "topicIds": [
+        "tense-consistency",
+        "perfect-aspect"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "verb-forms",
+        "topicSlug": "verb-forms",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "verb-forms"
+        ]
+      }
+    },
+    {
+      "id": "agreement",
+      "slug": "agreement",
+      "title": "Agreement",
+      "description": "Keep subjects, verbs, and references consistent.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 30,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "check",
+      "tone": "navy",
+      "topicIds": [
+        "subject-verb-agreement"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "agreement",
+        "topicSlug": "agreement",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "agreement"
+        ]
+      }
+    },
+    {
+      "id": "clauses",
+      "slug": "clauses",
+      "title": "Clauses",
+      "description": "Use relative, noun, and adverb clauses for precise meaning.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 40,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "layers",
+      "tone": "purple",
+      "topicIds": [
+        "relative-clauses",
+        "noun-clauses",
+        "adverb-clauses"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "clauses",
+        "topicSlug": "clauses",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "clauses"
+        ]
+      }
+    },
+    {
+      "id": "modifiers",
+      "slug": "modifiers",
+      "title": "Modifiers",
+      "description": "Place descriptive information where it clearly belongs.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 50,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "edit",
+      "tone": "orange",
+      "topicIds": [
+        "modifier-placement"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "modifiers",
+        "topicSlug": "modifiers",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "modifiers"
+        ]
+      }
+    },
+    {
+      "id": "articles",
+      "slug": "articles",
+      "title": "Articles",
+      "description": "Use a, an, the, and zero article with academic nouns.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 60,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "article",
+      "tone": "yellow",
+      "topicIds": [
+        "article-use-academic-nouns"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "articles",
+        "topicSlug": "articles",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "articles"
+        ]
+      }
+    },
+    {
+      "id": "pronouns",
+      "slug": "pronouns",
+      "title": "Pronouns",
+      "description": "Make pronoun references clear and unambiguous.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 70,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "person",
+      "tone": "blue",
+      "topicIds": [
+        "pronoun-reference"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "pronouns",
+        "topicSlug": "pronouns",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "pronouns"
+        ]
+      }
+    },
+    {
+      "id": "connectors",
+      "slug": "connectors",
+      "title": "Connectors",
+      "description": "Show contrast, cause, addition, and sequence accurately.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 80,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "link",
+      "tone": "teal",
+      "topicIds": [
+        "contrast-connectors",
+        "cause-effect-connectors"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "connectors",
+        "topicSlug": "connectors",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "connectors"
+        ]
+      }
+    },
+    {
+      "id": "academic-grammar",
+      "slug": "academic-grammar",
+      "title": "Academic Grammar",
+      "description": "Use formal structures such as nominalization and hedging.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 90,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "academic",
+      "tone": "navy",
+      "topicIds": [
+        "nominalization",
+        "hedging"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "academic-grammar",
+        "topicSlug": "academic-grammar",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "academic-grammar"
+        ]
+      }
+    },
+    {
+      "id": "writing-grammar",
+      "slug": "writing-grammar",
+      "title": "Writing Grammar",
+      "description": "Improve cohesion, reference, and sentence control in essays.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 100,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "iconKey": "writing",
+      "tone": "orange",
+      "topicIds": [
+        "cohesion-and-reference"
+      ],
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "writing-grammar",
+        "topicSlug": "writing-grammar",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "writing-grammar"
+        ]
+      }
+    }
+  ],
+  "topics": [
+    {
+      "id": "simple-compound-complex",
+      "slug": "simple-compound-complex",
+      "title": "Simple, Compound & Complex Sentences",
+      "description": "Choose sentence patterns that match the relationship between ideas.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 10,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "sentence-structure",
+      "level": "B1",
+      "tone": "blue",
+      "estimatedMinutes": 16,
+      "difficulty": 2,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "sentence-structure",
+        "topicSlug": "simple-compound-complex",
+        "levelSlug": "b1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "sentence-structure"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "sentence-structure",
+        "b1"
+      ],
+      "rules": [
+        {
+          "id": "simple-compound-complex-rule-1",
+          "title": "Core rule",
+          "body": "Use a simple sentence for one complete idea."
+        },
+        {
+          "id": "simple-compound-complex-rule-2",
+          "title": "Usage note",
+          "body": "Use compound or complex structure when ideas need coordination or dependence."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "simple-compound-complex-positive",
+          "label": "Correct",
+          "sentence": "Researchers collected data, and the results confirmed the initial hypothesis.",
+          "note": "A dependent clause needs a complete main clause.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "simple-compound-complex-negative",
+          "label": "Needs revision",
+          "sentence": "Researchers collected data and confirmed the initial hypothesis because.",
+          "note": "A dependent clause needs a complete main clause.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "simple-compound-complex-academic",
+          "label": "Academic use",
+          "sentence": "Although the sample was small, the study identified a useful pattern.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "simple-compound-complex-mistake",
+          "wrong": "Researchers collected data and confirmed the initial hypothesis because.",
+          "right": "Researchers collected data, and the results confirmed the initial hypothesis.",
+          "note": "A dependent clause needs a complete main clause.",
+          "errorTag": "simple-compound-complex"
+        }
+      ],
+      "questions": [
+        {
+          "id": "simple-compound-complex-multiple-choice",
+          "topicId": "simple-compound-complex",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Simple, Compound & Complex Sentences?",
+          "options": [
+            {
+              "id": "simple-compound-complex-mc-a",
+              "label": "Researchers collected data and confirmed the initial hypothesis because.",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-mc-b",
+              "label": "Researchers collected data, and the results confirmed the initial hypothesis.",
+              "isCorrect": true
+            },
+            {
+              "id": "simple-compound-complex-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "simple-compound-complex-mc-b",
+          "explanation": "A dependent clause needs a complete main clause.",
+          "errorTag": "simple-compound-complex",
+          "difficulty": 2
+        },
+        {
+          "id": "simple-compound-complex-sentence-correction",
+          "topicId": "simple-compound-complex",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Researchers collected data and confirmed the initial hypothesis because.",
+          "options": [
+            {
+              "id": "simple-compound-complex-sc-a",
+              "label": "Researchers collected data and confirmed the initial hypothesis because.",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-sc-b",
+              "label": "Researchers collected data, and the results confirmed the initial hypothesis.",
+              "isCorrect": true
+            },
+            {
+              "id": "simple-compound-complex-sc-c",
+              "label": "Although the sample was small, the study identified a useful pattern.",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "simple-compound-complex-sc-b",
+          "explanation": "A dependent clause needs a complete main clause.",
+          "errorTag": "simple-compound-complex",
+          "difficulty": 2
+        },
+        {
+          "id": "simple-compound-complex-fill-in-blank",
+          "topicId": "simple-compound-complex",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "___ the sample was small, the study identified a useful pattern.",
+          "options": [
+            {
+              "id": "simple-compound-complex-fib-a",
+              "label": "Although",
+              "isCorrect": true
+            },
+            {
+              "id": "simple-compound-complex-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "simple-compound-complex-fib-a",
+          "explanation": "A dependent clause needs a complete main clause.",
+          "errorTag": "simple-compound-complex",
+          "difficulty": 2
+        },
+        {
+          "id": "simple-compound-complex-sentence-building",
+          "topicId": "simple-compound-complex",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "simple-compound-complex-sb-a",
+              "label": "The policy was expensive, although improved access to public services.",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-sb-b",
+              "label": "Although the policy was expensive, it improved access to public services.",
+              "isCorrect": true
+            },
+            {
+              "id": "simple-compound-complex-sb-c",
+              "label": "Researchers collected data, and the results confirmed the initial hypothesis,",
+              "isCorrect": false
+            },
+            {
+              "id": "simple-compound-complex-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "simple-compound-complex-sb-b",
+          "explanation": "A dependent clause needs a complete main clause.",
+          "errorTag": "simple-compound-complex",
+          "difficulty": 2
+        }
+      ],
+      "recommendedNextTopicId": "parallel-structure"
+    },
+    {
+      "id": "parallel-structure",
+      "slug": "parallel-structure",
+      "title": "Parallel Structure",
+      "description": "Keep items in lists and comparisons grammatically balanced.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 20,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "sentence-structure",
+      "level": "B2",
+      "tone": "blue",
+      "estimatedMinutes": 14,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "sentence-structure",
+        "topicSlug": "parallel-structure",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "sentence-structure"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "sentence-structure",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "parallel-structure-rule-1",
+          "title": "Core rule",
+          "body": "Use the same grammatical form for items in a series."
+        },
+        {
+          "id": "parallel-structure-rule-2",
+          "title": "Usage note",
+          "body": "Make compared ideas match in structure."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "parallel-structure-positive",
+          "label": "Correct",
+          "sentence": "The program reduces costs, improves access, and supports long-term planning.",
+          "note": "Parallel lists should keep the same part of speech.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "parallel-structure-negative",
+          "label": "Needs revision",
+          "sentence": "The program reduces costs, improves access, and support long-term planning.",
+          "note": "Parallel lists should keep the same part of speech.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "parallel-structure-academic",
+          "label": "Academic use",
+          "sentence": "The survey measured attendance, engagement, and satisfaction.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "parallel-structure-mistake",
+          "wrong": "The program reduces costs, improves access, and support long-term planning.",
+          "right": "The program reduces costs, improves access, and supports long-term planning.",
+          "note": "Parallel lists should keep the same part of speech.",
+          "errorTag": "parallel-structure"
+        }
+      ],
+      "questions": [
+        {
+          "id": "parallel-structure-multiple-choice",
+          "topicId": "parallel-structure",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Parallel Structure?",
+          "options": [
+            {
+              "id": "parallel-structure-mc-a",
+              "label": "The program reduces costs, improves access, and support long-term planning.",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-mc-b",
+              "label": "The program reduces costs, improves access, and supports long-term planning.",
+              "isCorrect": true
+            },
+            {
+              "id": "parallel-structure-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "parallel-structure-mc-b",
+          "explanation": "Parallel lists should keep the same part of speech.",
+          "errorTag": "parallel-structure",
+          "difficulty": 3
+        },
+        {
+          "id": "parallel-structure-sentence-correction",
+          "topicId": "parallel-structure",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The program reduces costs, improves access, and support long-term planning.",
+          "options": [
+            {
+              "id": "parallel-structure-sc-a",
+              "label": "The program reduces costs, improves access, and support long-term planning.",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-sc-b",
+              "label": "The program reduces costs, improves access, and supports long-term planning.",
+              "isCorrect": true
+            },
+            {
+              "id": "parallel-structure-sc-c",
+              "label": "The survey measured attendance, engagement, and satisfaction.",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "parallel-structure-sc-b",
+          "explanation": "Parallel lists should keep the same part of speech.",
+          "errorTag": "parallel-structure",
+          "difficulty": 3
+        },
+        {
+          "id": "parallel-structure-fill-in-blank",
+          "topicId": "parallel-structure",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The course focuses on reading, listening, and ___ academic essays.",
+          "options": [
+            {
+              "id": "parallel-structure-fib-a",
+              "label": "writing",
+              "isCorrect": true
+            },
+            {
+              "id": "parallel-structure-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "parallel-structure-fib-a",
+          "explanation": "Parallel lists should keep the same part of speech.",
+          "errorTag": "parallel-structure",
+          "difficulty": 3
+        },
+        {
+          "id": "parallel-structure-sentence-building",
+          "topicId": "parallel-structure",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "parallel-structure-sb-a",
+              "label": "The proposal is practical, affordable, and implementation is easy.",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-sb-b",
+              "label": "The proposal is practical, affordable, and easy to implement.",
+              "isCorrect": true
+            },
+            {
+              "id": "parallel-structure-sb-c",
+              "label": "The program reduces costs, improves access, and supports long-term planning,",
+              "isCorrect": false
+            },
+            {
+              "id": "parallel-structure-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "parallel-structure-sb-b",
+          "explanation": "Parallel lists should keep the same part of speech.",
+          "errorTag": "parallel-structure",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "tense-consistency"
+    },
+    {
+      "id": "tense-consistency",
+      "slug": "tense-consistency",
+      "title": "Tense Consistency",
+      "description": "Maintain clear time relationships across clauses and paragraphs.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 30,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "verb-forms",
+      "level": "B1",
+      "tone": "teal",
+      "estimatedMinutes": 15,
+      "difficulty": 2,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "verb-forms",
+        "topicSlug": "tense-consistency",
+        "levelSlug": "b1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "verb-forms"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "verb-forms",
+        "b1"
+      ],
+      "rules": [
+        {
+          "id": "tense-consistency-rule-1",
+          "title": "Core rule",
+          "body": "Use present tense for general facts and current claims."
+        },
+        {
+          "id": "tense-consistency-rule-2",
+          "title": "Usage note",
+          "body": "Shift tense only when the time frame changes."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "tense-consistency-positive",
+          "label": "Correct",
+          "sentence": "The article explains the theory and describes how it applies today.",
+          "note": "Do not change tense unless the time reference changes.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "tense-consistency-negative",
+          "label": "Needs revision",
+          "sentence": "The article explains the theory and described how it applies today.",
+          "note": "Do not change tense unless the time reference changes.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "tense-consistency-academic",
+          "label": "Academic use",
+          "sentence": "The author argues that urban density increases access to public services.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "tense-consistency-mistake",
+          "wrong": "The article explains the theory and described how it applies today.",
+          "right": "The article explains the theory and describes how it applies today.",
+          "note": "Do not change tense unless the time reference changes.",
+          "errorTag": "tense-consistency"
+        }
+      ],
+      "questions": [
+        {
+          "id": "tense-consistency-multiple-choice",
+          "topicId": "tense-consistency",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Tense Consistency?",
+          "options": [
+            {
+              "id": "tense-consistency-mc-a",
+              "label": "The article explains the theory and described how it applies today.",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-mc-b",
+              "label": "The article explains the theory and describes how it applies today.",
+              "isCorrect": true
+            },
+            {
+              "id": "tense-consistency-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "tense-consistency-mc-b",
+          "explanation": "Do not change tense unless the time reference changes.",
+          "errorTag": "tense-consistency",
+          "difficulty": 2
+        },
+        {
+          "id": "tense-consistency-sentence-correction",
+          "topicId": "tense-consistency",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The article explains the theory and described how it applies today.",
+          "options": [
+            {
+              "id": "tense-consistency-sc-a",
+              "label": "The article explains the theory and described how it applies today.",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-sc-b",
+              "label": "The article explains the theory and describes how it applies today.",
+              "isCorrect": true
+            },
+            {
+              "id": "tense-consistency-sc-c",
+              "label": "The author argues that urban density increases access to public services.",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "tense-consistency-sc-b",
+          "explanation": "Do not change tense unless the time reference changes.",
+          "errorTag": "tense-consistency",
+          "difficulty": 2
+        },
+        {
+          "id": "tense-consistency-fill-in-blank",
+          "topicId": "tense-consistency",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The author ___ that urban density increases access to public services.",
+          "options": [
+            {
+              "id": "tense-consistency-fib-a",
+              "label": "argues",
+              "isCorrect": true
+            },
+            {
+              "id": "tense-consistency-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "tense-consistency-fib-a",
+          "explanation": "Do not change tense unless the time reference changes.",
+          "errorTag": "tense-consistency",
+          "difficulty": 2
+        },
+        {
+          "id": "tense-consistency-sentence-building",
+          "topicId": "tense-consistency",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "tense-consistency-sb-a",
+              "label": "The experiment shows a pattern, and later studies confirmed it.",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-sb-b",
+              "label": "The experiment showed a pattern, and later studies confirmed it.",
+              "isCorrect": true
+            },
+            {
+              "id": "tense-consistency-sb-c",
+              "label": "The article explains the theory and describes how it applies today,",
+              "isCorrect": false
+            },
+            {
+              "id": "tense-consistency-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "tense-consistency-sb-b",
+          "explanation": "Do not change tense unless the time reference changes.",
+          "errorTag": "tense-consistency",
+          "difficulty": 2
+        }
+      ],
+      "recommendedNextTopicId": "perfect-aspect"
+    },
+    {
+      "id": "perfect-aspect",
+      "slug": "perfect-aspect",
+      "title": "Perfect Aspect",
+      "description": "Use perfect forms to connect earlier events to later relevance.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 40,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "verb-forms",
+      "level": "B2",
+      "tone": "teal",
+      "estimatedMinutes": 18,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "verb-forms",
+        "topicSlug": "perfect-aspect",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "verb-forms"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "verb-forms",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "perfect-aspect-rule-1",
+          "title": "Core rule",
+          "body": "Use present perfect for past actions with present relevance."
+        },
+        {
+          "id": "perfect-aspect-rule-2",
+          "title": "Usage note",
+          "body": "Use past perfect for an earlier past event before another past event."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "perfect-aspect-positive",
+          "label": "Correct",
+          "sentence": "Researchers have identified several factors that affect retention.",
+          "note": "Perfect aspect depends on the relationship between two time points.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "perfect-aspect-negative",
+          "label": "Needs revision",
+          "sentence": "Researchers identified several factors that affect retention this month.",
+          "note": "Perfect aspect depends on the relationship between two time points.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "perfect-aspect-academic",
+          "label": "Academic use",
+          "sentence": "By the time the policy changed, enrollment had already declined.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "perfect-aspect-mistake",
+          "wrong": "Researchers identified several factors that affect retention this month.",
+          "right": "Researchers have identified several factors that affect retention.",
+          "note": "Perfect aspect depends on the relationship between two time points.",
+          "errorTag": "perfect-aspect"
+        }
+      ],
+      "questions": [
+        {
+          "id": "perfect-aspect-multiple-choice",
+          "topicId": "perfect-aspect",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Perfect Aspect?",
+          "options": [
+            {
+              "id": "perfect-aspect-mc-a",
+              "label": "Researchers identified several factors that affect retention this month.",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-mc-b",
+              "label": "Researchers have identified several factors that affect retention.",
+              "isCorrect": true
+            },
+            {
+              "id": "perfect-aspect-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "perfect-aspect-mc-b",
+          "explanation": "Perfect aspect depends on the relationship between two time points.",
+          "errorTag": "perfect-aspect",
+          "difficulty": 3
+        },
+        {
+          "id": "perfect-aspect-sentence-correction",
+          "topicId": "perfect-aspect",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Researchers identified several factors that affect retention this month.",
+          "options": [
+            {
+              "id": "perfect-aspect-sc-a",
+              "label": "Researchers identified several factors that affect retention this month.",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-sc-b",
+              "label": "Researchers have identified several factors that affect retention.",
+              "isCorrect": true
+            },
+            {
+              "id": "perfect-aspect-sc-c",
+              "label": "By the time the policy changed, enrollment had already declined.",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "perfect-aspect-sc-b",
+          "explanation": "Perfect aspect depends on the relationship between two time points.",
+          "errorTag": "perfect-aspect",
+          "difficulty": 3
+        },
+        {
+          "id": "perfect-aspect-fill-in-blank",
+          "topicId": "perfect-aspect",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "Researchers ___ identified several factors that affect retention.",
+          "options": [
+            {
+              "id": "perfect-aspect-fib-a",
+              "label": "have",
+              "isCorrect": true
+            },
+            {
+              "id": "perfect-aspect-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "perfect-aspect-fib-a",
+          "explanation": "Perfect aspect depends on the relationship between two time points.",
+          "errorTag": "perfect-aspect",
+          "difficulty": 3
+        },
+        {
+          "id": "perfect-aspect-sentence-building",
+          "topicId": "perfect-aspect",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "perfect-aspect-sb-a",
+              "label": "The city has expanded transit before population growth accelerated.",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-sb-b",
+              "label": "The city had expanded transit before population growth accelerated.",
+              "isCorrect": true
+            },
+            {
+              "id": "perfect-aspect-sb-c",
+              "label": "Researchers have identified several factors that affect retention,",
+              "isCorrect": false
+            },
+            {
+              "id": "perfect-aspect-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "perfect-aspect-sb-b",
+          "explanation": "Perfect aspect depends on the relationship between two time points.",
+          "errorTag": "perfect-aspect",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "subject-verb-agreement"
+    },
+    {
+      "id": "subject-verb-agreement",
+      "slug": "subject-verb-agreement",
+      "title": "Subject-Verb Agreement",
+      "description": "Match verbs to the real subject, even when phrases come between them.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 50,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "agreement",
+      "level": "B1",
+      "tone": "navy",
+      "estimatedMinutes": 13,
+      "difficulty": 2,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "agreement",
+        "topicSlug": "subject-verb-agreement",
+        "levelSlug": "b1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "agreement"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "agreement",
+        "b1"
+      ],
+      "rules": [
+        {
+          "id": "subject-verb-agreement-rule-1",
+          "title": "Core rule",
+          "body": "Ignore interrupting prepositional phrases when choosing verb form."
+        },
+        {
+          "id": "subject-verb-agreement-rule-2",
+          "title": "Usage note",
+          "body": "Use singular verbs with singular abstract nouns."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "subject-verb-agreement-positive",
+          "label": "Correct",
+          "sentence": "The quality of the responses varies across the two groups.",
+          "note": "The nearest noun is not always the subject.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "subject-verb-agreement-negative",
+          "label": "Needs revision",
+          "sentence": "The quality of the responses vary across the two groups.",
+          "note": "The nearest noun is not always the subject.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "subject-verb-agreement-academic",
+          "label": "Academic use",
+          "sentence": "A series of interviews provides deeper insight into student motivation.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "subject-verb-agreement-mistake",
+          "wrong": "The quality of the responses vary across the two groups.",
+          "right": "The quality of the responses varies across the two groups.",
+          "note": "The nearest noun is not always the subject.",
+          "errorTag": "subject-verb-agreement"
+        }
+      ],
+      "questions": [
+        {
+          "id": "subject-verb-agreement-multiple-choice",
+          "topicId": "subject-verb-agreement",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Subject-Verb Agreement?",
+          "options": [
+            {
+              "id": "subject-verb-agreement-mc-a",
+              "label": "The quality of the responses vary across the two groups.",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-mc-b",
+              "label": "The quality of the responses varies across the two groups.",
+              "isCorrect": true
+            },
+            {
+              "id": "subject-verb-agreement-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "subject-verb-agreement-mc-b",
+          "explanation": "The nearest noun is not always the subject.",
+          "errorTag": "subject-verb-agreement",
+          "difficulty": 2
+        },
+        {
+          "id": "subject-verb-agreement-sentence-correction",
+          "topicId": "subject-verb-agreement",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The quality of the responses vary across the two groups.",
+          "options": [
+            {
+              "id": "subject-verb-agreement-sc-a",
+              "label": "The quality of the responses vary across the two groups.",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-sc-b",
+              "label": "The quality of the responses varies across the two groups.",
+              "isCorrect": true
+            },
+            {
+              "id": "subject-verb-agreement-sc-c",
+              "label": "A series of interviews provides deeper insight into student motivation.",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "subject-verb-agreement-sc-b",
+          "explanation": "The nearest noun is not always the subject.",
+          "errorTag": "subject-verb-agreement",
+          "difficulty": 2
+        },
+        {
+          "id": "subject-verb-agreement-fill-in-blank",
+          "topicId": "subject-verb-agreement",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The quality of the responses ___ across the two groups.",
+          "options": [
+            {
+              "id": "subject-verb-agreement-fib-a",
+              "label": "varies",
+              "isCorrect": true
+            },
+            {
+              "id": "subject-verb-agreement-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "subject-verb-agreement-fib-a",
+          "explanation": "The nearest noun is not always the subject.",
+          "errorTag": "subject-verb-agreement",
+          "difficulty": 2
+        },
+        {
+          "id": "subject-verb-agreement-sentence-building",
+          "topicId": "subject-verb-agreement",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "subject-verb-agreement-sb-a",
+              "label": "Each of the proposed solutions require additional evidence.",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-sb-b",
+              "label": "Each of the proposed solutions requires additional evidence.",
+              "isCorrect": true
+            },
+            {
+              "id": "subject-verb-agreement-sb-c",
+              "label": "The quality of the responses varies across the two groups,",
+              "isCorrect": false
+            },
+            {
+              "id": "subject-verb-agreement-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "subject-verb-agreement-sb-b",
+          "explanation": "The nearest noun is not always the subject.",
+          "errorTag": "subject-verb-agreement",
+          "difficulty": 2
+        }
+      ],
+      "recommendedNextTopicId": "relative-clauses"
+    },
+    {
+      "id": "relative-clauses",
+      "slug": "relative-clauses",
+      "title": "Relative Clauses",
+      "description": "Add defining or non-defining information without losing clarity.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 60,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "clauses",
+      "level": "B2",
+      "tone": "purple",
+      "estimatedMinutes": 18,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "clauses",
+        "topicSlug": "relative-clauses",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "clauses"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "clauses",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "relative-clauses-rule-1",
+          "title": "Core rule",
+          "body": "Use that or which for things and who for people."
+        },
+        {
+          "id": "relative-clauses-rule-2",
+          "title": "Usage note",
+          "body": "Use commas for extra non-defining information."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "relative-clauses-positive",
+          "label": "Correct",
+          "sentence": "The method that the researchers used reduced measurement bias.",
+          "note": "A relative clause needs the correct relative pronoun and verb structure.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "relative-clauses-negative",
+          "label": "Needs revision",
+          "sentence": "The method which used by the researchers reduced measurement bias.",
+          "note": "A relative clause needs the correct relative pronoun and verb structure.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "relative-clauses-academic",
+          "label": "Academic use",
+          "sentence": "The policy, which was introduced in 2024, changed enrollment patterns.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "relative-clauses-mistake",
+          "wrong": "The method which used by the researchers reduced measurement bias.",
+          "right": "The method that the researchers used reduced measurement bias.",
+          "note": "A relative clause needs the correct relative pronoun and verb structure.",
+          "errorTag": "relative-clauses"
+        }
+      ],
+      "questions": [
+        {
+          "id": "relative-clauses-multiple-choice",
+          "topicId": "relative-clauses",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Relative Clauses?",
+          "options": [
+            {
+              "id": "relative-clauses-mc-a",
+              "label": "The method which used by the researchers reduced measurement bias.",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-mc-b",
+              "label": "The method that the researchers used reduced measurement bias.",
+              "isCorrect": true
+            },
+            {
+              "id": "relative-clauses-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "relative-clauses-mc-b",
+          "explanation": "A relative clause needs the correct relative pronoun and verb structure.",
+          "errorTag": "relative-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "relative-clauses-sentence-correction",
+          "topicId": "relative-clauses",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The method which used by the researchers reduced measurement bias.",
+          "options": [
+            {
+              "id": "relative-clauses-sc-a",
+              "label": "The method which used by the researchers reduced measurement bias.",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-sc-b",
+              "label": "The method that the researchers used reduced measurement bias.",
+              "isCorrect": true
+            },
+            {
+              "id": "relative-clauses-sc-c",
+              "label": "The policy, which was introduced in 2024, changed enrollment patterns.",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "relative-clauses-sc-b",
+          "explanation": "A relative clause needs the correct relative pronoun and verb structure.",
+          "errorTag": "relative-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "relative-clauses-fill-in-blank",
+          "topicId": "relative-clauses",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The policy, ___ was introduced in 2024, changed enrollment patterns.",
+          "options": [
+            {
+              "id": "relative-clauses-fib-a",
+              "label": "which",
+              "isCorrect": true
+            },
+            {
+              "id": "relative-clauses-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "relative-clauses-fib-a",
+          "explanation": "A relative clause needs the correct relative pronoun and verb structure.",
+          "errorTag": "relative-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "relative-clauses-sentence-building",
+          "topicId": "relative-clauses",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "relative-clauses-sb-a",
+              "label": "The students which completed the survey received detailed feedback.",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-sb-b",
+              "label": "The students who completed the survey received detailed feedback.",
+              "isCorrect": true
+            },
+            {
+              "id": "relative-clauses-sb-c",
+              "label": "The method that the researchers used reduced measurement bias,",
+              "isCorrect": false
+            },
+            {
+              "id": "relative-clauses-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "relative-clauses-sb-b",
+          "explanation": "A relative clause needs the correct relative pronoun and verb structure.",
+          "errorTag": "relative-clauses",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "noun-clauses"
+    },
+    {
+      "id": "noun-clauses",
+      "slug": "noun-clauses",
+      "title": "Noun Clauses",
+      "description": "Use clauses as subjects, objects, or complements in academic sentences.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 70,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "clauses",
+      "level": "B2",
+      "tone": "purple",
+      "estimatedMinutes": 17,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "clauses",
+        "topicSlug": "noun-clauses",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "clauses"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "clauses",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "noun-clauses-rule-1",
+          "title": "Core rule",
+          "body": "Use that clauses after reporting verbs when stating findings."
+        },
+        {
+          "id": "noun-clauses-rule-2",
+          "title": "Usage note",
+          "body": "Keep statement word order inside indirect questions."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "noun-clauses-positive",
+          "label": "Correct",
+          "sentence": "The study suggests that early feedback improves revision quality.",
+          "note": "Indirect questions use statement word order.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "noun-clauses-negative",
+          "label": "Needs revision",
+          "sentence": "The study suggests what early feedback improves revision quality.",
+          "note": "Indirect questions use statement word order.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "noun-clauses-academic",
+          "label": "Academic use",
+          "sentence": "What the survey reveals is a clear gap in access.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "noun-clauses-mistake",
+          "wrong": "The study suggests what early feedback improves revision quality.",
+          "right": "The study suggests that early feedback improves revision quality.",
+          "note": "Indirect questions use statement word order.",
+          "errorTag": "noun-clauses"
+        }
+      ],
+      "questions": [
+        {
+          "id": "noun-clauses-multiple-choice",
+          "topicId": "noun-clauses",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Noun Clauses?",
+          "options": [
+            {
+              "id": "noun-clauses-mc-a",
+              "label": "The study suggests what early feedback improves revision quality.",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-mc-b",
+              "label": "The study suggests that early feedback improves revision quality.",
+              "isCorrect": true
+            },
+            {
+              "id": "noun-clauses-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "noun-clauses-mc-b",
+          "explanation": "Indirect questions use statement word order.",
+          "errorTag": "noun-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "noun-clauses-sentence-correction",
+          "topicId": "noun-clauses",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The study suggests what early feedback improves revision quality.",
+          "options": [
+            {
+              "id": "noun-clauses-sc-a",
+              "label": "The study suggests what early feedback improves revision quality.",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-sc-b",
+              "label": "The study suggests that early feedback improves revision quality.",
+              "isCorrect": true
+            },
+            {
+              "id": "noun-clauses-sc-c",
+              "label": "What the survey reveals is a clear gap in access.",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "noun-clauses-sc-b",
+          "explanation": "Indirect questions use statement word order.",
+          "errorTag": "noun-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "noun-clauses-fill-in-blank",
+          "topicId": "noun-clauses",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The study suggests ___ early feedback improves revision quality.",
+          "options": [
+            {
+              "id": "noun-clauses-fib-a",
+              "label": "that",
+              "isCorrect": true
+            },
+            {
+              "id": "noun-clauses-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "noun-clauses-fib-a",
+          "explanation": "Indirect questions use statement word order.",
+          "errorTag": "noun-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "noun-clauses-sentence-building",
+          "topicId": "noun-clauses",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "noun-clauses-sb-a",
+              "label": "The report explains why did participation decline after the policy change.",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-sb-b",
+              "label": "The report explains why participation declined after the policy change.",
+              "isCorrect": true
+            },
+            {
+              "id": "noun-clauses-sb-c",
+              "label": "The study suggests that early feedback improves revision quality,",
+              "isCorrect": false
+            },
+            {
+              "id": "noun-clauses-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "noun-clauses-sb-b",
+          "explanation": "Indirect questions use statement word order.",
+          "errorTag": "noun-clauses",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "adverb-clauses"
+    },
+    {
+      "id": "adverb-clauses",
+      "slug": "adverb-clauses",
+      "title": "Adverb Clauses",
+      "description": "Show time, reason, contrast, and condition through dependent clauses.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 80,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "clauses",
+      "level": "B2",
+      "tone": "purple",
+      "estimatedMinutes": 16,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "clauses",
+        "topicSlug": "adverb-clauses",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "clauses"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "clauses",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "adverb-clauses-rule-1",
+          "title": "Core rule",
+          "body": "Use subordinators such as although, because, when, and if."
+        },
+        {
+          "id": "adverb-clauses-rule-2",
+          "title": "Usage note",
+          "body": "Connect the adverb clause to a complete main clause."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "adverb-clauses-positive",
+          "label": "Correct",
+          "sentence": "Because the sample was diverse, the findings are more reliable.",
+          "note": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "adverb-clauses-negative",
+          "label": "Needs revision",
+          "sentence": "Because the sample was diverse.",
+          "note": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "adverb-clauses-academic",
+          "label": "Academic use",
+          "sentence": "If funding remains stable, the program can expand next year.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "adverb-clauses-mistake",
+          "wrong": "Because the sample was diverse.",
+          "right": "Because the sample was diverse, the findings are more reliable.",
+          "note": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "errorTag": "adverb-clauses"
+        }
+      ],
+      "questions": [
+        {
+          "id": "adverb-clauses-multiple-choice",
+          "topicId": "adverb-clauses",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Adverb Clauses?",
+          "options": [
+            {
+              "id": "adverb-clauses-mc-a",
+              "label": "Because the sample was diverse.",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-mc-b",
+              "label": "Because the sample was diverse, the findings are more reliable.",
+              "isCorrect": true
+            },
+            {
+              "id": "adverb-clauses-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "adverb-clauses-mc-b",
+          "explanation": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "errorTag": "adverb-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "adverb-clauses-sentence-correction",
+          "topicId": "adverb-clauses",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Because the sample was diverse.",
+          "options": [
+            {
+              "id": "adverb-clauses-sc-a",
+              "label": "Because the sample was diverse.",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-sc-b",
+              "label": "Because the sample was diverse, the findings are more reliable.",
+              "isCorrect": true
+            },
+            {
+              "id": "adverb-clauses-sc-c",
+              "label": "If funding remains stable, the program can expand next year.",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "adverb-clauses-sc-b",
+          "explanation": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "errorTag": "adverb-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "adverb-clauses-fill-in-blank",
+          "topicId": "adverb-clauses",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "___ funding remains stable, the program can expand next year.",
+          "options": [
+            {
+              "id": "adverb-clauses-fib-a",
+              "label": "If",
+              "isCorrect": true
+            },
+            {
+              "id": "adverb-clauses-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "adverb-clauses-fib-a",
+          "explanation": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "errorTag": "adverb-clauses",
+          "difficulty": 3
+        },
+        {
+          "id": "adverb-clauses-sentence-building",
+          "topicId": "adverb-clauses",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "adverb-clauses-sb-a",
+              "label": "Although costs increased, but the project delivered measurable benefits.",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-sb-b",
+              "label": "Although costs increased, the project delivered measurable benefits.",
+              "isCorrect": true
+            },
+            {
+              "id": "adverb-clauses-sb-c",
+              "label": "Because the sample was diverse, the findings are more reliable,",
+              "isCorrect": false
+            },
+            {
+              "id": "adverb-clauses-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "adverb-clauses-sb-b",
+          "explanation": "Avoid using a subordinator and a coordinator for the same relationship.",
+          "errorTag": "adverb-clauses",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "modifier-placement"
+    },
+    {
+      "id": "modifier-placement",
+      "slug": "modifier-placement",
+      "title": "Modifier Placement",
+      "description": "Place modifiers next to the words they describe.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 90,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "modifiers",
+      "level": "B2",
+      "tone": "orange",
+      "estimatedMinutes": 14,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "modifiers",
+        "topicSlug": "modifier-placement",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "modifiers"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "modifiers",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "modifier-placement-rule-1",
+          "title": "Core rule",
+          "body": "Put introductory modifiers next to the subject they modify."
+        },
+        {
+          "id": "modifier-placement-rule-2",
+          "title": "Usage note",
+          "body": "Avoid separating only or nearly from the word they limit."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "modifier-placement-positive",
+          "label": "Correct",
+          "sentence": "After reviewing the data, the researchers revised their conclusion.",
+          "note": "A dangling modifier makes the actor unclear.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "modifier-placement-negative",
+          "label": "Needs revision",
+          "sentence": "After reviewing the data, the conclusion was revised by the researchers.",
+          "note": "A dangling modifier makes the actor unclear.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "modifier-placement-academic",
+          "label": "Academic use",
+          "sentence": "Students who studied regularly performed better on the final task.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "modifier-placement-mistake",
+          "wrong": "After reviewing the data, the conclusion was revised by the researchers.",
+          "right": "After reviewing the data, the researchers revised their conclusion.",
+          "note": "A dangling modifier makes the actor unclear.",
+          "errorTag": "modifier-placement"
+        }
+      ],
+      "questions": [
+        {
+          "id": "modifier-placement-multiple-choice",
+          "topicId": "modifier-placement",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Modifier Placement?",
+          "options": [
+            {
+              "id": "modifier-placement-mc-a",
+              "label": "After reviewing the data, the conclusion was revised by the researchers.",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-mc-b",
+              "label": "After reviewing the data, the researchers revised their conclusion.",
+              "isCorrect": true
+            },
+            {
+              "id": "modifier-placement-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "modifier-placement-mc-b",
+          "explanation": "A dangling modifier makes the actor unclear.",
+          "errorTag": "modifier-placement",
+          "difficulty": 3
+        },
+        {
+          "id": "modifier-placement-sentence-correction",
+          "topicId": "modifier-placement",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "After reviewing the data, the conclusion was revised by the researchers.",
+          "options": [
+            {
+              "id": "modifier-placement-sc-a",
+              "label": "After reviewing the data, the conclusion was revised by the researchers.",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-sc-b",
+              "label": "After reviewing the data, the researchers revised their conclusion.",
+              "isCorrect": true
+            },
+            {
+              "id": "modifier-placement-sc-c",
+              "label": "Students who studied regularly performed better on the final task.",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "modifier-placement-sc-b",
+          "explanation": "A dangling modifier makes the actor unclear.",
+          "errorTag": "modifier-placement",
+          "difficulty": 3
+        },
+        {
+          "id": "modifier-placement-fill-in-blank",
+          "topicId": "modifier-placement",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "After reviewing the data, the researchers ___ their conclusion.",
+          "options": [
+            {
+              "id": "modifier-placement-fib-a",
+              "label": "revised",
+              "isCorrect": true
+            },
+            {
+              "id": "modifier-placement-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "modifier-placement-fib-a",
+          "explanation": "A dangling modifier makes the actor unclear.",
+          "errorTag": "modifier-placement",
+          "difficulty": 3
+        },
+        {
+          "id": "modifier-placement-sentence-building",
+          "topicId": "modifier-placement",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "modifier-placement-sb-a",
+              "label": "Designed for low-income families, costs were reduced by the program.",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-sb-b",
+              "label": "Designed for low-income families, the program reduced costs.",
+              "isCorrect": true
+            },
+            {
+              "id": "modifier-placement-sb-c",
+              "label": "After reviewing the data, the researchers revised their conclusion,",
+              "isCorrect": false
+            },
+            {
+              "id": "modifier-placement-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "modifier-placement-sb-b",
+          "explanation": "A dangling modifier makes the actor unclear.",
+          "errorTag": "modifier-placement",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "article-use-academic-nouns"
+    },
+    {
+      "id": "article-use-academic-nouns",
+      "slug": "article-use-academic-nouns",
+      "title": "Article Use in Academic Nouns",
+      "description": "Choose a, an, the, or zero article for countable and abstract nouns.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 100,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "articles",
+      "level": "B2",
+      "tone": "yellow",
+      "estimatedMinutes": 15,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "articles",
+        "topicSlug": "article-use-academic-nouns",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "articles"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "articles",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "article-use-academic-nouns-rule-1",
+          "title": "Core rule",
+          "body": "Use the when the reader knows the specific noun."
+        },
+        {
+          "id": "article-use-academic-nouns-rule-2",
+          "title": "Usage note",
+          "body": "Use zero article for general plural or uncountable academic concepts."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "article-use-academic-nouns-positive",
+          "label": "Correct",
+          "sentence": "The results support a broader interpretation of the evidence.",
+          "note": "Specific countable nouns usually need an article or determiner.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "article-use-academic-nouns-negative",
+          "label": "Needs revision",
+          "sentence": "Results support the broader interpretation of evidence in general.",
+          "note": "Specific countable nouns usually need an article or determiner.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "article-use-academic-nouns-academic",
+          "label": "Academic use",
+          "sentence": "Education improves access to employment in many regions.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "article-use-academic-nouns-mistake",
+          "wrong": "Results support the broader interpretation of evidence in general.",
+          "right": "The results support a broader interpretation of the evidence.",
+          "note": "Specific countable nouns usually need an article or determiner.",
+          "errorTag": "article-use-academic-nouns"
+        }
+      ],
+      "questions": [
+        {
+          "id": "article-use-academic-nouns-multiple-choice",
+          "topicId": "article-use-academic-nouns",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Article Use in Academic Nouns?",
+          "options": [
+            {
+              "id": "article-use-academic-nouns-mc-a",
+              "label": "Results support the broader interpretation of evidence in general.",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-mc-b",
+              "label": "The results support a broader interpretation of the evidence.",
+              "isCorrect": true
+            },
+            {
+              "id": "article-use-academic-nouns-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "article-use-academic-nouns-mc-b",
+          "explanation": "Specific countable nouns usually need an article or determiner.",
+          "errorTag": "article-use-academic-nouns",
+          "difficulty": 3
+        },
+        {
+          "id": "article-use-academic-nouns-sentence-correction",
+          "topicId": "article-use-academic-nouns",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Results support the broader interpretation of evidence in general.",
+          "options": [
+            {
+              "id": "article-use-academic-nouns-sc-a",
+              "label": "Results support the broader interpretation of evidence in general.",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-sc-b",
+              "label": "The results support a broader interpretation of the evidence.",
+              "isCorrect": true
+            },
+            {
+              "id": "article-use-academic-nouns-sc-c",
+              "label": "Education improves access to employment in many regions.",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "article-use-academic-nouns-sc-b",
+          "explanation": "Specific countable nouns usually need an article or determiner.",
+          "errorTag": "article-use-academic-nouns",
+          "difficulty": 3
+        },
+        {
+          "id": "article-use-academic-nouns-fill-in-blank",
+          "topicId": "article-use-academic-nouns",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "___ results support a broader interpretation of the evidence.",
+          "options": [
+            {
+              "id": "article-use-academic-nouns-fib-a",
+              "label": "The",
+              "isCorrect": true
+            },
+            {
+              "id": "article-use-academic-nouns-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "article-use-academic-nouns-fib-a",
+          "explanation": "Specific countable nouns usually need an article or determiner.",
+          "errorTag": "article-use-academic-nouns",
+          "difficulty": 3
+        },
+        {
+          "id": "article-use-academic-nouns-sentence-building",
+          "topicId": "article-use-academic-nouns",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "article-use-academic-nouns-sb-a",
+              "label": "Limitation of study is small sample size.",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-sb-b",
+              "label": "A limitation of the study is the small sample size.",
+              "isCorrect": true
+            },
+            {
+              "id": "article-use-academic-nouns-sb-c",
+              "label": "The results support a broader interpretation of the evidence,",
+              "isCorrect": false
+            },
+            {
+              "id": "article-use-academic-nouns-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "article-use-academic-nouns-sb-b",
+          "explanation": "Specific countable nouns usually need an article or determiner.",
+          "errorTag": "article-use-academic-nouns",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "pronoun-reference"
+    },
+    {
+      "id": "pronoun-reference",
+      "slug": "pronoun-reference",
+      "title": "Pronoun Reference",
+      "description": "Make it clear what each pronoun refers to.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 110,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "pronouns",
+      "level": "B1",
+      "tone": "blue",
+      "estimatedMinutes": 12,
+      "difficulty": 2,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "pronouns",
+        "topicSlug": "pronoun-reference",
+        "levelSlug": "b1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "pronouns"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "pronouns",
+        "b1"
+      ],
+      "rules": [
+        {
+          "id": "pronoun-reference-rule-1",
+          "title": "Core rule",
+          "body": "Use a noun again when a pronoun could refer to more than one idea."
+        },
+        {
+          "id": "pronoun-reference-rule-2",
+          "title": "Usage note",
+          "body": "Match pronouns with singular or plural antecedents."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "pronoun-reference-positive",
+          "label": "Correct",
+          "sentence": "The policy affected students, so the students requested more guidance.",
+          "note": "A pronoun must clearly point to one noun.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "pronoun-reference-negative",
+          "label": "Needs revision",
+          "sentence": "The policy affected students, so they requested more guidance from it.",
+          "note": "A pronoun must clearly point to one noun.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "pronoun-reference-academic",
+          "label": "Academic use",
+          "sentence": "This pattern suggests that the intervention had a measurable effect.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "pronoun-reference-mistake",
+          "wrong": "The policy affected students, so they requested more guidance from it.",
+          "right": "The policy affected students, so the students requested more guidance.",
+          "note": "A pronoun must clearly point to one noun.",
+          "errorTag": "pronoun-reference"
+        }
+      ],
+      "questions": [
+        {
+          "id": "pronoun-reference-multiple-choice",
+          "topicId": "pronoun-reference",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Pronoun Reference?",
+          "options": [
+            {
+              "id": "pronoun-reference-mc-a",
+              "label": "The policy affected students, so they requested more guidance from it.",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-mc-b",
+              "label": "The policy affected students, so the students requested more guidance.",
+              "isCorrect": true
+            },
+            {
+              "id": "pronoun-reference-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "pronoun-reference-mc-b",
+          "explanation": "A pronoun must clearly point to one noun.",
+          "errorTag": "pronoun-reference",
+          "difficulty": 2
+        },
+        {
+          "id": "pronoun-reference-sentence-correction",
+          "topicId": "pronoun-reference",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The policy affected students, so they requested more guidance from it.",
+          "options": [
+            {
+              "id": "pronoun-reference-sc-a",
+              "label": "The policy affected students, so they requested more guidance from it.",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-sc-b",
+              "label": "The policy affected students, so the students requested more guidance.",
+              "isCorrect": true
+            },
+            {
+              "id": "pronoun-reference-sc-c",
+              "label": "This pattern suggests that the intervention had a measurable effect.",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "pronoun-reference-sc-b",
+          "explanation": "A pronoun must clearly point to one noun.",
+          "errorTag": "pronoun-reference",
+          "difficulty": 2
+        },
+        {
+          "id": "pronoun-reference-fill-in-blank",
+          "topicId": "pronoun-reference",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "This pattern suggests that ___ intervention had a measurable effect.",
+          "options": [
+            {
+              "id": "pronoun-reference-fib-a",
+              "label": "the",
+              "isCorrect": true
+            },
+            {
+              "id": "pronoun-reference-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "pronoun-reference-fib-a",
+          "explanation": "A pronoun must clearly point to one noun.",
+          "errorTag": "pronoun-reference",
+          "difficulty": 2
+        },
+        {
+          "id": "pronoun-reference-sentence-building",
+          "topicId": "pronoun-reference",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "pronoun-reference-sb-a",
+              "label": "The survey was revised because they contained unclear items.",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-sb-b",
+              "label": "The survey was revised because it contained unclear items.",
+              "isCorrect": true
+            },
+            {
+              "id": "pronoun-reference-sb-c",
+              "label": "The policy affected students, so the students requested more guidance,",
+              "isCorrect": false
+            },
+            {
+              "id": "pronoun-reference-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "pronoun-reference-sb-b",
+          "explanation": "A pronoun must clearly point to one noun.",
+          "errorTag": "pronoun-reference",
+          "difficulty": 2
+        }
+      ],
+      "recommendedNextTopicId": "contrast-connectors"
+    },
+    {
+      "id": "contrast-connectors",
+      "slug": "contrast-connectors",
+      "title": "Contrast Connectors",
+      "description": "Use however, nevertheless, although, and whereas to show contrast.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 120,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "connectors",
+      "level": "B2",
+      "tone": "teal",
+      "estimatedMinutes": 14,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "connectors",
+        "topicSlug": "contrast-connectors",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "connectors"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "connectors",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "contrast-connectors-rule-1",
+          "title": "Core rule",
+          "body": "Use however between independent clauses or sentences."
+        },
+        {
+          "id": "contrast-connectors-rule-2",
+          "title": "Usage note",
+          "body": "Use although before a dependent clause."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "contrast-connectors-positive",
+          "label": "Correct",
+          "sentence": "The sample was small; however, the pattern was consistent.",
+          "note": "Connector punctuation changes with sentence structure.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "contrast-connectors-negative",
+          "label": "Needs revision",
+          "sentence": "The sample was small, however the pattern was consistent.",
+          "note": "Connector punctuation changes with sentence structure.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "contrast-connectors-academic",
+          "label": "Academic use",
+          "sentence": "Although the policy was costly, it produced long-term benefits.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "contrast-connectors-mistake",
+          "wrong": "The sample was small, however the pattern was consistent.",
+          "right": "The sample was small; however, the pattern was consistent.",
+          "note": "Connector punctuation changes with sentence structure.",
+          "errorTag": "contrast-connectors"
+        }
+      ],
+      "questions": [
+        {
+          "id": "contrast-connectors-multiple-choice",
+          "topicId": "contrast-connectors",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Contrast Connectors?",
+          "options": [
+            {
+              "id": "contrast-connectors-mc-a",
+              "label": "The sample was small, however the pattern was consistent.",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-mc-b",
+              "label": "The sample was small; however, the pattern was consistent.",
+              "isCorrect": true
+            },
+            {
+              "id": "contrast-connectors-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "contrast-connectors-mc-b",
+          "explanation": "Connector punctuation changes with sentence structure.",
+          "errorTag": "contrast-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "contrast-connectors-sentence-correction",
+          "topicId": "contrast-connectors",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The sample was small, however the pattern was consistent.",
+          "options": [
+            {
+              "id": "contrast-connectors-sc-a",
+              "label": "The sample was small, however the pattern was consistent.",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-sc-b",
+              "label": "The sample was small; however, the pattern was consistent.",
+              "isCorrect": true
+            },
+            {
+              "id": "contrast-connectors-sc-c",
+              "label": "Although the policy was costly, it produced long-term benefits.",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "contrast-connectors-sc-b",
+          "explanation": "Connector punctuation changes with sentence structure.",
+          "errorTag": "contrast-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "contrast-connectors-fill-in-blank",
+          "topicId": "contrast-connectors",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The sample was small; ___, the pattern was consistent.",
+          "options": [
+            {
+              "id": "contrast-connectors-fib-a",
+              "label": "however",
+              "isCorrect": true
+            },
+            {
+              "id": "contrast-connectors-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "contrast-connectors-fib-a",
+          "explanation": "Connector punctuation changes with sentence structure.",
+          "errorTag": "contrast-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "contrast-connectors-sentence-building",
+          "topicId": "contrast-connectors",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "contrast-connectors-sb-a",
+              "label": "The first study measured access, however the second measured cost.",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-sb-b",
+              "label": "The first study measured access, whereas the second measured cost.",
+              "isCorrect": true
+            },
+            {
+              "id": "contrast-connectors-sb-c",
+              "label": "The sample was small, however, the pattern was consistent,",
+              "isCorrect": false
+            },
+            {
+              "id": "contrast-connectors-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "contrast-connectors-sb-b",
+          "explanation": "Connector punctuation changes with sentence structure.",
+          "errorTag": "contrast-connectors",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "cause-effect-connectors"
+    },
+    {
+      "id": "cause-effect-connectors",
+      "slug": "cause-effect-connectors",
+      "title": "Cause and Effect Connectors",
+      "description": "Show reasons and results with accurate connector choices.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": false,
+      "sortOrder": 130,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "connectors",
+      "level": "B2",
+      "tone": "teal",
+      "estimatedMinutes": 14,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "connectors",
+        "topicSlug": "cause-effect-connectors",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "connectors"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "connectors",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "cause-effect-connectors-rule-1",
+          "title": "Core rule",
+          "body": "Use because before a reason clause."
+        },
+        {
+          "id": "cause-effect-connectors-rule-2",
+          "title": "Usage note",
+          "body": "Use therefore to introduce a result in a new clause or sentence."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "cause-effect-connectors-positive",
+          "label": "Correct",
+          "sentence": "The sample was representative; therefore, the results are useful.",
+          "note": "Reason and result connectors are not interchangeable.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "cause-effect-connectors-negative",
+          "label": "Needs revision",
+          "sentence": "The sample was representative because the results are useful.",
+          "note": "Reason and result connectors are not interchangeable.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "cause-effect-connectors-academic",
+          "label": "Academic use",
+          "sentence": "Because participation increased, the program collected more reliable data.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "cause-effect-connectors-mistake",
+          "wrong": "The sample was representative because the results are useful.",
+          "right": "The sample was representative; therefore, the results are useful.",
+          "note": "Reason and result connectors are not interchangeable.",
+          "errorTag": "cause-effect-connectors"
+        }
+      ],
+      "questions": [
+        {
+          "id": "cause-effect-connectors-multiple-choice",
+          "topicId": "cause-effect-connectors",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Cause and Effect Connectors?",
+          "options": [
+            {
+              "id": "cause-effect-connectors-mc-a",
+              "label": "The sample was representative because the results are useful.",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-mc-b",
+              "label": "The sample was representative; therefore, the results are useful.",
+              "isCorrect": true
+            },
+            {
+              "id": "cause-effect-connectors-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cause-effect-connectors-mc-b",
+          "explanation": "Reason and result connectors are not interchangeable.",
+          "errorTag": "cause-effect-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "cause-effect-connectors-sentence-correction",
+          "topicId": "cause-effect-connectors",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The sample was representative because the results are useful.",
+          "options": [
+            {
+              "id": "cause-effect-connectors-sc-a",
+              "label": "The sample was representative because the results are useful.",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-sc-b",
+              "label": "The sample was representative; therefore, the results are useful.",
+              "isCorrect": true
+            },
+            {
+              "id": "cause-effect-connectors-sc-c",
+              "label": "Because participation increased, the program collected more reliable data.",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cause-effect-connectors-sc-b",
+          "explanation": "Reason and result connectors are not interchangeable.",
+          "errorTag": "cause-effect-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "cause-effect-connectors-fill-in-blank",
+          "topicId": "cause-effect-connectors",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The sample was representative; ___, the results are useful.",
+          "options": [
+            {
+              "id": "cause-effect-connectors-fib-a",
+              "label": "therefore",
+              "isCorrect": true
+            },
+            {
+              "id": "cause-effect-connectors-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cause-effect-connectors-fib-a",
+          "explanation": "Reason and result connectors are not interchangeable.",
+          "errorTag": "cause-effect-connectors",
+          "difficulty": 3
+        },
+        {
+          "id": "cause-effect-connectors-sentence-building",
+          "topicId": "cause-effect-connectors",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "cause-effect-connectors-sb-a",
+              "label": "The course added feedback therefore students needed guided revision.",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-sb-b",
+              "label": "The course added feedback because students needed guided revision.",
+              "isCorrect": true
+            },
+            {
+              "id": "cause-effect-connectors-sb-c",
+              "label": "The sample was representative, therefore, the results are useful,",
+              "isCorrect": false
+            },
+            {
+              "id": "cause-effect-connectors-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cause-effect-connectors-sb-b",
+          "explanation": "Reason and result connectors are not interchangeable.",
+          "errorTag": "cause-effect-connectors",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": "nominalization"
+    },
+    {
+      "id": "nominalization",
+      "slug": "nominalization",
+      "title": "Nominalization",
+      "description": "Turn actions into precise academic noun phrases when appropriate.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 140,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "academic-grammar",
+      "level": "C1",
+      "tone": "navy",
+      "estimatedMinutes": 20,
+      "difficulty": 4,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "academic-grammar",
+        "topicSlug": "nominalization",
+        "levelSlug": "c1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "academic-grammar"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "academic-grammar",
+        "c1"
+      ],
+      "rules": [
+        {
+          "id": "nominalization-rule-1",
+          "title": "Core rule",
+          "body": "Use nominalization to make claims concise and formal."
+        },
+        {
+          "id": "nominalization-rule-2",
+          "title": "Usage note",
+          "body": "Avoid overusing abstract nouns when the actor matters."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "nominalization-positive",
+          "label": "Correct",
+          "sentence": "The expansion of public transit reduced commuting time.",
+          "note": "Nominalized forms often need correct prepositions and articles.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "nominalization-negative",
+          "label": "Needs revision",
+          "sentence": "Public transit expanded reduced commuting time.",
+          "note": "Nominalized forms often need correct prepositions and articles.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "nominalization-academic",
+          "label": "Academic use",
+          "sentence": "The implementation of the policy created measurable benefits.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "nominalization-mistake",
+          "wrong": "Public transit expanded reduced commuting time.",
+          "right": "The expansion of public transit reduced commuting time.",
+          "note": "Nominalized forms often need correct prepositions and articles.",
+          "errorTag": "nominalization"
+        }
+      ],
+      "questions": [
+        {
+          "id": "nominalization-multiple-choice",
+          "topicId": "nominalization",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Nominalization?",
+          "options": [
+            {
+              "id": "nominalization-mc-a",
+              "label": "Public transit expanded reduced commuting time.",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-mc-b",
+              "label": "The expansion of public transit reduced commuting time.",
+              "isCorrect": true
+            },
+            {
+              "id": "nominalization-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "nominalization-mc-b",
+          "explanation": "Nominalized forms often need correct prepositions and articles.",
+          "errorTag": "nominalization",
+          "difficulty": 4
+        },
+        {
+          "id": "nominalization-sentence-correction",
+          "topicId": "nominalization",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Public transit expanded reduced commuting time.",
+          "options": [
+            {
+              "id": "nominalization-sc-a",
+              "label": "Public transit expanded reduced commuting time.",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-sc-b",
+              "label": "The expansion of public transit reduced commuting time.",
+              "isCorrect": true
+            },
+            {
+              "id": "nominalization-sc-c",
+              "label": "The implementation of the policy created measurable benefits.",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "nominalization-sc-b",
+          "explanation": "Nominalized forms often need correct prepositions and articles.",
+          "errorTag": "nominalization",
+          "difficulty": 4
+        },
+        {
+          "id": "nominalization-fill-in-blank",
+          "topicId": "nominalization",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The ___ of the policy created measurable benefits.",
+          "options": [
+            {
+              "id": "nominalization-fib-a",
+              "label": "implementation",
+              "isCorrect": true
+            },
+            {
+              "id": "nominalization-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "nominalization-fib-a",
+          "explanation": "Nominalized forms often need correct prepositions and articles.",
+          "errorTag": "nominalization",
+          "difficulty": 4
+        },
+        {
+          "id": "nominalization-sentence-building",
+          "topicId": "nominalization",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "nominalization-sb-a",
+              "label": "The reduce in costs improved access for local families.",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-sb-b",
+              "label": "The reduction in costs improved access for local families.",
+              "isCorrect": true
+            },
+            {
+              "id": "nominalization-sb-c",
+              "label": "The expansion of public transit reduced commuting time,",
+              "isCorrect": false
+            },
+            {
+              "id": "nominalization-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "nominalization-sb-b",
+          "explanation": "Nominalized forms often need correct prepositions and articles.",
+          "errorTag": "nominalization",
+          "difficulty": 4
+        }
+      ],
+      "recommendedNextTopicId": "hedging"
+    },
+    {
+      "id": "hedging",
+      "slug": "hedging",
+      "title": "Hedging",
+      "description": "Make claims careful and evidence-based without sounding weak.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 150,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "academic-grammar",
+      "level": "C1",
+      "tone": "navy",
+      "estimatedMinutes": 16,
+      "difficulty": 4,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "academic-grammar",
+        "topicSlug": "hedging",
+        "levelSlug": "c1",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "academic-grammar"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "academic-grammar",
+        "c1"
+      ],
+      "rules": [
+        {
+          "id": "hedging-rule-1",
+          "title": "Core rule",
+          "body": "Use may, might, appears to, and suggests for cautious claims."
+        },
+        {
+          "id": "hedging-rule-2",
+          "title": "Usage note",
+          "body": "Match stronger language to stronger evidence."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "hedging-positive",
+          "label": "Correct",
+          "sentence": "The findings suggest that feedback may improve revision quality.",
+          "note": "Academic writing often needs measured claims rather than absolute claims.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "hedging-negative",
+          "label": "Needs revision",
+          "sentence": "The findings prove that feedback always improves revision quality.",
+          "note": "Academic writing often needs measured claims rather than absolute claims.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "hedging-academic",
+          "label": "Academic use",
+          "sentence": "This trend appears to be related to changes in study habits.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "hedging-mistake",
+          "wrong": "The findings prove that feedback always improves revision quality.",
+          "right": "The findings suggest that feedback may improve revision quality.",
+          "note": "Academic writing often needs measured claims rather than absolute claims.",
+          "errorTag": "hedging"
+        }
+      ],
+      "questions": [
+        {
+          "id": "hedging-multiple-choice",
+          "topicId": "hedging",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Hedging?",
+          "options": [
+            {
+              "id": "hedging-mc-a",
+              "label": "The findings prove that feedback always improves revision quality.",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-mc-b",
+              "label": "The findings suggest that feedback may improve revision quality.",
+              "isCorrect": true
+            },
+            {
+              "id": "hedging-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "hedging-mc-b",
+          "explanation": "Academic writing often needs measured claims rather than absolute claims.",
+          "errorTag": "hedging",
+          "difficulty": 4
+        },
+        {
+          "id": "hedging-sentence-correction",
+          "topicId": "hedging",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "The findings prove that feedback always improves revision quality.",
+          "options": [
+            {
+              "id": "hedging-sc-a",
+              "label": "The findings prove that feedback always improves revision quality.",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-sc-b",
+              "label": "The findings suggest that feedback may improve revision quality.",
+              "isCorrect": true
+            },
+            {
+              "id": "hedging-sc-c",
+              "label": "This trend appears to be related to changes in study habits.",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "hedging-sc-b",
+          "explanation": "Academic writing often needs measured claims rather than absolute claims.",
+          "errorTag": "hedging",
+          "difficulty": 4
+        },
+        {
+          "id": "hedging-fill-in-blank",
+          "topicId": "hedging",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The findings ___ that feedback may improve revision quality.",
+          "options": [
+            {
+              "id": "hedging-fib-a",
+              "label": "suggest",
+              "isCorrect": true
+            },
+            {
+              "id": "hedging-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "hedging-fib-a",
+          "explanation": "Academic writing often needs measured claims rather than absolute claims.",
+          "errorTag": "hedging",
+          "difficulty": 4
+        },
+        {
+          "id": "hedging-sentence-building",
+          "topicId": "hedging",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "hedging-sb-a",
+              "label": "The results definitely indicate all students changed behavior.",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-sb-b",
+              "label": "The results may indicate a broader change in student behavior.",
+              "isCorrect": true
+            },
+            {
+              "id": "hedging-sb-c",
+              "label": "The findings suggest that feedback may improve revision quality,",
+              "isCorrect": false
+            },
+            {
+              "id": "hedging-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "hedging-sb-b",
+          "explanation": "Academic writing often needs measured claims rather than absolute claims.",
+          "errorTag": "hedging",
+          "difficulty": 4
+        }
+      ],
+      "recommendedNextTopicId": "cohesion-and-reference"
+    },
+    {
+      "id": "cohesion-and-reference",
+      "slug": "cohesion-and-reference",
+      "title": "Cohesion and Reference",
+      "description": "Connect sentences so readers can follow the argument easily.",
+      "status": "active",
+      "visibility": "authenticated",
+      "isPremium": true,
+      "sortOrder": 160,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "categoryId": "writing-grammar",
+      "level": "B2",
+      "tone": "orange",
+      "estimatedMinutes": 18,
+      "difficulty": 3,
+      "lessonCount": 5,
+      "taxonomy": {
+        "examSlug": "toefl",
+        "examVersionSlug": "toefl-current",
+        "skillSlug": "grammar",
+        "taskTypeSlug": "learn-practice-review",
+        "subskillSlug": "writing-grammar",
+        "topicSlug": "cohesion-and-reference",
+        "levelSlug": "b2",
+        "contentTypeSlug": "grammar-lesson",
+        "tagSlugs": [
+          "academic-english",
+          "writing-grammar"
+        ]
+      },
+      "contentTags": [
+        "toefl-grammar",
+        "writing-grammar",
+        "b2"
+      ],
+      "rules": [
+        {
+          "id": "cohesion-and-reference-rule-1",
+          "title": "Core rule",
+          "body": "Use this plus a summary noun to refer to a previous idea."
+        },
+        {
+          "id": "cohesion-and-reference-rule-2",
+          "title": "Usage note",
+          "body": "Repeat key terms when a pronoun would be unclear."
+        }
+      ],
+      "positiveExamples": [
+        {
+          "id": "cohesion-and-reference-positive",
+          "label": "Correct",
+          "sentence": "Many students work part-time. This responsibility can limit study time.",
+          "note": "This alone can be vague; this plus a noun is often clearer.",
+          "isCorrect": true
+        }
+      ],
+      "negativeExamples": [
+        {
+          "id": "cohesion-and-reference-negative",
+          "label": "Needs revision",
+          "sentence": "Many students work part-time. This can limit study time.",
+          "note": "This alone can be vague; this plus a noun is often clearer.",
+          "isCorrect": false
+        }
+      ],
+      "academicExamples": [
+        {
+          "id": "cohesion-and-reference-academic",
+          "label": "Academic use",
+          "sentence": "The intervention increased attendance. This improvement was strongest in small classes.",
+          "note": "Useful for TOEFL-style academic explanations.",
+          "isCorrect": true
+        }
+      ],
+      "commonMistakes": [
+        {
+          "id": "cohesion-and-reference-mistake",
+          "wrong": "Many students work part-time. This can limit study time.",
+          "right": "Many students work part-time. This responsibility can limit study time.",
+          "note": "This alone can be vague; this plus a noun is often clearer.",
+          "errorTag": "cohesion-and-reference"
+        }
+      ],
+      "questions": [
+        {
+          "id": "cohesion-and-reference-multiple-choice",
+          "topicId": "cohesion-and-reference",
+          "type": "multiple-choice",
+          "prompt": "Choose the strongest sentence",
+          "stem": "Which sentence best demonstrates Cohesion and Reference?",
+          "options": [
+            {
+              "id": "cohesion-and-reference-mc-a",
+              "label": "Many students work part-time. This can limit study time.",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-mc-b",
+              "label": "Many students work part-time. This responsibility can limit study time.",
+              "isCorrect": true
+            },
+            {
+              "id": "cohesion-and-reference-mc-c",
+              "label": "The idea is important and it is about the topic.",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-mc-d",
+              "label": "There are many examples that shows the same point.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cohesion-and-reference-mc-b",
+          "explanation": "This alone can be vague; this plus a noun is often clearer.",
+          "errorTag": "cohesion-and-reference",
+          "difficulty": 3
+        },
+        {
+          "id": "cohesion-and-reference-sentence-correction",
+          "topicId": "cohesion-and-reference",
+          "type": "sentence-correction",
+          "prompt": "Correct the sentence",
+          "stem": "Many students work part-time. This can limit study time.",
+          "options": [
+            {
+              "id": "cohesion-and-reference-sc-a",
+              "label": "Many students work part-time. This can limit study time.",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-sc-b",
+              "label": "Many students work part-time. This responsibility can limit study time.",
+              "isCorrect": true
+            },
+            {
+              "id": "cohesion-and-reference-sc-c",
+              "label": "The intervention increased attendance. This improvement was strongest in small classes.",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-sc-d",
+              "label": "No change is needed.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cohesion-and-reference-sc-b",
+          "explanation": "This alone can be vague; this plus a noun is often clearer.",
+          "errorTag": "cohesion-and-reference",
+          "difficulty": 3
+        },
+        {
+          "id": "cohesion-and-reference-fill-in-blank",
+          "topicId": "cohesion-and-reference",
+          "type": "fill-in-blank",
+          "prompt": "Fill in the blank",
+          "stem": "The intervention increased attendance. This ___ was strongest in small classes.",
+          "options": [
+            {
+              "id": "cohesion-and-reference-fib-a",
+              "label": "improvement",
+              "isCorrect": true
+            },
+            {
+              "id": "cohesion-and-reference-fib-b",
+              "label": "therefore",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-fib-c",
+              "label": "which",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-fib-d",
+              "label": "because",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cohesion-and-reference-fib-a",
+          "explanation": "This alone can be vague; this plus a noun is often clearer.",
+          "errorTag": "cohesion-and-reference",
+          "difficulty": 3
+        },
+        {
+          "id": "cohesion-and-reference-sentence-building",
+          "topicId": "cohesion-and-reference",
+          "type": "sentence-building",
+          "prompt": "Build the best sentence",
+          "stem": "Choose the clearest academic sentence from the word groups.",
+          "options": [
+            {
+              "id": "cohesion-and-reference-sb-a",
+              "label": "The policy reduced delays, and this improved satisfaction.",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-sb-b",
+              "label": "The policy reduced delays, and this change improved satisfaction.",
+              "isCorrect": true
+            },
+            {
+              "id": "cohesion-and-reference-sb-c",
+              "label": "Many students work part-time, This responsibility can limit study time,",
+              "isCorrect": false
+            },
+            {
+              "id": "cohesion-and-reference-sb-d",
+              "label": "The sentence is clear because it has academic words.",
+              "isCorrect": false
+            }
+          ],
+          "correctOptionId": "cohesion-and-reference-sb-b",
+          "explanation": "This alone can be vague; this plus a noun is often clearer.",
+          "errorTag": "cohesion-and-reference",
+          "difficulty": 3
+        }
+      ],
+      "recommendedNextTopicId": null
+    }
+  ],
+  "progress": [
+    {
+      "topicId": "simple-compound-complex",
+      "state": "strong",
+      "mastery": 82,
+      "lastPracticedAt": "2026-09-02T09:30:00.000Z",
+      "nextReviewAt": "2026-09-12T09:30:00.000Z",
+      "correctStreak": 3,
+      "incorrectCount": 1,
+      "practiceCount": 7,
+      "recentErrors": 1,
+      "difficulty": 2,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "practice"
+      ]
+    },
+    {
+      "topicId": "parallel-structure",
+      "state": "improving",
+      "mastery": 66,
+      "lastPracticedAt": "2026-08-30T10:20:00.000Z",
+      "nextReviewAt": "2026-09-05T10:20:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 2,
+      "practiceCount": 5,
+      "recentErrors": 2,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn",
+        "examples"
+      ]
+    },
+    {
+      "topicId": "tense-consistency",
+      "state": "mastered",
+      "mastery": 92,
+      "lastPracticedAt": "2026-09-01T08:40:00.000Z",
+      "nextReviewAt": "2026-09-18T08:40:00.000Z",
+      "correctStreak": 5,
+      "incorrectCount": 0,
+      "practiceCount": 9,
+      "recentErrors": 0,
+      "difficulty": 2,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "mistakes",
+        "practice",
+        "quiz"
+      ]
+    },
+    {
+      "topicId": "perfect-aspect",
+      "state": "needs-practice",
+      "mastery": 48,
+      "lastPracticedAt": "2026-08-22T14:00:00.000Z",
+      "nextReviewAt": "2026-09-04T08:00:00.000Z",
+      "correctStreak": 0,
+      "incorrectCount": 4,
+      "practiceCount": 4,
+      "recentErrors": 4,
+      "difficulty": 4,
+      "completedSteps": [
+        "learn"
+      ]
+    },
+    {
+      "topicId": "subject-verb-agreement",
+      "state": "strong",
+      "mastery": 78,
+      "lastPracticedAt": "2026-09-03T12:10:00.000Z",
+      "nextReviewAt": "2026-09-10T12:10:00.000Z",
+      "correctStreak": 3,
+      "incorrectCount": 1,
+      "practiceCount": 6,
+      "recentErrors": 1,
+      "difficulty": 2,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "practice"
+      ]
+    },
+    {
+      "topicId": "relative-clauses",
+      "state": "improving",
+      "mastery": 61,
+      "lastPracticedAt": "2026-08-29T15:35:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 3,
+      "practiceCount": 5,
+      "recentErrors": 3,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "mistakes"
+      ]
+    },
+    {
+      "topicId": "noun-clauses",
+      "state": "learning",
+      "mastery": 38,
+      "lastPracticedAt": "2026-08-24T11:25:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 0,
+      "incorrectCount": 2,
+      "practiceCount": 2,
+      "recentErrors": 2,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn"
+      ]
+    },
+    {
+      "topicId": "adverb-clauses",
+      "state": "not-started",
+      "mastery": 0,
+      "lastPracticedAt": null,
+      "nextReviewAt": null,
+      "correctStreak": 0,
+      "incorrectCount": 0,
+      "practiceCount": 0,
+      "recentErrors": 0,
+      "difficulty": 3,
+      "completedSteps": []
+    },
+    {
+      "topicId": "modifier-placement",
+      "state": "needs-practice",
+      "mastery": 44,
+      "lastPracticedAt": "2026-08-27T16:50:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 0,
+      "incorrectCount": 5,
+      "practiceCount": 5,
+      "recentErrors": 5,
+      "difficulty": 4,
+      "completedSteps": [
+        "learn",
+        "examples"
+      ]
+    },
+    {
+      "topicId": "article-use-academic-nouns",
+      "state": "needs-practice",
+      "mastery": 42,
+      "lastPracticedAt": "2026-08-31T17:30:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 0,
+      "incorrectCount": 6,
+      "practiceCount": 7,
+      "recentErrors": 6,
+      "difficulty": 4,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "mistakes"
+      ]
+    },
+    {
+      "topicId": "pronoun-reference",
+      "state": "improving",
+      "mastery": 58,
+      "lastPracticedAt": "2026-09-01T13:20:00.000Z",
+      "nextReviewAt": "2026-09-05T13:20:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 2,
+      "practiceCount": 4,
+      "recentErrors": 2,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn",
+        "examples"
+      ]
+    },
+    {
+      "topicId": "contrast-connectors",
+      "state": "strong",
+      "mastery": 74,
+      "lastPracticedAt": "2026-09-03T09:45:00.000Z",
+      "nextReviewAt": "2026-09-11T09:45:00.000Z",
+      "correctStreak": 3,
+      "incorrectCount": 1,
+      "practiceCount": 6,
+      "recentErrors": 1,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "practice"
+      ]
+    },
+    {
+      "topicId": "cause-effect-connectors",
+      "state": "learning",
+      "mastery": 36,
+      "lastPracticedAt": "2026-08-26T09:15:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 0,
+      "incorrectCount": 3,
+      "practiceCount": 3,
+      "recentErrors": 3,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn"
+      ]
+    },
+    {
+      "topicId": "nominalization",
+      "state": "not-started",
+      "mastery": 0,
+      "lastPracticedAt": null,
+      "nextReviewAt": null,
+      "correctStreak": 0,
+      "incorrectCount": 0,
+      "practiceCount": 0,
+      "recentErrors": 0,
+      "difficulty": 5,
+      "completedSteps": []
+    },
+    {
+      "topicId": "hedging",
+      "state": "learning",
+      "mastery": 52,
+      "lastPracticedAt": "2026-08-28T10:10:00.000Z",
+      "nextReviewAt": "2026-09-04T09:00:00.000Z",
+      "correctStreak": 1,
+      "incorrectCount": 2,
+      "practiceCount": 4,
+      "recentErrors": 2,
+      "difficulty": 4,
+      "completedSteps": [
+        "learn",
+        "examples"
+      ]
+    },
+    {
+      "topicId": "cohesion-and-reference",
+      "state": "improving",
+      "mastery": 63,
+      "lastPracticedAt": "2026-09-02T18:15:00.000Z",
+      "nextReviewAt": "2026-09-07T18:15:00.000Z",
+      "correctStreak": 2,
+      "incorrectCount": 2,
+      "practiceCount": 5,
+      "recentErrors": 2,
+      "difficulty": 3,
+      "completedSteps": [
+        "learn",
+        "examples",
+        "practice"
+      ]
+    }
+  ]
+}
