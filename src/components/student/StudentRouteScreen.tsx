@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StudentShell } from '@/components/student/StudentShell';
 import { Button, Card, ErrorState, Skeleton, studentTokens } from '@/components/student/ui';
 import { getCurrentUser, logoutUser, type AuthUser } from '@/lib/auth';
+import { getRemoteCurrentUser, isRemoteAuthEnabled, logoutRemote } from '@/lib/remote-auth';
 import { getStudentRouteAccess, type StudentRouteKey } from '@/lib/permissions';
 import { studentRouteMeta } from '@/lib/student-routes';
 
@@ -87,15 +88,28 @@ function PendingPanel({ routeKey }: { routeKey: StudentRouteKey }) {
 export function StudentRouteScreen({ routeKey, children }: StudentRouteScreenProps) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(() => getCurrentUser());
+  const [authResolved, setAuthResolved] = useState(() => !isRemoteAuthEnabled());
   const meta = studentRouteMeta[routeKey];
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/login' as Href);
-    }
-  }, [router, user]);
+    let active = true;
+    const restoreRemoteSession = async () => {
+      if (isRemoteAuthEnabled()) {
+        const remoteUser = await getRemoteCurrentUser();
+        if (active && remoteUser) setUser(remoteUser);
+      }
+      if (active) setAuthResolved(true);
+    };
+    void restoreRemoteSession();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (authResolved && !user) router.replace('/login' as Href);
+  }, [authResolved, router, user]);
 
   const handleLogout = () => {
+    void logoutRemote();
     logoutUser();
     setUser(null);
     router.replace('/login' as Href);

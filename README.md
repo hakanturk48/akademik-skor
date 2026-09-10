@@ -73,3 +73,21 @@ GitHub repository ayarlarında **Settings > Pages > Build and deployment > Sourc
 `https://hakanturk48.github.io/akademik-skor/`
 
 GitHub Pages yalnızca statik frontend önizlemesidir. Gerçek kullanıcı doğrulama, admin rol kontrolü, merkezi içerik verisi ve medya storage sonraki backend aşamasında kurulacaktır.
+
+## Kalıcı üyelik ve Supabase kurulumu
+
+Üyelikler yapılandırılmış Supabase Auth ve PostgreSQL profilleri üzerinden kalıcı tutulur. Supabase değişkenleri yoksa uygulama yalnızca yerel demo auth fallback'i kullanır; bu mod gerçek hesap sistemi değildir.
+
+1. Supabase'te bir proje oluşturun.
+2. SQL Editor'da `supabase/schema.sql` dosyasını çalıştırın.
+3. Authentication > URL Configuration bölümünde önce `http://localhost:8092`, sonra GitHub Pages adresini ve ileride kullanılacak özel domaini izinli URL olarak ekleyin.
+4. Project Settings > API içinden Project URL ve `anon public` anahtarını alın. `service_role` anahtarını frontend'e veya GitHub Actions'a koymayın.
+5. Yerelde `.env.local` dosyasına `.env.example` içeriğini kopyalayıp değerleri doldurun.
+6. GitHub repository > Settings > Secrets and variables > Actions bölümünde şu repository secrets değerlerini oluşturun: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+7. İlk admin kullanıcı hesabını normal kayıtla oluşturduktan sonra Supabase SQL Editor'da yalnızca yetkili hesabı admin yapın:
+
+```sql
+update public.profiles set role = 'admin' where email = 'admin@example.com';
+```
+
+LocalStorage'da daha önce oluşturulmuş demo hesaplar merkezi veritabanına otomatik taşınamaz. Supabase yapılandırması etkinleştirildikten sonra yeni kayıtlar cihazdan bağımsız kalıcı olur.

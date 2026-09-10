@@ -150,7 +150,7 @@ function writeVerifications(verifications: EmailVerification[]) {
   window.localStorage.setItem(VERIFICATION_KEY, JSON.stringify(verifications));
 }
 
-function writeSession(user: AuthUser) {
+export function setCurrentUserSession(user: AuthUser) {
   const normalizedUser = normalizeSessionUser(user);
 
   if (!hasLocalStorage()) {
@@ -301,7 +301,7 @@ export function registerUser(input: {
   writeUsers(nextUsers);
   consumeEmailVerification(email);
   const user = publicUser(storedUser);
-  writeSession(user);
+  setCurrentUserSession(user);
 
   return { ok: true, user };
 }
@@ -328,7 +328,7 @@ export function loginUser(emailInput: string, passwordInput: string): AuthResult
   }
 
   const sessionUser = publicUser(user);
-  writeSession(sessionUser);
+  setCurrentUserSession(sessionUser);
 
   return { ok: true, user: sessionUser };
 }
@@ -383,7 +383,7 @@ export function createLocalAdminAccount(input: { name: string; email: string; pa
     writeUsers([...users, storedUser]);
   } catch { return { ok: false, message: 'Hesap kaydedilemedi. Tarayıcı depolamasını kontrol edin.' }; }
   const user = publicUser(storedUser);
-  try { writeSession(user); }
+  try { setCurrentUserSession(user); }
   catch { return { ok: false, message: 'Hesap oluşturuldu ancak oturum açılamadı. E-posta ve şifrenizle tekrar giriş yapın.' }; }
   return { ok: true, user };
 }
@@ -401,7 +401,7 @@ export function updateCurrentUserPlan(plan: AuthPlan): AuthUser | null {
   const normalizedPlan = normalizePlan(plan);
   const nextUser = { ...currentUser, plan: normalizedPlan };
   writeUsers(readUsers().map((user) => (user.id === currentUser.id ? { ...user, plan: normalizedPlan } : user)));
-  writeSession(nextUser);
+  setCurrentUserSession(nextUser);
   return nextUser;
 }
 

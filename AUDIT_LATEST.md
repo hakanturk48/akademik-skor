@@ -299,4 +299,39 @@ Kapsam sınırı:
 - Workflow yerelde hazırlandı ve CI eşdeğeri doğrulandı; GitHub Actions sonucu bu commit'in push'undan sonra GitHub üzerinde izlenmelidir.
 - GitHub repository Settings > Pages > Source değerinin GitHub Actions yapılması gerekiyor.
 - Gerçek auth, admin role check, merkezi veritabanı, içerik API'si ve medya storage sonraki backend aşamasıdır.
+### 10 Eylül 2026: Supabase Auth ve PostgreSQL Temeli
 
+Öğrenci üyeliklerinin yalnız tarayıcı localStorage'ında kalması production için yeterli olmadığından, kalıcı backend geçişinin ilk adımı eklendi. Student UI yeniden tasarlanmadı.
+
+Tamamlananlar:
+
+- `@supabase/supabase-js` bağımlılığı eklendi.
+- `src/lib/supabase.ts` public URL ve anon key ile kalıcı session, token yenileme ve e-posta callback ayarlarını sağlar.
+- `src/lib/remote-auth.ts` kayıt, giriş, session restore ve çıkış akışını Supabase Auth'a bağlar.
+- Supabase yapılandırması yokken mevcut localStorage auth yalnızca demo fallback olarak çalışmaya devam eder.
+- `supabase/schema.sql` profiles tablosunu, Auth trigger'ını, RLS politikalarını ve server-side admin rolü kontrolünü oluşturur.
+- Yeni kullanıcılar istemciden kendisini admin ilan edemez; admin rolü yalnız Supabase SQL Editor veya korunmuş server süreci üzerinden atanır.
+- Login, register, student route ve admin route bileşenleri remote session restore/remote logout akışına bağlandı.
+- GitHub Pages workflow'u `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` repository secrets değerlerini build ortamına alacak şekilde güncellendi.
+- `.env.example` ve README kurulum adımları eklendi. `service_role` anahtarının frontend'e veya GitHub Actions'a konulmaması açıkça belirtildi.
+
+Aktivasyon için bekleyenler:
+
+1. Supabase projesinin oluşturulması.
+2. `supabase/schema.sql` migration'ının SQL Editor'da çalıştırılması.
+3. Auth redirect URL'lerinin localhost, GitHub Pages ve ilerideki domain ile tanımlanması.
+4. GitHub repository secrets olarak `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` eklenmesi.
+5. İlk kullanıcı oluşturulduktan sonra yetkili hesabın `public.profiles.role = 'admin'` olarak server-side atanması.
+
+Sınır: Supabase secrets eklenene ve migration çalıştırılana kadar yayınlanan site local demo auth fallback'i kullanır; bu aşamada kullanıcılar henüz merkezi veritabanında değildir. Eski localStorage hesapları şifre güvenliği nedeniyle otomatik taşınmaz ve Supabase etkinleştirildikten sonra yeniden oluşturulmalıdır.
+
+Doğrulama:
+
+| Kontrol | Sonuç |
+| --- | --- |
+| `npm install @supabase/supabase-js` | Geçti |
+| `npx tsc --noEmit` | Geçti |
+| `npm run lint` | Geçti |
+| `npm run test:admin-login` | 6/6 geçti |
+| `npx expo export --platform web` | Geçti; 37 statik route |
+| Supabase secrets ile gerçek kayıt/giriş | Supabase projesi bekleniyor |

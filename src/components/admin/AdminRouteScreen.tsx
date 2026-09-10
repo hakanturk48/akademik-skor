@@ -9,6 +9,7 @@ import { adminLabel } from '@/lib/admin/labels';
 import { Button, Card, Skeleton, studentFontFamily, studentTokens } from '@/components/student/ui';
 import { getAdminAccessDecision, requireAdminRole } from '@/lib/admin';
 import { getCurrentUser, logoutUser, type AuthUser } from '@/lib/auth';
+import { getRemoteCurrentUser, isRemoteAuthEnabled, logoutRemote } from '@/lib/remote-auth';
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
 
@@ -52,16 +53,29 @@ function AccessDeniedPanel({ user, reason, onDashboard, onLogout }: { user: Auth
 export function AdminRouteScreen() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(() => getCurrentUser());
+  const [authResolved, setAuthResolved] = useState(() => !isRemoteAuthEnabled());
   const access = getAdminAccessDecision(user);
   const verifiedAdmin = useMemo(() => (access.allowed ? requireAdminRole(user) : null), [access.allowed, user]);
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/login?next=/admin' as Href);
-    }
-  }, [router, user]);
+    let active = true;
+    const restoreRemoteSession = async () => {
+      if (isRemoteAuthEnabled()) {
+        const remoteUser = await getRemoteCurrentUser();
+        if (active && remoteUser) setUser(remoteUser);
+      }
+      if (active) setAuthResolved(true);
+    };
+    void restoreRemoteSession();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (authResolved && !user) router.replace('/login?next=/admin' as Href);
+  }, [authResolved, router, user]);
 
   const handleLogout = () => {
+    void logoutRemote();
     logoutUser();
     setUser(null);
     router.replace('/login?next=/admin' as Href);

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getCurrentUser, registerUser, requestEmailVerification, verifyEmailCode, type AuthRole } from '@/lib/auth';
+import { getRemoteCurrentUser, isRemoteAuthEnabled, registerRemote } from '@/lib/remote-auth';
 
 const palette = {
   ink: '#20233a',
@@ -103,9 +104,13 @@ export default function RegisterScreen() {
   const [messageTone, setMessageTone] = useState<MessageTone>('error');
 
   useEffect(() => {
-    if (getCurrentUser()) {
-      router.replace('/dashboard' as Href);
-    }
+    let active = true;
+    const restoreSession = async () => {
+      const user = isRemoteAuthEnabled() ? await getRemoteCurrentUser() : getCurrentUser();
+      if (active && user) router.replace('/dashboard' as Href);
+    };
+    void restoreSession();
+    return () => { active = false; };
   }, [router]);
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -173,11 +178,28 @@ export default function RegisterScreen() {
     showMessage('E-posta doğrulandı. Üyeliği oluşturabilirsiniz.', 'success');
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     const validationMessage = validateDraft();
     if (validationMessage) {
       showMessage(validationMessage);
       return;
+    }
+
+    if (isRemoteAuthEnabled()) {
+      try {
+        const result = await registerRemote({ name, email, password, goal, role: role === 'admin' ? 'student' : role });
+        if (!result.ok) {
+          const confirmationPending = result.message.startsWith('Hesabınız oluşturuldu.');
+          showMessage(result.message, confirmationPending ? 'success' : 'error');
+          return;
+        }
+        setMessage('');
+        router.replace('/dashboard' as Href);
+        return;
+      } catch {
+        showMessage('Üyelik oluşturulamadı. Lütfen bağlantınızı kontrol edin.');
+        return;
+      }
     }
 
     if (!emailIsVerified) {
@@ -224,7 +246,7 @@ export default function RegisterScreen() {
               </View>
               <View style={styles.formTitleGroup}>
                 <Text style={styles.formTitle}>Ücretsiz üye ol</Text>
-                <Text style={styles.formSubtitle}>E-postanızı doğrulayarak demo paneli kullanmaya başlayın.</Text>
+                <Text style={styles.formSubtitle}>{isRemoteAuthEnabled() ? 'E-posta doğrulamasıyla kalıcı hesabınızı oluşturun.' : 'E-postanızı doğrulayarak demo paneli kullanmaya başlayın.'}</Text>
               </View>
             </View>
 
@@ -256,6 +278,7 @@ export default function RegisterScreen() {
               placeholder="Şifrenizi tekrar girin"
             />
 
+            {!isRemoteAuthEnabled() ? (<>
             <View style={styles.verificationBox}>
               <View style={styles.verificationHead}>
                 <View style={styles.verificationCopy}>
@@ -281,6 +304,8 @@ export default function RegisterScreen() {
                 </Pressable>
               </View>
             </View>
+            </>) : null}
+
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Hedef / kullanım notu</Text>

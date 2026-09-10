@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createLocalAdminAccount, getCurrentUser, getLocalAdminSetupState, getPostLoginRoute, loginUser } from '@/lib/auth';
+import { getRemoteCurrentUser, isRemoteAuthEnabled, loginRemote } from '@/lib/remote-auth';
 
 const palette = {
   ink: '#20233a',
@@ -35,7 +36,7 @@ const subscribeToLocalAccounts = (onChange: () => void) => {
   window.addEventListener('storage', onChange);
   return () => window.removeEventListener('storage', onChange);
 };
-const localSetupSnapshot = () => JSON.stringify(getLocalAdminSetupState());
+const localSetupSnapshot = () => JSON.stringify(isRemoteAuthEnabled() ? { available: false, message: 'Merkezi üyelik aktif. Admin hesabı Supabase üzerinden yetkilendirilir.' } : getLocalAdminSetupState());
 const serverSetupSnapshot = () => '{"available":false,"message":""}';
 
 export default function LoginScreen() {
@@ -52,20 +53,32 @@ export default function LoginScreen() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      router.replace(getPostLoginRoute(user, isAdminLogin ? '/admin' : undefined) as Href);
-    }
+    let active = true;
+    const restoreSession = async () => {
+      const user = isRemoteAuthEnabled() ? await getRemoteCurrentUser() : getCurrentUser();
+      if (active && user) {
+        router.replace(getPostLoginRoute(user, isAdminLogin ? '/admin' : undefined) as Href);
+      }
+    };
+    void restoreSession();
+    return () => { active = false; };
   }, [router, isAdminLogin]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     let result;
-    try { result = isAdminLogin && isSetup ? createLocalAdminAccount({ name, email, password }) : loginUser(email, password); }
-    catch { setMessage('Giriş tamamlanamadı. Tarayıcı depolamasını kontrol edin.'); return; }
+    try {
+      result = isAdminLogin && isSetup
+        ? createLocalAdminAccount({ name, email, password })
+        : isRemoteAuthEnabled()
+          ? await loginRemote(email, password)
+          : loginUser(email, password);
+    } catch {
+      setMessage('Giriş tamamlanamadı. Lütfen bağlantınızı ve hesap bilgilerinizi kontrol edin.');
+      return;
+    }
     if (!result.ok) {
       setMessage(result.message);
-      const currentSetup = getLocalAdminSetupState();
-      if (!currentSetup.available) setIsSetup(false);
+      if (!isRemoteAuthEnabled() && !getLocalAdminSetupState().available) setIsSetup(false);
       return;
     }
 
@@ -102,7 +115,7 @@ export default function LoginScreen() {
               </View>
               <View style={styles.formTitleGroup}>
               <Text style={styles.formTitle}>{isSetup ? 'Yerel admin kurulumu' : isAdminLogin ? 'Admin girişi' : 'Giriş yap'}</Text>
-              <Text style={styles.formSubtitle}>{isSetup ? 'Yalnızca bu tarayıcıdaki geliştirme verisi için bir hesap oluşturun. Gerçek hesabınızın şifresini kullanmayın.' : isAdminLogin ? 'Admin yetkili hesabınızla giriş yapın.' : 'Akademik Skor hesabınıza erişin.'}</Text>
+              <Text style={styles.formSubtitle}>{isSetup ? 'Yalnızca yerel geliştirme hesabı oluşturun.' : isRemoteAuthEnabled() ? 'Kalıcı hesabınızla güvenli şekilde giriş yapın.' : isAdminLogin ? 'Admin yetkili hesabınızla giriş yapın.' : 'Akademik Skor hesabınıza erişin.'}</Text>
               </View>
             </View>
 
