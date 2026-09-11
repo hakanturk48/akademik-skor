@@ -38,6 +38,15 @@ const subscribeToLocalAccounts = (onChange: () => void) => {
 };
 const localSetupSnapshot = () => JSON.stringify(isRemoteAuthEnabled() ? { available: false, message: 'Merkezi üyelik aktif. Admin hesabı Supabase üzerinden yetkilendirilir.' } : getLocalAdminSetupState());
 const serverSetupSnapshot = () => '{"available":false,"message":""}';
+function getAuthErrorMessage() {
+  if (typeof window === 'undefined' || !window.location.hash) return '';
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const errorCode = hashParams.get('error_code') ?? hashParams.get('error');
+  if (!errorCode) return '';
+  return errorCode === 'otp_expired'
+    ? 'Doğrulama bağlantısı geçersiz veya süresi dolmuş. Kayıt ekranından yeni bir doğrulama e-postası isteyin.'
+    : 'E-posta doğrulaması tamamlanamadı. Lütfen yeni bir doğrulama bağlantısı isteyin.';
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -50,7 +59,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(getAuthErrorMessage);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +73,12 @@ export default function LoginScreen() {
     return () => { active = false; };
   }, [router, isAdminLogin]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.hash) return;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (!hashParams.get('error_code') && !hashParams.get('error')) return;
+    window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
+  }, []);
   const handleLogin = async () => {
     let result;
     try {
@@ -232,4 +247,3 @@ const styles = StyleSheet.create({
   linkText: { fontFamily: fontFamily, color: palette.teal, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   pressed: { opacity: 0.72 },
 });
-

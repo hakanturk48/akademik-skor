@@ -15,6 +15,13 @@ type ProfileRow = {
 };
 
 const validRoles: AuthRole[] = ['student', 'teacher', 'institution', 'admin'];
+function getAuthRedirectUrl() {
+  if (typeof window === 'undefined') return undefined;
+
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  const basePath = window.location.hostname.endsWith('.github.io') && segments[0] ? `/${segments[0]}` : '';
+  return `${window.location.origin}${basePath}/login`;
+}
 
 function roleFrom(value: unknown): AuthRole {
   return typeof value === 'string' && validRoles.includes(value as AuthRole) ? value as AuthRole : 'student';
@@ -75,7 +82,10 @@ export async function registerRemote(input: {
   const result = await supabase.auth.signUp({
     email: input.email.trim().toLowerCase(),
     password: input.password,
-    options: { data: { name: input.name.trim(), goal: input.goal?.trim() || 'TOEFL iBT hazırlığı', role: input.role } },
+    options: {
+      data: { name: input.name.trim(), goal: input.goal?.trim() || 'TOEFL iBT hazırlığı', role: input.role },
+      emailRedirectTo: getAuthRedirectUrl(),
+    },
   });
   if (result.error || !result.data.user) return { ok: false, message: result.error?.message ?? 'Üyelik oluşturulamadı.' };
   if (!result.data.session) {
