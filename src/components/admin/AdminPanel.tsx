@@ -63,6 +63,14 @@ type EditorState = {
   draft: AdminEntityDraft;
 };
 
+type PublicationResultState = {
+  status: Extract<PublicationStatus, 'published' | 'review'>;
+  module: AdminModuleKey;
+  collection: AdminMutableCollectionKey;
+  config: AdminCollectionConfig;
+  row: AdminEntityRow;
+};
+
 type DisableTarget = {
   module: AdminModuleKey;
   collection: AdminMutableCollectionKey;
@@ -79,6 +87,7 @@ const downSymbol = symbolName('chevron.down', 'keyboard_arrow_down');
 const filterSymbol = symbolName('line.3.horizontal.decrease.circle', 'filter_alt');
 const warningSymbol = symbolName('exclamationmark.triangle', 'warning');
 const checkSymbol = symbolName('checkmark.circle', 'check_circle');
+const reviewSymbol = symbolName('paperplane', 'send');
 const eyeSymbol = symbolName('eye', 'visibility');
 const hiddenEyeSymbol = symbolName('eye.slash', 'visibility_off');
 
@@ -631,6 +640,53 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   );
 }
 
+function PublicationResultScreen({ result, isMobile, onClose, onEdit }: { result: PublicationResultState | null; isMobile: boolean; onClose: () => void; onEdit: (result: PublicationResultState) => void }) {
+  if (!result) return null;
+
+  const isPublished = result.status === 'published';
+  const title = isPublished ? 'Yayınlandı' : 'İncelemeye gönderildi';
+  const detail = isPublished
+    ? `${result.row.title} yayındaki kataloğa aktarıldı. Öğrencilerin göreceği aktif sürüm olarak kaydedildi.`
+    : `${result.row.title} inceleme kuyruğuna alındı. Yayın öncesi kontroller için bekleyen sürüm olarak kaydedildi.`;
+  const timestamp = result.row.updatedAt ? new Date(result.row.updatedAt).toLocaleString('tr-TR') : 'Az önce';
+
+  return (
+    <NativeModal transparent visible animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onClose}>
+      <View style={[styles.modalOverlay, isMobile ? styles.modalOverlayMobile : null]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Sonuç ekranını kapat" onPress={onClose} style={styles.modalBackdrop} />
+        <View testID="admin-publication-result" style={[styles.resultCard, isMobile ? styles.resultCardMobile : null]}>
+          <View style={[styles.resultIcon, isPublished ? styles.resultIconPublished : styles.resultIconReview]}>
+            <SymbolView name={isPublished ? checkSymbol : reviewSymbol} tintColor={isPublished ? studentTokens.teal : studentTokens.orange} size={28} style={styles.resultSymbol} />
+          </View>
+          <View style={styles.stack}>
+            <Text style={styles.kicker}>{isPublished ? 'YAYIN AKIŞI' : 'İNCELEME AKIŞI'}</Text>
+            <Text style={styles.resultTitle}>{title}</Text>
+            <Text style={styles.resultText}>{detail}</Text>
+          </View>
+          <View style={styles.resultMeta}>
+            <View style={styles.resultMetaRow}>
+              <Text style={styles.resultMetaLabel}>Kayıt</Text>
+              <Text style={styles.resultMetaValue} numberOfLines={1}>{result.row.title}</Text>
+            </View>
+            <View style={styles.resultMetaRow}>
+              <Text style={styles.resultMetaLabel}>Durum</Text>
+              <PublicationBadge status={result.status} version={result.row.version} />
+            </View>
+            <View style={styles.resultMetaRow}>
+              <Text style={styles.resultMetaLabel}>Güncelleme</Text>
+              <Text style={styles.resultMetaValue}>{timestamp}</Text>
+            </View>
+          </View>
+          <View style={styles.resultActions}>
+            <Button label="Listeye Dön" variant="secondary" onPress={onClose} style={styles.resultButton} />
+            <Button label="Kaydı Aç" onPress={() => onEdit(result)} style={styles.resultButton} />
+          </View>
+        </View>
+      </View>
+    </NativeModal>
+  );
+}
+
 function DisableConfirmation({ target, isMobile, onCancel, onConfirm, error }: { target: DisableTarget | null; isMobile: boolean; onCancel: () => void; onConfirm: () => void; error: string }) {
   if (!target) return null;
   return (
@@ -674,6 +730,7 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
   const [query, setQuery] = useState('');
   const [questionFilters, setQuestionFilters] = useState<AdminQuestionFilters>(() => defaultQuestionFilters());
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [publicationResult, setPublicationResult] = useState<PublicationResultState | null>(null);
   const [disableTarget, setDisableTarget] = useState<DisableTarget | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -697,11 +754,13 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
 
   const openCreate = (config: AdminCollectionConfig) => {
     setError(''); setMessage('');
+    setPublicationResult(null);
     setEditor({ mode: 'create', module: activeModule, collection: config.key, config, draft: initialAdminDraft(config.key, undefined, state.catalog) });
   };
 
   const openEdit = (row: AdminEntityRow, config: AdminCollectionConfig) => {
     setError(''); setMessage('');
+    setPublicationResult(null);
     setEditor({ mode: 'edit', module: activeModule, collection: config.key, config, row, draft: initialAdminDraft(config.key, row, state.catalog) });
   };
 
@@ -711,8 +770,14 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
     commit(next);
     const id = next.workflow!.audit[0].entityId;
     const row = listAdminRows(next, editor.collection).find((item) => item.id === id)!;
-    setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
-    setMessage(status === 'published' ? `Sürüm ${row.version} yayınlandı.` : status === 'review' ? `Sürüm ${row.version} incelemeye gönderildi.` : `Taslak sürüm ${row.version} kaydedildi.`);
+    if (status === 'draft') {
+      setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
+      setMessage(`Taslak sürüm ${row.version} kaydedildi.`);
+      return;
+    }
+    setEditor(null);
+    setPublicationResult({ status, module: editor.module, collection: editor.collection, config: editor.config, row });
+    setMessage('');
   });
 
   const restoreVersion = (version: number) => attempt(() => {
@@ -739,9 +804,18 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
 
   const pageBuilder = state.pageBuilder ?? defaultPageBuilderState();
   const updatePageBuilder = (nextPageBuilder: NonNullable<AdminWorkspaceState['pageBuilder']>) => commit({ ...state, pageBuilder: nextPageBuilder });
+  const openPublicationResultRecord = (result: PublicationResultState) => {
+    const row = listAdminRows(state, result.collection).find((item) => item.id === result.row.id) ?? result.row;
+    setPublicationResult(null);
+    setError('');
+    setMessage('');
+    setActiveModule(result.module);
+    setCollectionByModule((current) => ({ ...current, [result.module]: result.collection }));
+    setEditor({ mode: 'edit', module: result.module, collection: result.collection, config: result.config, row, draft: initialAdminDraft(result.collection, row, state.catalog) });
+  };
 
   return (
-    <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); }} onLogout={onLogout}>
+    <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); setPublicationResult(null); }} onLogout={onLogout}>
       {!editor && error ? <View style={styles.formIssues}><Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text><Button label="Paneli Yeniden Yükle" variant="secondary" onPress={() => attempt(() => { setState(loadAdminWorkspaceState()); setError(''); })} /></View> : null}
       {!editor && message ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>{message}</Text> : null}
       {activeModule === 'dashboard' ? (
@@ -767,6 +841,7 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
         />
       )}
       {editor ? <AdminEntityEditor editor={editor} issues={editorIssues} isMobile={isMobile} state={state} user={user} message={message} error={error} onChange={(draft) => { setMessage(''); setEditor((current) => current ? { ...current, draft } : current); }} onClose={() => setEditor(null)} onSave={() => saveEditor('draft')} onReview={() => saveEditor('review')} onPublish={() => saveEditor('published')} onRestore={restoreVersion} /> : null}
+      <PublicationResultScreen result={publicationResult} isMobile={isMobile} onClose={() => setPublicationResult(null)} onEdit={openPublicationResultRecord} />
       <DisableConfirmation target={disableTarget} isMobile={isMobile} error={error} onCancel={() => setDisableTarget(null)} onConfirm={handleDisable} />
     </AdminShell>
   );
@@ -902,6 +977,20 @@ const styles = StyleSheet.create({
   editorActionButton: { flexGrow: 1, flexBasis: 110, minHeight: 44 },
   editorTabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
   editorTab: { flex: 1, minHeight: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: studentTokens.neutral },
+  resultCard: { width: '100%', maxWidth: 520, borderRadius: 8, backgroundColor: studentTokens.surface, padding: 20, alignItems: 'flex-start', gap: 14, shadowColor: '#000000', shadowOpacity: 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+  resultCardMobile: { maxWidth: '100%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  resultIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  resultIconPublished: { backgroundColor: studentTokens.tealSoft },
+  resultIconReview: { backgroundColor: studentTokens.yellowSoft },
+  resultSymbol: { width: 28, height: 28 },
+  resultTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 26, lineHeight: 32, fontWeight: '700' },
+  resultText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 22, fontWeight: '500' },
+  resultMeta: { width: '100%', borderRadius: 8, backgroundColor: studentTokens.neutral, borderWidth: 1, borderColor: studentTokens.lineSoft, padding: 12, gap: 10 },
+  resultMetaRow: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  resultMetaLabel: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  resultMetaValue: { flex: 1, minWidth: 0, textAlign: 'right', fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  resultActions: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10, marginTop: 2 },
+  resultButton: { minWidth: 132 },
   confirmCard: { width: '100%', maxWidth: 460, borderRadius: 22, backgroundColor: studentTokens.surface, padding: 20, alignItems: 'flex-start', gap: 12, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
   confirmCardMobile: { maxWidth: '100%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   confirmIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: studentTokens.yellowSoft, alignItems: 'center', justifyContent: 'center' },
