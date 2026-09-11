@@ -105,20 +105,42 @@ const resourceFiles = [
   { title: 'Abbreviations & Symbols Guide', meta: 'PDF - 615 KB' },
 ];
 
+function formatLessonDate(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return value || 'Yeni eklendi';
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(parsed));
+}
+
+function estimateSectionScore(lesson: VideoLesson) {
+  const levelBase = lesson.level === 'Advanced' ? 25 : lesson.level === 'Intermediate' ? 23 : 21;
+  const skillBonus = lesson.skill === 'reading' || lesson.skill === 'listening' || lesson.skill === 'writing' || lesson.skill === 'speaking' ? 1 : 0;
+  const recommendationBonus = lesson.recommendedScore > 0 ? Math.round((lesson.recommendedScore - 80) / 8) : 0;
+  return Math.max(16, Math.min(30, levelBase + skillBonus + recommendationBonus));
+}
+
+function instructorRole(lesson: VideoLesson) {
+  if (lesson.skill === 'reading') return 'TOEFL Reading Mentor';
+  if (lesson.skill === 'listening') return 'TOEFL Listening Coach';
+  if (lesson.skill === 'speaking') return 'TOEFL Speaking Coach';
+  if (lesson.skill === 'writing') return 'TOEFL Writing Mentor';
+  if (lesson.skill === 'vocabulary') return 'Academic Vocabulary Coach';
+  return 'Academic Grammar Coach';
+}
+
 function presentationForLesson(lesson: VideoLesson): LessonPresentation {
   return lessonPresentation[lesson.id] ?? {
     title: lesson.title,
     shortTitle: lesson.title,
     author: lesson.instructor,
-    module: lesson.subtitle,
-    course: skillThemes[lesson.skill].label,
-    time: `${lesson.durationMinutes}:00`,
+    module: lesson.module || lesson.subtitle,
+    course: lesson.course || skillThemes[lesson.skill].label,
+    time: formatVideoTimestamp(lesson.durationMinutes * 60),
     watched: '00:00',
-    progress: lesson.progress,
+    progress: Math.max(0, Math.min(100, Math.round(lesson.progress))),
     thumb: skillImageSources[lesson.skill],
     tag: skillThemes[lesson.skill].label.toUpperCase(),
-    updated: lesson.updatedAt,
-    sectionScore: 21,
+    updated: formatLessonDate(lesson.updatedAt),
+    sectionScore: estimateSectionScore(lesson),
   };
 }
 
@@ -281,7 +303,7 @@ function OverviewContent({ lesson, fullAccess, wide }: { lesson: VideoLesson; fu
       <View style={styles.overviewFacts}>
         <LessonFact icon={clockSymbol} label="Duration" value={presentation.time} color={studentTokens.blue} />
         <LessonFact icon={targetSymbol} label="Estimated TOEFL" value={`${presentation.sectionScore}/30`} color={theme.accent} />
-        <LessonFact icon={headphonesSymbol} label="Instructor" value={`${presentation.author} - TOEFL iBT Skill Expert`} color={studentTokens.teal} />
+        <LessonFact icon={headphonesSymbol} label="Instructor" value={`${presentation.author} - ${instructorRole(lesson)}`} color={studentTokens.teal} />
         <LessonFact icon={documentSymbol} label="Last Updated" value={presentation.updated} color={studentTokens.orange} />
         <View style={styles.scoreNote}>
           <Text style={styles.scoreNoteTitle}>Practice Accuracy /100</Text>
