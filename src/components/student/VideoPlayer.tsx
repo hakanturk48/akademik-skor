@@ -9,7 +9,7 @@ import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
 import { formatVideoTimestamp, getVideoEmbedUrl } from '@/lib/video-media';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
-import { getRelatedVideoLessons, getVideoLessonById, skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
+import { getCourseVideoLessons, getRelatedVideoLessons, getVideoLessonById, skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 
 const fontFamily = 'Quicksand';
 
@@ -20,7 +20,14 @@ type VideoPlayerProps = {
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
 type PlayerTab = 'overview' | 'notes' | 'transcript' | 'resources';
-type CourseLessonState = 'done' | 'active' | 'locked';
+type CourseLessonState = 'done' | 'active' | 'available' | 'locked';
+type CourseLessonItem = {
+  id: string;
+  number: string;
+  title: string;
+  time: string;
+  state: CourseLessonState;
+};
 type LessonPresentation = {
   title: string;
   shortTitle: string;
@@ -91,15 +98,6 @@ const playerTabs: { value: PlayerTab; label: string }[] = [
   { value: 'resources', label: 'Resources' },
 ];
 
-const courseLessons: { number: string; title: string; time: string; state: CourseLessonState }[] = [
-  { number: '01', title: 'Lecture 01: Introduction to Academic Listening', time: '28:15', state: 'done' },
-  { number: '02', title: 'Lecture 02: Identifying Main Ideas', time: '31:40', state: 'done' },
-  { number: '03', title: 'Lecture 03: Note Taking', time: '34:20', state: 'active' },
-  { number: '04', title: 'Lecture 04: Understanding Detail', time: '32:10', state: 'locked' },
-  { number: '05', title: 'Lecture 05: Following Structure', time: '29:35', state: 'locked' },
-  { number: '06', title: 'Lecture 06: Predicting Content', time: '30:50', state: 'locked' },
-  { number: '07', title: 'Lecture 07: Practice & Review', time: '27:45', state: 'locked' },
-];
 
 const resourceFiles = [
   { title: 'Note Taking Strategies (PDF)', meta: 'PDF - 1.2 MB' },
@@ -365,35 +363,58 @@ function DetailPanel({ lesson, fullAccess, tab, onTabChange, wide }: { lesson: V
   );
 }
 
-function CourseLessonRow({ item }: { item: (typeof courseLessons)[number] }) {
+function CourseLessonRow({ item }: { item: CourseLessonItem }) {
+  const router = useRouter();
   const active = item.state === 'active';
   const done = item.state === 'done';
+  const locked = item.state === 'locked';
+  const playable = item.state === 'available';
 
   return (
-    <View style={[styles.courseLessonRow, active ? styles.courseLessonActive : null]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active, disabled: active || locked }}
+      disabled={active || locked}
+      onPress={() => router.push(`/learning/videos/${item.id}` as Href)}
+      style={({ pressed }) => [styles.courseLessonRow, active ? styles.courseLessonActive : null, locked ? styles.courseLessonLocked : null, pressed ? styles.pressed : null]}
+    >
       <Text style={[styles.courseLessonNumber, active ? styles.courseLessonNumberActive : null]}>{item.number}</Text>
       <View style={styles.courseLessonCopy}>
         <Text style={styles.courseLessonTitle} numberOfLines={2}>{item.title}</Text>
       </View>
       <Text style={styles.courseLessonTime}>{item.time}</Text>
       <View style={[styles.courseLessonState, active ? styles.courseLessonStateActive : null]}>
-        <SymbolView name={done ? checkSymbol : active ? playSymbol : lockSymbol} tintColor={done ? studentTokens.teal : active ? studentTokens.yellowDeep : studentTokens.muted} size={12} style={styles.courseLessonIcon} />
+        <SymbolView name={done ? checkSymbol : active || playable ? playSymbol : lockSymbol} tintColor={done ? studentTokens.teal : active || playable ? studentTokens.yellowDeep : studentTokens.muted} size={12} style={styles.courseLessonIcon} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-function LessonsInCourse() {
+function LessonsInCourse({ lessons, currentLessonId, fullAccess }: { lessons: VideoLesson[]; currentLessonId: string; fullAccess: boolean }) {
+  const router = useRouter();
+  const activeIndex = Math.max(0, lessons.findIndex((lesson) => lesson.id === currentLessonId));
+  const items: CourseLessonItem[] = lessons.map((lesson, index) => ({
+    id: lesson.id,
+    number: String(index + 1).padStart(2, '0'),
+    title: lesson.title,
+    time: presentationForLesson(lesson).time,
+    state: lesson.id === currentLessonId ? 'active' : index < activeIndex || lesson.progress >= 100 ? 'done' : lesson.isPremium && !fullAccess ? 'locked' : 'available',
+  }));
+  const countLabel = `${items.length} ${items.length === 1 ? 'Lesson' : 'Lessons'}`;
+  const overviewHref = `/learning/videos?skill=${lessons[0]?.category ?? 'all'}` as Href;
+
+  if (items.length === 0) return null;
+
   return (
     <Card style={styles.sidePanel} contentStyle={styles.sidePanelBody}>
       <View style={styles.sideHead}>
         <Text style={styles.sideTitle}>LESSONS IN THIS COURSE</Text>
-        <Text style={styles.sideCount}>7 Lessons</Text>
+        <Text style={styles.sideCount}>{countLabel}</Text>
       </View>
       <View style={styles.courseList}>
-        {courseLessons.map((item) => <CourseLessonRow key={item.number} item={item} />)}
+        {items.map((item) => <CourseLessonRow key={item.id} item={item} />)}
       </View>
-      <Button label="View Course Overview" size="sm" variant="secondary" right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.buttonIcon} />} style={styles.sideFullButton} />
+      <Button label="View Course Overview" size="sm" variant="secondary" onPress={() => router.push(overviewHref)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.buttonIcon} />} style={styles.sideFullButton} />
     </Card>
   );
 }
@@ -489,6 +510,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const [tab, setTab] = useState<PlayerTab>('overview');
   const [toastVisible, setToastVisible] = useState(false);
   const lesson = getVideoLessonById(lessonId);
+  const courseLessons = useMemo(() => getCourseVideoLessons(lessonId), [lessonId]);
   const relatedLessons = useMemo(() => getRelatedVideoLessons(lessonId).slice(0, 3), [lessonId]);
 
   if (!lesson) {
@@ -537,7 +559,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
           <DetailPanel lesson={lesson} fullAccess={fullAccess} tab={tab} onTabChange={setTab} wide={isTablet} />
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
-          <LessonsInCourse />
+          <LessonsInCourse lessons={courseLessons} currentLessonId={lesson.id} fullAccess={fullAccess} />
           <ResourcesPanel />
         </View>
       </View>
@@ -731,6 +753,7 @@ const styles = StyleSheet.create({  screen: { gap: 10, position: 'relative' },
   courseList: { gap: 4 },
   courseLessonRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 9, paddingHorizontal: 8, paddingVertical: 7, backgroundColor: studentTokens.surface },
   courseLessonActive: { backgroundColor: studentTokens.yellowSoft, borderWidth: 1, borderColor: '#f3dfa3' },
+  courseLessonLocked: { opacity: 0.72 },
   courseLessonNumber: { fontFamily: fontFamily, width: 18, color: '#8e98ab', fontSize: 8, lineHeight: 11, fontWeight: '700', flexShrink: 0 },
   courseLessonNumberActive: { color: studentTokens.yellowDeep },
   courseLessonCopy: { flex: 1, minWidth: 0 },

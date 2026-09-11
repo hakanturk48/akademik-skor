@@ -974,6 +974,15 @@ export function getVideoLessonById(id: string) {
   return getVideoLessonCatalog().find((lesson) => lesson.id === id) ?? null;
 }
 
+export function getCourseVideoLessons(currentLessonId: string) {
+  const current = getVideoLessonById(currentLessonId);
+  if (!current) return [];
+
+  return getVideoLessonCatalog()
+    .filter((lesson) => lesson.status === 'active' && lesson.course === current.course)
+    .sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(first.createdAt) - Date.parse(second.createdAt) || first.title.localeCompare(second.title));
+}
+
 export function getRelatedVideoLessons(currentLessonId: string) {
   const current = getVideoLessonById(currentLessonId);
   const catalog = getVideoLessonCatalog();

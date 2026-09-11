@@ -438,6 +438,12 @@ function VideoProviderSelector({ value, onChange }: { value: VideoMediaProvider;
   );
 }
 
+function nextLessonSortOrder(state: AdminWorkspaceState, courseId?: string) {
+  return state.catalog.lessons
+    .filter((lesson) => !courseId || lesson.courseId === courseId)
+    .reduce((max, lesson) => Math.max(max, lesson.sortOrder), 0) + 10;
+}
+
 function CatalogSelector({ label, options, value, onChange }: { label: string; options: { id: string; title: string }[]; value?: string; onChange: (value: string) => void }) {
   return (
     <View style={styles.formGroup}>
@@ -524,7 +530,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <CatalogSelector label="Kurs" options={state.catalog.courses} value={draft.courseId} onChange={(courseId) => {
                     const nextModule = state.catalog.modules.find((module) => module.courseId === courseId);
-                    onChange({ ...draft, courseId, moduleId: nextModule?.id ?? draft.moduleId });
+                    onChange({ ...draft, courseId, moduleId: nextModule?.id ?? draft.moduleId, sortOrder: nextLessonSortOrder(state, courseId) });
                   }} />
                   <CatalogSelector label="Modül" options={state.catalog.modules.filter((module) => !draft.courseId || module.courseId === draft.courseId)} value={draft.moduleId} onChange={(moduleId) => setField('moduleId', moduleId)} />
                 </View>
@@ -755,7 +761,9 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
   const openCreate = (config: AdminCollectionConfig) => {
     setError(''); setMessage('');
     setPublicationResult(null);
-    setEditor({ mode: 'create', module: activeModule, collection: config.key, config, draft: initialAdminDraft(config.key, undefined, state.catalog) });
+    const draft = initialAdminDraft(config.key, undefined, state.catalog);
+    if (config.key === 'lessons') draft.sortOrder = nextLessonSortOrder(state, draft.courseId);
+    setEditor({ mode: 'create', module: activeModule, collection: config.key, config, draft });
   };
 
   const openEdit = (row: AdminEntityRow, config: AdminCollectionConfig) => {
