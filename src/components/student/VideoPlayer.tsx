@@ -487,12 +487,24 @@ function RelatedLessonCard({ lesson }: { lesson: VideoLesson }) {
   );
 }
 
-function RelatedPanel({ lessons }: { lessons: VideoLesson[] }) {
+function relatedLessonsHref(lesson: VideoLesson) {
+  const params = new URLSearchParams({ skill: lesson.category, sort: 'most-relevant' });
+  if (lesson.taskType) params.set('task', lesson.taskType);
+  if (lesson.subskill) params.set('subskill', lesson.subskill);
+  return `/learning/videos?${params.toString()}` as Href;
+}
+
+function RelatedPanel({ currentLesson, lessons }: { currentLesson: VideoLesson; lessons: VideoLesson[] }) {
+  const router = useRouter();
+  if (lessons.length === 0) return null;
+
   return (
-    <Card style={styles.relatedPanel} contentStyle={styles.relatedPanelBody}>
+    <Card testID="related-lessons-panel" style={styles.relatedPanel} contentStyle={styles.relatedPanelBody}>
       <View style={styles.cardHeadRow}>
         <Text style={styles.cardTitle}>RELATED LESSONS</Text>
-        <Pressable accessibilityRole="button"><Text style={styles.viewAll}>View All</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="View all related lessons" onPress={() => router.push(relatedLessonsHref(currentLesson))} style={({ pressed }) => [styles.viewAllButton, pressed ? styles.pressed : null]}>
+          <Text style={styles.viewAll}>View All</Text>
+        </Pressable>
       </View>
       <View style={styles.relatedGrid}>
         {lessons.map((lesson) => <RelatedLessonCard key={lesson.id} lesson={lesson} />)}
@@ -566,7 +578,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
 
       <View style={[styles.bottomGrid, isTablet ? styles.bottomGridWide : null]}>
         <NoteSummary />
-        <RelatedPanel lessons={relatedLessons} />
+        <RelatedPanel currentLesson={lesson} lessons={relatedLessons} />
       </View>
     </View>
   );
@@ -779,6 +791,7 @@ const styles = StyleSheet.create({  screen: { gap: 10, position: 'relative' },
   relatedPanelBody: { padding: 12, gap: 10 },
   cardHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   cardTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 10, lineHeight: 14, fontWeight: '700' },
+  viewAllButton: { minHeight: 28, justifyContent: 'center', paddingHorizontal: 4 },
   viewAll: { fontFamily: fontFamily, color: studentTokens.blue, fontSize: 8, lineHeight: 11, fontWeight: '700' },
   noteCard: { borderRadius: 10, borderWidth: 1, borderColor: '#eef1f6', backgroundColor: studentTokens.surface, padding: 10, flexDirection: 'row', gap: 10 },
   noteCopy: { flex: 1, minWidth: 0 },

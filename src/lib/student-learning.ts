@@ -983,10 +983,28 @@ export function getCourseVideoLessons(currentLessonId: string) {
     .sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(first.createdAt) - Date.parse(second.createdAt) || first.title.localeCompare(second.title));
 }
 
+function relatedLessonScore(current: VideoLesson, candidate: VideoLesson) {
+  let score = candidate.recommendedScore;
+  if (candidate.course === current.course) score += 60;
+  if (candidate.module === current.module) score += 35;
+  if (candidate.skill === current.skill) score += 28;
+  if (candidate.taskType && candidate.taskType === current.taskType) score += 22;
+  if (candidate.subskill && candidate.subskill === current.subskill) score += 18;
+  if (candidate.topic && candidate.topic === current.topic) score += 12;
+  if (candidate.level === current.level) score += 6;
+  if (candidate.progress > 0 && candidate.progress < 100) score += 8;
+  if (!candidate.isPremium) score += 4;
+  return score;
+}
+
 export function getRelatedVideoLessons(currentLessonId: string) {
   const current = getVideoLessonById(currentLessonId);
-  const catalog = getVideoLessonCatalog();
+  const catalog = getVideoLessonCatalog().filter((lesson) => lesson.status === 'active');
   if (!current) return catalog.slice(0, 3);
 
-  return catalog.filter((lesson) => lesson.id !== currentLessonId && lesson.skill === current.skill).concat(catalog.filter((lesson) => lesson.id !== currentLessonId && lesson.skill !== current.skill)).slice(0, 3);
+  return catalog
+    .filter((lesson) => lesson.id !== currentLessonId)
+    .map((lesson) => ({ lesson, score: relatedLessonScore(current, lesson) }))
+    .sort((first, second) => second.score - first.score || first.lesson.sortOrder - second.lesson.sortOrder || first.lesson.title.localeCompare(second.lesson.title))
+    .map(({ lesson }) => lesson);
 }
