@@ -127,6 +127,25 @@ function instructorRole(lesson: VideoLesson) {
   return 'Academic Grammar Coach';
 }
 
+function getLessonDurationSeconds(lesson: VideoLesson) {
+  const fallbackSeconds = Math.max(0, Math.round(lesson.durationMinutes * 60));
+  const exactSeconds = typeof lesson.durationSeconds === 'number' && lesson.durationSeconds > 0 ? lesson.durationSeconds : fallbackSeconds;
+  return Math.max(0, Math.round(exactSeconds));
+}
+
+function getLessonPreviewSeconds(lesson: VideoLesson) {
+  const minutePreviewSeconds = Math.max(0, Math.round((lesson.previewDuration || lesson.previewMinutes || 0) * 60));
+  const rawPreviewSeconds = typeof lesson.previewDurationSeconds === 'number' ? lesson.previewDurationSeconds : minutePreviewSeconds;
+  const previewSeconds = Math.max(0, Math.round(rawPreviewSeconds));
+  const durationSeconds = getLessonDurationSeconds(lesson);
+  return durationSeconds > 0 ? Math.min(previewSeconds, durationSeconds) : previewSeconds;
+}
+
+function videoLibraryHref(lesson: VideoLesson) {
+  const params = new URLSearchParams({ skill: lesson.category });
+  return `/learning/videos?${params.toString()}` as Href;
+}
+
 function presentationForLesson(lesson: VideoLesson): LessonPresentation {
   return lessonPresentation[lesson.id] ?? {
     title: lesson.title,
@@ -134,7 +153,7 @@ function presentationForLesson(lesson: VideoLesson): LessonPresentation {
     author: lesson.instructor,
     module: lesson.module || lesson.subtitle,
     course: lesson.course || skillThemes[lesson.skill].label,
-    time: formatVideoTimestamp(lesson.durationMinutes * 60),
+    time: formatVideoTimestamp(getLessonDurationSeconds(lesson)),
     watched: '00:00',
     progress: Math.max(0, Math.min(100, Math.round(lesson.progress))),
     thumb: skillImageSources[lesson.skill],
@@ -234,23 +253,35 @@ function PlayerFrame({ lesson, fullAccess, compact, showQualityMenu }: { lesson:
     </View>
   );
 }
-function UnlockStrip({ fullAccess, compact }: { fullAccess: boolean; compact: boolean }) {
+function UnlockStrip({ lesson, fullAccess, compact }: { lesson: VideoLesson; fullAccess: boolean; compact: boolean }) {
   const router = useRouter();
+  const presentation = presentationForLesson(lesson);
+  const lessonAvailable = fullAccess || !lesson.isPremium;
+  const previewSeconds = getLessonPreviewSeconds(lesson);
+  const previewLabel = previewSeconds > 0 ? formatVideoTimestamp(previewSeconds) : null;
+  const durationLabel = presentation.time;
+  const statusTitle = lessonAvailable
+    ? lesson.isPremium ? 'Full lesson unlocked' : 'Full lesson available'
+    : previewLabel ? `Free preview ends at ${previewLabel} / ${durationLabel}` : `Premium lesson locked (${durationLabel})`;
+  const statusText = lessonAvailable
+    ? `Duration ${durationLabel} - transcript, resources, and full player controls are active.`
+    : previewLabel ? `Unlock the full ${durationLabel} lesson to continue learning without limits.` : `Unlock this ${durationLabel} lesson to start watching.`;
+  const statusIcon = lessonAvailable ? checkSymbol : lockSymbol;
 
   return (
     <View style={[styles.unlockStrip, compact ? styles.unlockStripCompact : null]}>
       <View style={styles.unlockMessage}>
         <View style={styles.unlockIconBox}>
-          <SymbolView name={fullAccess ? checkSymbol : lockSymbol} tintColor={studentTokens.navy} size={17} style={styles.unlockIcon} />
+          <SymbolView name={statusIcon} tintColor={studentTokens.navy} size={17} style={styles.unlockIcon} />
         </View>
         <View style={styles.unlockCopy}>
-          <Text style={styles.unlockTitle}>{fullAccess ? 'Full lesson unlocked' : 'Free preview ends at 05:00 / 34:20'}</Text>
-          <Text style={styles.unlockText}>{fullAccess ? 'Transcript, resources, and full player controls are active.' : 'Unlock the full lesson to continue learning without limits.'}</Text>
+          <Text style={styles.unlockTitle}>{statusTitle}</Text>
+          <Text style={styles.unlockText}>{statusText}</Text>
         </View>
       </View>
       <View style={[styles.unlockActions, compact ? styles.unlockActionsCompact : null]}>
-        <Button label={fullAccess ? 'Lesson Unlocked' : 'Unlock Full Lesson'} size="sm" variant="primary" left={<SymbolView name={fullAccess ? checkSymbol : lockSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={() => router.push('/account/subscription' as Href)} style={[styles.unlockButton, compact ? styles.unlockButtonCompact : null]} />
-        <Button label="Explore Premium" size="sm" variant="secondary" onPress={() => router.push('/account/subscription' as Href)} style={[styles.unlockButton, compact ? styles.unlockButtonCompact : null]} />
+        <Button label={lessonAvailable ? lesson.isPremium ? 'Lesson Unlocked' : 'Lesson Available' : 'Unlock Full Lesson'} size="sm" variant="primary" disabled={lessonAvailable} left={<SymbolView name={statusIcon} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={lessonAvailable ? undefined : () => router.push('/account/subscription' as Href)} style={[styles.unlockButton, compact ? styles.unlockButtonCompact : null]} />
+        <Button label={lessonAvailable ? 'Browse Videos' : 'Explore Premium'} size="sm" variant="secondary" onPress={() => router.push(lessonAvailable ? videoLibraryHref(lesson) : '/account/subscription' as Href)} style={[styles.unlockButton, compact ? styles.unlockButtonCompact : null]} />
       </View>
     </View>
   );
@@ -260,7 +291,7 @@ function PlayerPanel({ lesson, fullAccess, compact, showQualityMenu }: { lesson:
   return (
     <Card style={styles.playerCard} contentStyle={styles.playerCardBody}>
       <PlayerFrame lesson={lesson} fullAccess={fullAccess} compact={compact} showQualityMenu={showQualityMenu} />
-      <UnlockStrip fullAccess={fullAccess} compact={compact} />
+      <UnlockStrip lesson={lesson} fullAccess={fullAccess} compact={compact} />
     </Card>
   );
 }

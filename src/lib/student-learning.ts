@@ -67,6 +67,7 @@ export type VideoLesson = {
   access: VideoAccess;
   duration: string;
   durationMinutes: number;
+  durationSeconds?: number;
   instructor: string;
   thumbnail: string;
   isPremium: boolean;
@@ -76,6 +77,7 @@ export type VideoLesson = {
   createdAt: string;
   previewMinutes: number;
   previewDuration: number;
+  previewDurationSeconds?: number;
   status: VideoStatus;
   mediaProvider?: 'youtube' | 'vimeo' | 'upload';
   mediaUrl?: string;
@@ -776,8 +778,10 @@ export const videoLessons: VideoLesson[] = videoLessonSeeds.map((lesson, index) 
     ...lesson,
     ...metadata,
     duration: `${lesson.durationMinutes} min`,
+    durationSeconds: lesson.durationMinutes * 60,
     isPremium: lesson.access === 'premium',
     previewDuration: lesson.previewMinutes,
+    previewDurationSeconds: lesson.previewMinutes * 60,
     sortOrder: index + 1,
   };
 });
@@ -867,6 +871,7 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
           access: lesson.isPremium ? 'premium' : 'free',
           duration: `${minutes} min`,
           durationMinutes: minutes,
+          durationSeconds: lesson.durationSeconds,
           instructor: 'Akademik Skor',
           thumbnail: lesson.thumbnailUrl ?? '',
           isPremium: lesson.isPremium,
@@ -876,6 +881,7 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
           createdAt: lesson.createdAt,
           previewMinutes: Math.max(0, Math.ceil((lesson.previewDurationSeconds ?? 0) / 60)),
           previewDuration: Math.max(0, Math.ceil((lesson.previewDurationSeconds ?? 0) / 60)),
+          previewDurationSeconds: Math.max(0, lesson.previewDurationSeconds ?? 0),
           status: lesson.status,
           mediaProvider: lesson.mediaProvider,
           mediaUrl: lesson.mediaUrl,
