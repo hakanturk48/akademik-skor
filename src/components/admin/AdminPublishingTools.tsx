@@ -89,17 +89,17 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
       module: catalog.modules.find((item) => item.id === lesson.moduleId)?.title ?? '',
       taskType: task?.slug ?? '', taskTypeLabel: task?.title ?? '', subskill: '', subskillLabel: '', topic: '', topicLabel: '',
       level: level === 'Intermediate' || level === 'Advanced' ? level : 'Foundation',
-      access: lesson.isPremium ? 'premium' : 'free', duration: `${minutes}:00`, durationMinutes: minutes,
+      access: lesson.isPremium ? 'premium' : 'free', duration: `${minutes}:00`, durationMinutes: minutes, durationSeconds: lesson.durationSeconds,
       instructor: 'Eğitmen belirtilmemiş', thumbnail: lesson.thumbnailUrl ?? '', isPremium: lesson.isPremium, progress: 0, saved: false,
       updatedAt: lesson.updatedAt, createdAt: lesson.createdAt,
-      previewMinutes: Math.ceil((lesson.previewDurationSeconds ?? 0) / 60), previewDuration: Math.ceil((lesson.previewDurationSeconds ?? 0) / 60),
+      previewMinutes: Math.ceil((lesson.previewDurationSeconds ?? 0) / 60), previewDuration: Math.ceil((lesson.previewDurationSeconds ?? 0) / 60), previewDurationSeconds: lesson.previewDurationSeconds ?? 0,
       status: lesson.status, tags: [], sortOrder: lesson.sortOrder, recommendedScore: 0,
       outcomes: [],
       chapters: (lesson.chapters ?? []).map((chapter, index) => {
         const nextStart = lesson.chapters?.[index + 1]?.startSeconds ?? lesson.durationSeconds;
         return { title: chapter.title, duration: formatVideoTimestamp(Math.max(0, nextStart - chapter.startSeconds)) };
       }),
-      resources: [], transcript: (lesson.transcript ?? []).map((line) => line.text), transcriptLines: lesson.transcript ?? [], notesPrompt: '',
+      resources: lesson.resources ?? [], transcript: (lesson.transcript ?? []).map((line) => line.text), transcriptLines: lesson.transcript ?? [], notesPrompt: '',
     };
     const embedUrl = getVideoEmbedUrl(lesson.mediaProvider, lesson.mediaUrl);
     content = <View style={styles.video}>

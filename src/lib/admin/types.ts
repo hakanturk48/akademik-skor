@@ -273,6 +273,7 @@ export type AdminEntityDraft = {
   previewDurationSeconds?: number;
   transcriptText?: string;
   chaptersText?: string;
+  resourcesText?: string;
   durationSeconds?: number;
   estimatedMinutes?: number;
 };

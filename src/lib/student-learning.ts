@@ -1,4 +1,5 @@
 import { formatVideoTimestamp } from '@/lib/video-media';
+import type { LessonResource } from '@/lib/content';
 
 export type LearningSkillKey = 'reading' | 'listening' | 'speaking' | 'writing' | 'vocabulary' | 'grammar';
 export type LearningFilter = 'all' | 'in-progress' | 'completed' | 'saved';
@@ -87,7 +88,7 @@ export type VideoLesson = {
   description: string;
   outcomes: string[];
   chapters: { title: string; duration: string; locked?: boolean }[];
-  resources: { title: string; type: 'PDF' | 'Checklist' | 'Worksheet' | 'Template'; premium?: boolean }[];
+  resources: LessonResource[];
   transcript: string[];
   transcriptLines?: { startSeconds: number; text: string }[];
   notesPrompt: string;
@@ -805,6 +806,7 @@ type StoredAdminVideoLesson = {
   previewDurationSeconds?: number;
   chapters?: { startSeconds: number; title: string }[];
   transcript?: { startSeconds: number; text: string }[];
+  resources?: LessonResource[];
 };
 
 function readPublishedAdminVideoLessons(): VideoLesson[] {
@@ -891,7 +893,7 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
           description: lesson.description ?? '',
           outcomes: [],
           chapters,
-          resources: [],
+          resources: lesson.resources ?? [],
           transcript: (lesson.transcript ?? []).map((line) => line.text),
           transcriptLines: lesson.transcript ?? [],
           notesPrompt: '',

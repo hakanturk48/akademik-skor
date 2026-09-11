@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { Button, Card, ErrorState, Input, Progress, Tabs, Toast, studentTokens } from '@/components/student/ui';
+import { Button, Card, EmptyState, ErrorState, Input, Progress, Tabs, Toast, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
 import { formatVideoTimestamp, getVideoEmbedUrl } from '@/lib/video-media';
@@ -99,11 +99,6 @@ const playerTabs: { value: PlayerTab; label: string }[] = [
 ];
 
 
-const resourceFiles = [
-  { title: 'Note Taking Strategies (PDF)', meta: 'PDF - 1.2 MB' },
-  { title: 'Lecture 03 Worksheet', meta: 'PDF - 892 KB' },
-  { title: 'Abbreviations & Symbols Guide', meta: 'PDF - 615 KB' },
-];
 
 function formatLessonDate(value: string) {
   const parsed = Date.parse(value);
@@ -144,6 +139,17 @@ function getLessonPreviewSeconds(lesson: VideoLesson) {
 function videoLibraryHref(lesson: VideoLesson) {
   const params = new URLSearchParams({ skill: lesson.category });
   return `/learning/videos?${params.toString()}` as Href;
+}
+
+function resourceMeta(resource: VideoLesson['resources'][number], locked: boolean) {
+  const base = [resource.type, resource.sizeLabel].filter(Boolean).join(' - ');
+  if (locked) return `${base} - Premium required`;
+  if (resource.url) return `${base} - Ready to download`;
+  return `${base} - Added to lesson`;
+}
+
+function openResource(resource: VideoLesson['resources'][number]) {
+  if (resource.url) void Linking.openURL(resource.url);
 }
 
 function presentationForLesson(lesson: VideoLesson): LessonPresentation {
@@ -348,6 +354,7 @@ function OverviewContent({ lesson, fullAccess, wide }: { lesson: VideoLesson; fu
 
 function ResourceRow({ resource, fullAccess }: { resource: VideoLesson['resources'][number]; fullAccess: boolean }) {
   const locked = Boolean(resource.premium && !fullAccess);
+  const canDownload = Boolean(resource.url && !locked);
 
   return (
     <View style={[styles.resourceRow, locked ? styles.resourceRowLocked : null]}>
@@ -356,9 +363,9 @@ function ResourceRow({ resource, fullAccess }: { resource: VideoLesson['resource
       </View>
       <View style={styles.resourceCopy}>
         <Text style={styles.resourceTitle}>{resource.title}</Text>
-        <Text style={styles.resourceMeta}>{resource.type}{locked ? ' - Premium required' : ' - Ready to download'}</Text>
+        <Text style={styles.resourceMeta}>{resourceMeta(resource, locked)}</Text>
       </View>
-      <Button label={locked ? 'Locked' : 'Download'} size="sm" variant={locked ? 'secondary' : 'soft'} disabled={locked} right={!locked ? <SymbolView name={downloadSymbol} tintColor={studentTokens.teal} size={13} style={styles.buttonIcon} /> : undefined} style={styles.resourceButton} />
+      <Button label={locked ? 'Locked' : canDownload ? 'Download' : 'Available'} size="sm" variant={locked ? 'secondary' : 'soft'} disabled={!canDownload} onPress={canDownload ? () => openResource(resource) : undefined} right={canDownload ? <SymbolView name={downloadSymbol} tintColor={studentTokens.teal} size={13} style={styles.buttonIcon} /> : undefined} style={styles.resourceButton} />
     </View>
   );
 }
@@ -395,13 +402,14 @@ function TabContent({ tab, lesson, fullAccess, wide }: { tab: PlayerTab; lesson:
   }
 
   if (tab === 'resources') {
+    if (lesson.resources.length === 0) return <EmptyState title="No resources yet" text="This lesson has no attached files." />;
+
     return (
       <View style={styles.tabStack}>
-        {lesson.resources.map((resource) => <ResourceRow key={resource.title} resource={resource} fullAccess={fullAccess} />)}
+        {lesson.resources.map((resource) => <ResourceRow key={`${resource.title}-${resource.type}`} resource={resource} fullAccess={fullAccess} />)}
       </View>
     );
   }
-
   return <OverviewContent lesson={lesson} fullAccess={fullAccess} wide={wide} />;
 }
 
@@ -472,34 +480,46 @@ function LessonsInCourse({ lessons, currentLessonId, fullAccess }: { lessons: Vi
   );
 }
 
-function ResourceFileRow({ item }: { item: (typeof resourceFiles)[number] }) {
+function ResourceFileRow({ resource, fullAccess }: { resource: VideoLesson['resources'][number]; fullAccess: boolean }) {
+  const locked = Boolean(resource.premium && !fullAccess);
+  const canDownload = Boolean(resource.url && !locked);
+
   return (
-    <View style={styles.fileRow}>
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canDownload }} disabled={!canDownload} onPress={() => openResource(resource)} style={({ pressed }) => [styles.fileRow, locked ? styles.fileRowLocked : null, pressed ? styles.pressed : null]}>
       <View style={styles.fileIconBox}>
-        <SymbolView name={documentSymbol} tintColor={studentTokens.orange} size={16} style={styles.fileIcon} />
+        <SymbolView name={locked ? lockSymbol : documentSymbol} tintColor={locked ? studentTokens.muted : studentTokens.orange} size={16} style={styles.fileIcon} />
       </View>
       <View style={styles.fileCopy}>
-        <Text style={styles.fileTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.fileMeta}>{item.meta}</Text>
+        <Text style={styles.fileTitle} numberOfLines={2}>{resource.title}</Text>
+        <Text style={styles.fileMeta}>{resourceMeta(resource, locked)}</Text>
       </View>
-      <SymbolView name={downloadSymbol} tintColor={studentTokens.navy} size={15} style={styles.downloadIcon} />
-    </View>
+      <SymbolView name={locked ? lockSymbol : canDownload ? downloadSymbol : documentSymbol} tintColor={locked ? studentTokens.muted : studentTokens.navy} size={15} style={styles.downloadIcon} />
+    </Pressable>
   );
 }
 
-function ResourcesPanel() {
+function ResourcesPanel({ lesson, fullAccess, onViewAll }: { lesson: VideoLesson; fullAccess: boolean; onViewAll: () => void }) {
+  const resources = lesson.resources.slice(0, 3);
+
   return (
     <Card style={styles.sidePanel} contentStyle={styles.sidePanelBody}>
       <View style={styles.sideHead}>
         <Text style={styles.sideTitle}>RESOURCES</Text>
-        <Pressable accessibilityRole="button"><Text style={styles.viewAll}>View All</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="View all lesson resources" onPress={onViewAll} style={({ pressed }) => [styles.viewAllButton, pressed ? styles.pressed : null]}><Text style={styles.viewAll}>View All</Text></Pressable>
       </View>
-      <View style={styles.fileList}>
-        {resourceFiles.map((item) => <ResourceFileRow key={item.title} item={item} />)}
-      </View>
+      {resources.length > 0 ? (
+        <View style={styles.fileList}>
+          {resources.map((resource) => <ResourceFileRow key={`${resource.title}-${resource.type}`} resource={resource} fullAccess={fullAccess} />)}
+        </View>
+      ) : (
+        <View style={styles.fileEmpty}>
+          <Text style={styles.fileEmptyText}>No resources yet</Text>
+        </View>
+      )}
     </Card>
   );
 }
+
 function NoteSummary() {
   return (
     <Card style={styles.notePanel} contentStyle={styles.notePanelBody}>
@@ -625,7 +645,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
           <LessonsInCourse lessons={courseLessons} currentLessonId={lesson.id} fullAccess={fullAccess} />
-          <ResourcesPanel />
+          <ResourcesPanel lesson={lesson} fullAccess={fullAccess} onViewAll={() => setTab('resources')} />
         </View>
       </View>
 
@@ -830,6 +850,9 @@ const styles = StyleSheet.create({  screen: { gap: 10, position: 'relative' },
   sideFullButton: { minHeight: 32, borderRadius: 7, width: '100%' },
   fileList: { gap: 8 },
   fileRow: { flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 9, backgroundColor: studentTokens.neutral, padding: 8 },
+  fileRowLocked: { opacity: 0.68 },
+  fileEmpty: { minHeight: 54, borderRadius: 9, borderWidth: 1, borderColor: '#eef1f6', backgroundColor: studentTokens.neutral, alignItems: 'center', justifyContent: 'center', padding: 10 },
+  fileEmptyText: { fontFamily: fontFamily, color: studentTokens.muted, fontSize: 9, lineHeight: 13, fontWeight: '700' },
   fileIconBox: { width: 31, height: 31, borderRadius: 10, backgroundColor: studentTokens.orangeSoft, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   fileIcon: { width: 16, height: 16 },
   fileCopy: { flex: 1, minWidth: 0 },

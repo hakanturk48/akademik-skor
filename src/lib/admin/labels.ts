@@ -23,6 +23,7 @@ const labels: Record<string, string> = {
   durationSeconds: 'Süre (saniye)', estimatedMinutes: 'Tahmini süre (dakika)', route: 'Sayfa adresi',
   mediaProvider: 'Video sağlayıcısı', mediaUrl: 'Video bağlantısı', thumbnailUrl: 'Thumbnail bağlantısı',
   previewDurationSeconds: 'Önizleme süresi (saniye)', chapters: 'Bölümler', transcript: 'Altyazı / transkript',
+  resources: 'Kaynaklar', resourcesText: 'Kaynaklar', url: 'Bağlantı', sizeLabel: 'Boyut', premium: 'Premium',
   isEnabled: 'Etkin', requiredPlan: 'Gerekli plan', allowedRoles: 'İzinli roller', iconKey: 'Simge', sort: 'Sıralama',
 };
 

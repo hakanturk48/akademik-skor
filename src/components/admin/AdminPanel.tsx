@@ -586,6 +586,11 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <Text style={styles.formHelper}>Her satır: zaman|başlık. Zaman biçimi mm:ss veya hh:mm:ss.</Text>
                 </View>
                 <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Kaynaklar</Text>
+                  <TextInput accessibilityLabel="Kaynaklar" value={draft.resourcesText ?? ''} onChangeText={(value) => setField('resourcesText', value)} placeholder={'Note Taking Strategies|PDF|1.2 MB|https://example.com/file.pdf\nLecture Worksheet|Worksheet|premium'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: başlık|tür|boyut|url|premium. Tür: PDF, Checklist, Worksheet veya Template. Boyut, URL ve premium isteğe bağlıdır.</Text>
+                </View>
+                <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Altyazı / transkript</Text>
                   <TextInput accessibilityLabel="Altyazı / transkript" value={draft.transcriptText ?? ''} onChangeText={(value) => setField('transcriptText', value)} placeholder={'00:00|Dersin giriş cümlesi\n00:18|İlk önemli nokta'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                   <Text style={styles.formHelper}>Her satır: zaman|metin. Satırlar öğrenci VideoPlayer içindeki Transcript sekmesine taşınır.</Text>

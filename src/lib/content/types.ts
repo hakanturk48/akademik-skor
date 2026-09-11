@@ -106,6 +106,16 @@ export interface LessonTranscriptLine {
   text: string;
 }
 
+export type LessonResourceType = 'PDF' | 'Checklist' | 'Worksheet' | 'Template';
+
+export interface LessonResource {
+  title: string;
+  type: LessonResourceType;
+  sizeLabel?: string;
+  url?: string;
+  premium?: boolean;
+}
+
 export interface Lesson extends BaseEntity {
   courseId: string;
   moduleId: string;
@@ -118,6 +128,7 @@ export interface Lesson extends BaseEntity {
   previewDurationSeconds?: number;
   chapters?: LessonChapter[];
   transcript?: LessonTranscriptLine[];
+  resources?: LessonResource[];
   transcriptId?: string;
 }
 

@@ -14,6 +14,7 @@ import type {
   ValidationIssue,
   Visibility,
   Question,
+  LessonResource,
 } from '@/lib/content';
 import type { NavigationGroup, NavigationIconKey, NavigationItem, NavigationSeed } from '@/lib/navigation';
 
@@ -127,6 +128,61 @@ function normalizeSlug(value: string) {
 
 function firstId<T extends { id: string }>(items: T[]) {
   return items[0]?.id ?? '';
+}
+
+const lessonResourceTypes: LessonResource['type'][] = ['PDF', 'Checklist', 'Worksheet', 'Template'];
+
+function normalizeLessonResourceType(value: string) {
+  const match = lessonResourceTypes.find((type) => type.toLowerCase() === value.trim().toLowerCase());
+  return match ?? null;
+}
+
+function isPremiumResourceToken(value: string) {
+  return ['premium', 'paid', 'locked', 'kilitli', 'true', '1', 'evet'].includes(value.trim().toLowerCase());
+}
+
+function parseLessonResourcesText(value?: string) {
+  const resources: LessonResource[] = [];
+  const invalidLines: string[] = [];
+
+  (value ?? '').split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    const [rawTitle, rawType = 'PDF', ...tokens] = trimmed.split('|').map((part) => part.trim());
+    const type = normalizeLessonResourceType(rawType);
+    let premium = false;
+    let sizeLabel: string | undefined;
+    let url: string | undefined;
+    let invalid = false;
+
+    tokens.filter(Boolean).forEach((token) => {
+      if (isPremiumResourceToken(token)) {
+        premium = true;
+      } else if (/^https:\/\//i.test(token)) {
+        url = token;
+      } else if (/^https?:\/\//i.test(token)) {
+        invalid = true;
+      } else if (!sizeLabel) {
+        sizeLabel = token;
+      } else {
+        invalid = true;
+      }
+    });
+
+    if (!rawTitle || !type || invalid) {
+      invalidLines.push(trimmed);
+      return;
+    }
+
+    resources.push({ title: rawTitle, type, ...(sizeLabel ? { sizeLabel } : {}), ...(url ? { url } : {}), ...(premium ? { premium } : {}) });
+  });
+
+  return { resources, invalidLines };
+}
+
+function serializeLessonResourcesText(resources?: LessonResource[]) {
+  return (resources ?? []).map((resource) => [resource.title, resource.type, resource.sizeLabel, resource.url, resource.premium ? 'premium' : undefined].filter(Boolean).join('|')).join('\n');
 }
 
 function contentTypeId(catalog: ContentCatalog, slug: string) {
@@ -297,6 +353,7 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
     case 'lessons': {
       const chapters = parseVideoTimedText(draft.chaptersText);
       const transcript = parseVideoTimedText(draft.transcriptText);
+      const resources = parseLessonResourcesText(draft.resourcesText);
       return {
         ...base,
         courseId: draft.courseId || firstId(catalog.courses),
@@ -310,6 +367,7 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
         previewDurationSeconds: draft.previewDurationSeconds ?? 0,
         chapters: chapters.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
         transcript: transcript.lines,
+        resources: resources.resources,
       };
     }
     case 'vocabularySets':
@@ -398,7 +456,7 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
   }
 
   if (collection === 'lessons' && 'durationSeconds' in next) {
-    const lesson = next as BaseEntity & { durationSeconds: number; estimatedMinutes: number; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[] };
+    const lesson = next as BaseEntity & { durationSeconds: number; estimatedMinutes: number; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[] };
     lesson.durationSeconds = typeof draft.durationSeconds === 'number' && draft.durationSeconds >= 0 ? draft.durationSeconds : lesson.durationSeconds;
     lesson.estimatedMinutes = typeof draft.estimatedMinutes === 'number' && draft.estimatedMinutes >= 0 ? draft.estimatedMinutes : Math.ceil(lesson.durationSeconds / 60);
     lesson.mediaUrl = draft.mediaUrl?.trim() || undefined;
@@ -409,6 +467,9 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
     lesson.previewDurationSeconds = typeof draft.previewDurationSeconds === 'number' && draft.previewDurationSeconds >= 0 ? draft.previewDurationSeconds : lesson.previewDurationSeconds ?? 0;
     lesson.chapters = parseVideoTimedText(draft.chaptersText).lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text }));
     lesson.transcript = parseVideoTimedText(draft.transcriptText).lines;
+    if (draft.resourcesText !== undefined) {
+      lesson.resources = parseLessonResourcesText(draft.resourcesText).resources;
+    }
   }
 
   return next;
@@ -610,7 +671,7 @@ export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashb
 
 export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: AdminEntityRow, catalog?: ContentCatalog): AdminEntityDraft {
   if (row) {
-    const raw = row.raw as BaseEntity & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; durationSeconds?: number; estimatedMinutes?: number };
+    const raw = row.raw as BaseEntity & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
     return {
       title: row.title,
       slug: row.slug,
@@ -630,6 +691,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
         previewDurationSeconds: raw.previewDurationSeconds ?? 0,
         chaptersText: serializeVideoTimedText(raw.chapters?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
         transcriptText: serializeVideoTimedText(raw.transcript),
+        resourcesText: serializeLessonResourcesText(raw.resources),
         durationSeconds: raw.durationSeconds ?? 900,
         estimatedMinutes: raw.estimatedMinutes ?? 15,
       } : {}),
@@ -647,7 +709,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
     sortOrder: nextSortOrder(collection === 'navigationGroups' || collection === 'navigationItems' ? [] : []),
     prompt: '',
     explanation: '',
-    ...(collection === 'lessons' ? { mediaProvider: 'youtube' as const, mediaUrl: '', courseId: firstId(catalog?.courses ?? []), moduleId: firstId(catalog?.modules ?? []), thumbnailUrl: '', previewDurationSeconds: 0, chaptersText: '', transcriptText: '', durationSeconds: 900, estimatedMinutes: 15 } : {}),
+    ...(collection === 'lessons' ? { mediaProvider: 'youtube' as const, mediaUrl: '', courseId: firstId(catalog?.courses ?? []), moduleId: firstId(catalog?.modules ?? []), thumbnailUrl: '', previewDurationSeconds: 0, chaptersText: '', transcriptText: '', resourcesText: '', durationSeconds: 900, estimatedMinutes: 15 } : {}),
     ...(collection === 'questions' && catalog ? { question: { taxonomy: defaultTaxonomy(catalog, 'question'), stimulus: '', options: [] } } : {}),
   };
 }
@@ -667,6 +729,7 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if ((draft.previewDurationSeconds ?? 0) < 0 || (draft.previewDurationSeconds ?? 0) > (draft.durationSeconds ?? Number.MAX_SAFE_INTEGER)) issues.push('Önizleme süresi video süresini aşamaz.');
     if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push('Bölümler her satırda zaman|başlık biçiminde olmalı.');
     if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push('Transkript her satırda zaman|metin biçiminde olmalı.');
+    if (draft.resourcesText && parseLessonResourcesText(draft.resourcesText).invalidLines.length) issues.push('Kaynaklar her satırda başlık|tür|boyut|url|premium biçiminde olmalı.');
   }
   return issues;
 }
