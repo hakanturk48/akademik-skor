@@ -338,7 +338,7 @@ function HeroVideo({ lesson, compact }: { lesson: VideoLesson; compact: boolean 
         </View>
       ) : null}
       <Button label={heroProgress > 0 ? 'Continue Lesson' : 'Start Lesson'} size="sm" variant="secondary" onPress={() => router.push(`/learning/videos/${lesson.id}` as Href)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} style={[styles.heroButton, compact ? styles.heroButtonCompact : null]} />
-      <View style={[styles.heroGlow, { backgroundColor: `${theme.accent}22` }]} />
+      <View pointerEvents="none" style={[styles.heroGlow, { backgroundColor: `${theme.accent}22` }]} />
     </Card>
   );
 }
