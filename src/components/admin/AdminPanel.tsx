@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Modal as NativeModal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Modal as NativeModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { AdminShell } from '@/components/admin/AdminShell';
 import { PageBuilderPanel } from '@/components/admin/PageBuilderPanel';
@@ -46,7 +46,6 @@ import {
 } from '@/lib/admin';
 import type { Visibility } from '@/lib/content';
 import { videoMediaProviders, type VideoMediaProvider } from '@/lib/video-media';
-import { saveVideoUpload } from '@/lib/video-upload';
 
 type AdminPanelProps = {
   user: AuthUser;
@@ -469,8 +468,6 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   const [tab, setTab] = useState<'edit' | 'preview' | 'history'>('edit');
   const [historicalPreview, setHistoricalPreview] = useState<AdminSnapshot | null>(null);
   const [confirmation, setConfirmation] = useState<'publish' | number | null>(null);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('');
   if (!editor) return null;
 
   const draft = editor.draft;
@@ -529,7 +526,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               <View style={styles.videoSourceSection}>
                 <View>
                   <Text style={styles.formLabel}>Video kaynağı</Text>
-                  <Text style={styles.formHelper}>YouTube/Vimeo bağlantısı veya tarayıcıya yüklenen video kullanılabilir. Serbest embed kodu çalıştırılmaz.</Text>
+                  <Text style={styles.formHelper}>Şimdilik YouTube veya Vimeo bağlantısı kullanılır. Bilgisayardan dosya yükleme, Storage/domain taşıma aşamasında yeniden açılacak.</Text>
                 </View>
                 <VideoProviderSelector value={draft.mediaProvider ?? 'youtube'} onChange={(mediaProvider) => setField('mediaProvider', mediaProvider)} />
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
@@ -543,36 +540,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   {draft.mediaProvider === 'upload' ? (
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>Video dosyası</Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Video dosyası seç"
-                        disabled={Platform.OS !== 'web' || isUploadingVideo}
-                        onPress={() => {
-                          if (Platform.OS !== 'web' || typeof globalThis.document === 'undefined') return;
-                          const input = globalThis.document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'video/*';
-                          input.onchange = () => {
-                            const file = input.files?.[0];
-                            if (!file) return;
-                            setIsUploadingVideo(true);
-                            setUploadMessage('Video yükleniyor...');
-                            void saveVideoUpload(file)
-                              .then((asset) => {
-                                onChange({ ...draft, mediaProvider: 'upload', mediaUrl: asset.storageKey });
-                                setUploadMessage(asset.source === 'firebase' ? 'Video Firebase Storage içine yüklendi. Yayınlandıktan sonra diğer tarayıcı ve bilgisayarlarda oynatılabilir.' : 'Firebase Storage hazır olmadığı için video bu tarayıcıdaki yerel kopyaya kaydedildi. Diğer cihazlarda oynatmak için Firebase Storage ayarlarını tamamlayın.');
-                              })
-                              .catch((cause) => setUploadMessage(cause instanceof Error ? cause.message : 'Video yüklenemedi.'))
-                              .finally(() => setIsUploadingVideo(false));
-                          };
-                          input.click();
-                        }}
-                        style={({ pressed }) => [styles.uploadButton, pressed ? styles.pressed : null, Platform.OS !== 'web' || isUploadingVideo ? styles.uploadButtonDisabled : null]}
-                      >
-                        <Text style={styles.uploadButtonText}>{isUploadingVideo ? 'Video yükleniyor...' : draft.mediaUrl?.startsWith('https://') ? 'Firebase videosu seçildi' : draft.mediaUrl?.startsWith('asset:') ? 'Yerel video seçildi' : 'Video dosyası seç'}</Text>
-                      </Pressable>
-                      <Text style={styles.formHelper}>{Platform.OS === 'web' ? 'Firebase Storage yapılandırıldıysa video merkeze yüklenir; değilse geçici olarak bu tarayıcıdaki yerel kopyaya yazılır.' : 'Dosya seçimi bu platformda henüz etkin değil.'}</Text>
-                      {uploadMessage ? <Text accessibilityLiveRegion="polite" style={styles.formHelper}>{uploadMessage}</Text> : null}
+                      <Text style={styles.formHelper}>Bu kayıt eski bir dosya yükleme kaydı. Şimdilik canlı kurulumda dosya yükleme kapalı; YouTube veya Vimeo seçip bağlantı girin.</Text>
                     </View>
                   ) : (
                     <View style={styles.formGroup}>
@@ -645,7 +613,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                 {issues.map((issue) => <Text key={issue} style={styles.formIssueText}>{adminMessage(issue)}</Text>)}
               </View>
             ) : null}
-            <Button label="İncelemeye Gönder" variant="secondary" onPress={onReview} disabled={issues.length > 0 || isUploadingVideo} />
+            <Button label="İncelemeye Gönder" variant="secondary" onPress={onReview} disabled={issues.length > 0} />
             </>}
           </ScrollView>
 
@@ -654,9 +622,9 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               <Button label="Vazgeç" variant="secondary" onPress={() => setConfirmation(null)} style={styles.editorActionButton} />
               <Button label={confirmation === 'publish' ? 'Yayınlamayı Onayla' : 'Taslak Olarak Geri Yükle'} onPress={() => { if (confirmation === 'publish') onPublish(); else onRestore(confirmation); setConfirmation(null); }} style={styles.editorActionButton} />
             </> : <>
-              <Button label="Taslağı Kaydet" variant="secondary" onPress={onSave} disabled={issues.length > 0 || isUploadingVideo} style={styles.editorActionButton} />
+              <Button label="Taslağı Kaydet" variant="secondary" onPress={onSave} disabled={issues.length > 0} style={styles.editorActionButton} />
               <Button label="Önizleme" variant="secondary" onPress={() => { setHistoricalPreview(null); setTab('preview'); }} style={styles.editorActionButton} />
-              <Button label="Yayınla" onPress={() => setConfirmation('publish')} disabled={issues.length > 0 || isUploadingVideo} style={styles.editorActionButton} />
+              <Button label="Yayınla" onPress={() => setConfirmation('publish')} disabled={issues.length > 0} style={styles.editorActionButton} />
             </>}
           </View>
         </View>
@@ -1019,9 +987,6 @@ const styles = StyleSheet.create({
 
   formGroup: { gap: 7, minWidth: 0, flexGrow: 1, flexShrink: 1 },
   videoSourceSection: { gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: '#f7fbfc' },
-  uploadButton: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: studentTokens.teal, backgroundColor: '#eaf7f5', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  uploadButtonDisabled: { opacity: 0.55 },
-  uploadButtonText: { fontFamily: studentFontFamily, color: studentTokens.navy, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   formHelper: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 18, fontWeight: '500', marginTop: 3 },
   formLabel: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

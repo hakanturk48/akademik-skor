@@ -72,25 +72,24 @@ GitHub repository ayarlarında **Settings > Pages > Build and deployment > Sourc
 
 `https://hakanturk48.github.io/akademik-skor/`
 
-GitHub Pages statik frontend yayınlar. Firebase yapılandırıldığında kullanıcı doğrulama, admin rol kontrolü, merkezi içerik verisi ve video dosyası depolama cihazdan bağımsız çalışır; Firebase değişkenleri yoksa uygulama yerel demo storage fallback moduna döner.
+GitHub Pages statik frontend yayınlar. Firebase yapılandırıldığında kullanıcı doğrulama, admin rol kontrolü ve merkezi içerik verisi cihazdan bağımsız çalışır. Firebase değişkenleri yoksa uygulama yalnızca yerel demo fallback moduna döner.
 
 ## Kalıcı üyelik ve Firebase kurulumu
 
-Üyelikler Firebase Authentication, profil/rol bilgileri Firestore, yüklenen video dosyaları Firebase Storage üzerinde kalıcı tutulur. Firebase değişkenleri yoksa uygulama yalnızca yerel demo auth fallback'i kullanır; bu mod gerçek hesap sistemi değildir.
+Üyelikler Firebase Authentication, profil/rol bilgileri ve yayınlanan içerik snapshot'ları Firestore üzerinde kalıcı tutulur. Şu an canlı akışta yalnızca YouTube/Vimeo video bağlantıları desteklenir; bilgisayardan video dosyası yükleme Storage/domain taşıma aşamasına bırakılmıştır.
 
 1. Firebase Console içinde bir proje ve Web App oluşturun.
 2. Authentication > Sign-in method bölümünde Email/Password sağlayıcısını etkinleştirin.
 3. Authentication > Settings > Authorized domains bölümünde `localhost` ve `hakanturk48.github.io` alan adlarını izinli bırakın/ekleyin.
 4. Firestore Database oluşturun ve Rules sekmesine `firestore.rules` içeriğini yayınlayın.
-5. Storage oluşturun ve Rules sekmesine `storage.rules` içeriğini yayınlayın.
-6. Firebase Web App config değerlerini `.env.local` içine `.env.example` şablonuyla ekleyin.
-7. GitHub repository > Settings > Secrets and variables > Actions bölümünde şu repository secrets değerlerini oluşturun: `EXPO_PUBLIC_FIREBASE_API_KEY`, `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`, `EXPO_PUBLIC_FIREBASE_PROJECT_ID`, `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`, `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `EXPO_PUBLIC_FIREBASE_APP_ID`, `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`.
-8. İlk admin kullanıcı hesabını normal kayıtla oluşturduktan sonra Firebase Console > Firestore içinde ilgili `profiles/{uid}` belgesindeki `role` alanını `admin` yapın.
+5. Firebase Web App config değerlerini `.env.local` içine `.env.example` şablonuyla ekleyin.
+6. GitHub repository > Settings > Secrets and variables > Actions bölümünde şu repository secrets değerlerini oluşturun: `EXPO_PUBLIC_FIREBASE_API_KEY`, `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`, `EXPO_PUBLIC_FIREBASE_PROJECT_ID`, `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `EXPO_PUBLIC_FIREBASE_APP_ID`.
+7. İlk admin kullanıcı hesabını normal kayıtla oluşturduktan sonra Firebase Console > Firestore içinde ilgili `profiles/{uid}` belgesindeki `role` alanını `admin` yapın.
 
-Firebase CLI kullanıyorsanız kuralları tek komutla yayınlayabilirsiniz:
+Firebase CLI kullanıyorsanız Firestore kurallarını tek komutla yayınlayabilirsiniz:
 
 ```bash
-firebase deploy --only firestore:rules,storage
+firebase deploy --only firestore:rules
 ```
 
 LocalStorage'da daha önce oluşturulmuş demo hesaplar merkezi üyelik sistemine otomatik taşınamaz. Firebase yapılandırması etkinleştirildikten sonra yeni kayıtlar cihazdan bağımsız kalıcı olur.
@@ -101,5 +100,5 @@ Admin panelindeki video dersler Firebase yapılandırıldığında `adminWorkspa
 
 - GitHub Actions secrets içinde Firebase public config değerleri tanımlı olmalıdır. Yerelde aynı değerleri `.env.local` içine `.env.example` şablonuyla ekleyin.
 - Eski tarayıcıda localStorage'a kaydedilmiş admin videoları kaybetmemek için yeni sürüm yayınlandıktan sonra önce videoların göründüğü tarayıcıdan admin paneline girin. Uygulama yerel admin workspace revizyonu merkezi kayıttan yeniyse onu Firestore'a aktarır.
-- YouTube/Vimeo bağlantılı videolar Firestore katalog kaydıyla tüm cihazlarda görünür. Yeni dosya yüklemeleri Firebase Storage hazırsa merkeze yüklenir ve yayınlandıktan sonra diğer tarayıcı/bilgisayarlarda oynatılır.
-- Firebase Storage hazır değilse dosya yükleme eski yerel IndexedDB fallback'ine düşer; ekranda uyarı görünür ve bu dosya yalnızca seçildiği tarayıcıda oynar.
+- YouTube/Vimeo bağlantılı videolar Firestore katalog kaydıyla tüm cihazlarda görünür.
+- Bilgisayardan video dosyası yükleme şu an canlı akışta kapalıdır; Firebase Storage ve alan adı taşıma aşamasında yeniden açılacaktır.

@@ -6,7 +6,6 @@ export type VideoTimedLine = { startSeconds: number; text: string };
 export const videoMediaProviders: { value: VideoMediaProvider; label: string }[] = [
   { value: 'youtube', label: 'YouTube' },
   { value: 'vimeo', label: 'Vimeo' },
-  { value: 'upload', label: 'Yüklenen video' },
 ];
 
 function extractYouTubeId(value: string) {
@@ -81,5 +80,6 @@ export function serializeVideoTimedText(lines?: VideoTimedLine[]) {
 }
 
 export function videoProviderLabel(provider?: VideoMediaProvider) {
+  if (provider === 'upload') return 'Yüklenen video';
   return videoMediaProviders.find((item) => item.value === provider)?.label ?? 'Video kaynağı';
 }
