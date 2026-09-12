@@ -36,7 +36,7 @@ const subscribeToLocalAccounts = (onChange: () => void) => {
   window.addEventListener('storage', onChange);
   return () => window.removeEventListener('storage', onChange);
 };
-const localSetupSnapshot = () => JSON.stringify(isRemoteAuthEnabled() ? { available: false, message: 'Merkezi üyelik aktif. Admin hesabı Supabase üzerinden yetkilendirilir.' } : getLocalAdminSetupState());
+const localSetupSnapshot = () => JSON.stringify(isRemoteAuthEnabled() ? { available: false, message: 'Merkezi üyelik aktif. Admin hesabı Firebase üzerinden yetkilendirilir.' } : getLocalAdminSetupState());
 const serverSetupSnapshot = () => '{"available":false,"message":""}';
 function getAuthErrorMessage() {
   if (typeof window === 'undefined' || !window.location.hash) return '';

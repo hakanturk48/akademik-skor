@@ -332,7 +332,7 @@ export async function saveSharedAdminWorkspaceState(state: AdminWorkspaceState, 
       saveAdminWorkspaceState(state, expectedRevision);
       return {
         source: 'local',
-        notice: (error instanceof Error ? error.message : 'Merkezi içerik tabloları bulunamadı.') + ' İşlem bu tarayıcıdaki yerel kopyaya kaydedildi; diğer tarayıcı ve bilgisayarlarda görünmesi için Supabase kurulumu tamamlanmalı.',
+        notice: (error instanceof Error ? error.message : 'Firebase merkezi içerik yazımı hazır değil.') + ' İşlem bu tarayıcıdaki yerel kopyaya kaydedildi; diğer tarayıcı ve bilgisayarlarda görünmesi için Firebase kurulumu tamamlanmalı.',
       };
     }
   }

@@ -1,4 +1,4 @@
-import { isVideoAssetUrl } from './video-upload';
+import { isRemoteVideoUrl, isVideoAssetUrl } from './video-upload';
 
 export type VideoMediaProvider = 'youtube' | 'vimeo' | 'upload';
 export type VideoTimedLine = { startSeconds: number; text: string };
@@ -35,7 +35,7 @@ export function validateVideoMediaUrl(provider: VideoMediaProvider | undefined, 
   const value = mediaUrl?.trim() ?? '';
   if (!value) return 'Video bağlantısı gerekli.';
   if (!provider) return 'Video sağlayıcısı seçilmeli.';
-  if (provider === 'upload') return isVideoAssetUrl(value) ? null : 'Yüklenen video dosyası seçilmeli.';
+  if (provider === 'upload') return isVideoAssetUrl(value) || isRemoteVideoUrl(value) ? null : 'Yüklenen video dosyası seçilmeli.';
   if (!/^https:\/\//i.test(value)) return 'Video bağlantısı https:// ile başlamalı.';
   if (!getVideoEmbedUrl(provider, value)) return provider === 'youtube' ? 'Geçerli bir YouTube video bağlantısı girin.' : 'Geçerli bir Vimeo video bağlantısı girin.';
   return null;

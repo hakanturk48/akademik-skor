@@ -469,6 +469,8 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   const [tab, setTab] = useState<'edit' | 'preview' | 'history'>('edit');
   const [historicalPreview, setHistoricalPreview] = useState<AdminSnapshot | null>(null);
   const [confirmation, setConfirmation] = useState<'publish' | number | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState('');
   if (!editor) return null;
 
   const draft = editor.draft;
@@ -544,7 +546,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Video dosyası seç"
-                        disabled={Platform.OS !== 'web'}
+                        disabled={Platform.OS !== 'web' || isUploadingVideo}
                         onPress={() => {
                           if (Platform.OS !== 'web' || typeof globalThis.document === 'undefined') return;
                           const input = globalThis.document.createElement('input');
@@ -553,15 +555,24 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                           input.onchange = () => {
                             const file = input.files?.[0];
                             if (!file) return;
-                            void saveVideoUpload(file).then((asset) => onChange({ ...draft, mediaProvider: 'upload', mediaUrl: asset.storageKey })).catch(() => {});
+                            setIsUploadingVideo(true);
+                            setUploadMessage('Video yükleniyor...');
+                            void saveVideoUpload(file)
+                              .then((asset) => {
+                                onChange({ ...draft, mediaProvider: 'upload', mediaUrl: asset.storageKey });
+                                setUploadMessage(asset.source === 'firebase' ? 'Video Firebase Storage içine yüklendi. Yayınlandıktan sonra diğer tarayıcı ve bilgisayarlarda oynatılabilir.' : 'Firebase Storage hazır olmadığı için video bu tarayıcıdaki yerel kopyaya kaydedildi. Diğer cihazlarda oynatmak için Firebase Storage ayarlarını tamamlayın.');
+                              })
+                              .catch((cause) => setUploadMessage(cause instanceof Error ? cause.message : 'Video yüklenemedi.'))
+                              .finally(() => setIsUploadingVideo(false));
                           };
                           input.click();
                         }}
-                        style={({ pressed }) => [styles.uploadButton, pressed ? styles.pressed : null, Platform.OS !== 'web' ? styles.uploadButtonDisabled : null]}
+                        style={({ pressed }) => [styles.uploadButton, pressed ? styles.pressed : null, Platform.OS !== 'web' || isUploadingVideo ? styles.uploadButtonDisabled : null]}
                       >
-                        <Text style={styles.uploadButtonText}>{draft.mediaUrl?.startsWith('asset:') ? 'Video dosyası seçildi' : 'Video dosyası seç'}</Text>
+                        <Text style={styles.uploadButtonText}>{isUploadingVideo ? 'Video yükleniyor...' : draft.mediaUrl?.startsWith('https://') ? 'Firebase videosu seçildi' : draft.mediaUrl?.startsWith('asset:') ? 'Yerel video seçildi' : 'Video dosyası seç'}</Text>
                       </Pressable>
-                      <Text style={styles.formHelper}>{Platform.OS === 'web' ? 'Video tarayıcı IndexedDB depolamasına yazılır; admin workspace içine binary veri yazılmaz.' : 'Dosya seçimi bu platformda henüz etkin değil.'}</Text>
+                      <Text style={styles.formHelper}>{Platform.OS === 'web' ? 'Firebase Storage yapılandırıldıysa video merkeze yüklenir; değilse geçici olarak bu tarayıcıdaki yerel kopyaya yazılır.' : 'Dosya seçimi bu platformda henüz etkin değil.'}</Text>
+                      {uploadMessage ? <Text accessibilityLiveRegion="polite" style={styles.formHelper}>{uploadMessage}</Text> : null}
                     </View>
                   ) : (
                     <View style={styles.formGroup}>
@@ -634,7 +645,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                 {issues.map((issue) => <Text key={issue} style={styles.formIssueText}>{adminMessage(issue)}</Text>)}
               </View>
             ) : null}
-            <Button label="İncelemeye Gönder" variant="secondary" onPress={onReview} disabled={issues.length > 0} />
+            <Button label="İncelemeye Gönder" variant="secondary" onPress={onReview} disabled={issues.length > 0 || isUploadingVideo} />
             </>}
           </ScrollView>
 
@@ -643,9 +654,9 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               <Button label="Vazgeç" variant="secondary" onPress={() => setConfirmation(null)} style={styles.editorActionButton} />
               <Button label={confirmation === 'publish' ? 'Yayınlamayı Onayla' : 'Taslak Olarak Geri Yükle'} onPress={() => { if (confirmation === 'publish') onPublish(); else onRestore(confirmation); setConfirmation(null); }} style={styles.editorActionButton} />
             </> : <>
-              <Button label="Taslağı Kaydet" variant="secondary" onPress={onSave} disabled={issues.length > 0} style={styles.editorActionButton} />
+              <Button label="Taslağı Kaydet" variant="secondary" onPress={onSave} disabled={issues.length > 0 || isUploadingVideo} style={styles.editorActionButton} />
               <Button label="Önizleme" variant="secondary" onPress={() => { setHistoricalPreview(null); setTab('preview'); }} style={styles.editorActionButton} />
-              <Button label="Yayınla" onPress={() => setConfirmation('publish')} disabled={issues.length > 0} style={styles.editorActionButton} />
+              <Button label="Yayınla" onPress={() => setConfirmation('publish')} disabled={issues.length > 0 || isUploadingVideo} style={styles.editorActionButton} />
             </>}
           </View>
         </View>

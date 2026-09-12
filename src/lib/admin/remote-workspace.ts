@@ -1,26 +1,32 @@
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { doc, getDoc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
+
+import { firebaseDb, isFirebaseConfigured } from '@/lib/firebase';
 import type { AdminActor, AdminWorkspaceState } from './types';
 import { getPublishedWorkspace, migrateAdminWorkspace } from './workflow';
 
-const adminWorkspaceTable = 'admin_workspaces';
-const publishedContentTable = 'published_content_snapshots';
+const adminWorkspaceCollection = 'adminWorkspaces';
+const publishedContentCollection = 'publishedContentSnapshots';
 const remoteWorkspaceKey = 'main';
 
+export const remoteWorkspaceSetupMessage = 'Firebase Firestore henüz hazır değil veya güvenlik kuralları bu işlemi engelliyor. Firebase Console içinde Firestore/Rules ayarlarını kontrol edin.';
+
 type RemoteWorkspaceRow = {
-  state: unknown;
-  revision: number | null;
+  state?: unknown;
+  revision?: number | null;
 };
 
 export function isRemoteAdminWorkspaceEnabled() {
-  return isSupabaseConfigured && Boolean(supabase);
+  return isFirebaseConfigured && Boolean(firebaseDb);
 }
 
-function isUuid(value: string | undefined) {
-  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+export function isRemoteWorkspaceSetupError(error: unknown) {
+  const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code ?? '') : '';
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return code === 'permission-denied' || code === 'failed-precondition' || code === 'unavailable' || message === remoteWorkspaceSetupMessage || /firestore.*not.*enabled|permission/i.test(message);
 }
 
 function actorId(actor?: AdminActor) {
-  return isUuid(actor?.id) ? actor!.id : null;
+  return actor?.id ?? null;
 }
 
 function normalizeWorkspaceState(value: unknown, migrate: boolean): AdminWorkspaceState | null {
@@ -30,101 +36,86 @@ function normalizeWorkspaceState(value: unknown, migrate: boolean): AdminWorkspa
   return migrate ? migrateAdminWorkspace(state) : state;
 }
 
-export const remoteWorkspaceSetupMessage = 'Merkezi içerik tabloları bulunamadı. Supabase SQL Editor içinde güncel supabase/schema.sql dosyasını çalıştırın.';
-
-export function isRemoteWorkspaceSetupError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  return message === remoteWorkspaceSetupMessage;
-}
-
 function friendlyRemoteError(error: unknown, fallback: string) {
+  if (isRemoteWorkspaceSetupError(error)) return new Error(remoteWorkspaceSetupMessage);
   const message = error && typeof error === 'object' && 'message' in error ? String((error as { message?: unknown }).message ?? '') : '';
-  if (/relation .*does not exist|admin_workspaces|published_content_snapshots/i.test(message)) {
-    return new Error(remoteWorkspaceSetupMessage);
-  }
-  if (/row-level security|permission denied|not authorized|JWT/i.test(message)) {
-    return new Error('Merkezi içerik kaydı için Supabase admin oturumu/yetkisi gerekli. Admin hesabının profiles.role değeri admin olmalı.');
-  }
   return new Error(message || fallback);
 }
 
-async function readRemoteWorkspace(table: string, migrate: boolean) {
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from(table)
-    .select('state,revision')
-    .eq('key', remoteWorkspaceKey)
-    .maybeSingle();
-
-  if (error) throw friendlyRemoteError(error, 'Merkezi içerik verisi okunamadı.');
-  if (!data) return null;
-
-  const row = data as RemoteWorkspaceRow;
-  const state = normalizeWorkspaceState(row.state, migrate);
-  if (!state) throw new Error('Merkezi içerik verisi okunamadı. Kayıt biçimi geçersiz.');
-  return state;
+function workspaceRef(collectionName: string) {
+  if (!firebaseDb) throw new Error('Firebase Firestore yapılandırılmadı.');
+  return doc(firebaseDb, collectionName, remoteWorkspaceKey);
 }
 
-async function readRemoteRevision(table: string) {
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from(table)
-    .select('revision')
-    .eq('key', remoteWorkspaceKey)
-    .maybeSingle();
+async function readRemoteWorkspace(collectionName: string, migrate: boolean) {
+  if (!firebaseDb) return null;
+  try {
+    const snapshot = await getDoc(workspaceRef(collectionName));
+    if (!snapshot.exists()) return null;
 
-  if (error) throw friendlyRemoteError(error, 'Merkezi içerik sürümü okunamadı.');
-  return typeof data?.revision === 'number' ? data.revision : null;
+    const row = snapshot.data() as RemoteWorkspaceRow;
+    const state = normalizeWorkspaceState(row.state, migrate);
+    if (!state) throw new Error('Merkezi içerik verisi okunamadı. Kayıt biçimi geçersiz.');
+    return state;
+  } catch (error) {
+    throw friendlyRemoteError(error, 'Firebase içerik verisi okunamadı.');
+  }
 }
 
-async function upsertWorkspace(table: string, state: AdminWorkspaceState, revision: number, actor?: AdminActor) {
-  if (!supabase) throw new Error('Merkezi içerik altyapısı yapılandırılmadı.');
-  const { error } = await supabase
-    .from(table)
-    .upsert({ key: remoteWorkspaceKey, state, revision, updated_by: actorId(actor) }, { onConflict: 'key' });
-
-  if (error) throw friendlyRemoteError(error, 'Merkezi içerik verisi kaydedilemedi.');
+async function upsertWorkspace(collectionName: string, state: AdminWorkspaceState, revision: number, actor?: AdminActor) {
+  if (!firebaseDb) throw new Error('Firebase içerik altyapısı yapılandırılmadı.');
+  try {
+    await setDoc(workspaceRef(collectionName), {
+      state,
+      revision,
+      updatedBy: actorId(actor),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    throw friendlyRemoteError(error, 'Firebase içerik verisi kaydedilemedi.');
+  }
 }
 
 export async function loadRemoteAdminWorkspaceState() {
-  return readRemoteWorkspace(adminWorkspaceTable, true);
+  return readRemoteWorkspace(adminWorkspaceCollection, true);
 }
 
 export async function loadRemotePublishedWorkspaceState() {
-  return readRemoteWorkspace(publishedContentTable, false);
+  return readRemoteWorkspace(publishedContentCollection, false);
 }
 
 export async function saveRemotePublishedWorkspaceState(state: AdminWorkspaceState, revision: number, actor?: AdminActor) {
-  await upsertWorkspace(publishedContentTable, state, revision, actor);
+  await upsertWorkspace(publishedContentCollection, state, revision, actor);
 }
 
 export async function saveRemoteAdminWorkspaceState(state: AdminWorkspaceState, expectedRevision: number | null, actor?: AdminActor) {
-  if (!supabase) throw new Error('Merkezi içerik altyapısı yapılandırılmadı.');
+  if (!firebaseDb) throw new Error('Firebase içerik altyapısı yapılandırılmadı.');
 
   const revision = state.workflow?.revision ?? 0;
+  const publishedState = getPublishedWorkspace(state);
+
   if (expectedRevision === null) {
-    await upsertWorkspace(adminWorkspaceTable, state, revision, actor);
-    await saveRemotePublishedWorkspaceState(getPublishedWorkspace(state), revision, actor);
+    await upsertWorkspace(adminWorkspaceCollection, state, revision, actor);
+    await saveRemotePublishedWorkspaceState(publishedState, revision, actor);
     return;
   }
 
-  const { data, error } = await supabase
-    .from(adminWorkspaceTable)
-    .update({ state, revision, updated_by: actorId(actor) })
-    .eq('key', remoteWorkspaceKey)
-    .eq('revision', expectedRevision)
-    .select('revision')
-    .maybeSingle();
+  try {
+    await runTransaction(firebaseDb, async (transaction) => {
+      const adminRef = workspaceRef(adminWorkspaceCollection);
+      const publishedRef = workspaceRef(publishedContentCollection);
+      const current = await transaction.get(adminRef);
+      const currentRevision = current.exists() ? Number((current.data() as RemoteWorkspaceRow).revision ?? 0) : null;
 
-  if (error) throw friendlyRemoteError(error, 'Merkezi içerik verisi kaydedilemedi.');
+      if (currentRevision !== null && currentRevision !== expectedRevision) {
+        throw new Error('Başka bir admin içerik kaydetti. Devam etmeden önce paneli yeniden yükleyin.');
+      }
 
-  if (!data) {
-    const currentRevision = await readRemoteRevision(adminWorkspaceTable);
-    if (currentRevision !== null && currentRevision !== expectedRevision) {
-      throw new Error('Başka bir admin içerik kaydetti. Devam etmeden önce paneli yeniden yükleyin.');
-    }
-    await upsertWorkspace(adminWorkspaceTable, state, revision, actor);
+      const metadata = { revision, updatedBy: actorId(actor), updatedAt: serverTimestamp() };
+      transaction.set(adminRef, { ...metadata, state }, { merge: true });
+      transaction.set(publishedRef, { ...metadata, state: publishedState }, { merge: true });
+    });
+  } catch (error) {
+    throw friendlyRemoteError(error, 'Firebase içerik verisi kaydedilemedi.');
   }
-
-  await saveRemotePublishedWorkspaceState(getPublishedWorkspace(state), revision, actor);
 }

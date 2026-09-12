@@ -63,7 +63,7 @@ export function AdminRouteScreen() {
     const restoreRemoteSession = async () => {
       if (isRemoteAuthEnabled()) {
         const remoteUser = await getRemoteCurrentUser();
-        if (active && remoteUser) setUser(remoteUser);
+        if (active) setUser(remoteUser);
       }
       if (active) setAuthResolved(true);
     };

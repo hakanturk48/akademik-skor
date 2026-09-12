@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/profiles/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /video-lessons/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 1024 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
+  }
+}

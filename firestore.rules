@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath(userId) {
+      return /databases/$(database)/documents/profiles/$(userId);
+    }
+
+    function isAdmin() {
+      return signedIn() && exists(profilePath(request.auth.uid)) && get(profilePath(request.auth.uid)).data.role == 'admin';
+    }
+
+    function changedProfileKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function safeOwnerProfileUpdate(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.plan == resource.data.plan
+        && changedProfileKeys().hasOnly(['name', 'goal', 'emailVerified', 'updatedAt'])
+        && (!changedProfileKeys().hasAny(['emailVerified']) || request.resource.data.emailVerified == request.auth.token.email_verified);
+    }
+
+    match /profiles/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role in ['student', 'teacher', 'institution']
+        && request.resource.data.plan == 'free'
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if safeOwnerProfileUpdate(userId) || isAdmin();
+      allow delete: if false;
+    }
+
+    match /adminWorkspaces/{workspaceId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /publishedContentSnapshots/{snapshotId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
