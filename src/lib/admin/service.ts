@@ -2,7 +2,7 @@ import { contentCatalogSeed, getTaxonomyBreadcrumb, validateContentCatalog } fro
 import { navigationSeed } from '@/lib/navigation';
 import { buildQuestionSnapshot, readQuestionDraft } from './question-editor';
 import { getAdminDocument, migrateAdminWorkspace, readAdminWorkspace, persistAdminWorkspace, recordAdminRevision, workspaceItems, workspaceStorageKey } from './workflow';
-import { isRemoteAdminWorkspaceEnabled, loadRemoteAdminWorkspaceState, saveRemoteAdminWorkspaceState } from './remote-workspace';
+import { isRemoteAdminWorkspaceEnabled, isRemoteWorkspaceSetupError, loadRemoteAdminWorkspaceState, saveRemoteAdminWorkspaceState } from './remote-workspace';
 import { defaultPageBuilderState } from './page-builder';
 import { parseVideoTimedText, serializeVideoTimedText, validateVideoMediaUrl, type VideoMediaProvider } from '@/lib/video-media';
 
@@ -281,6 +281,11 @@ type SharedAdminWorkspaceState = {
   message: string;
 };
 
+type SharedAdminSaveResult = {
+  source: 'local' | 'remote';
+  notice?: string;
+};
+
 function cacheAdminWorkspaceState(state: AdminWorkspaceState) {
   if (!hasLocalStorage()) return;
   try { window.localStorage.setItem(workspaceStorageKey, JSON.stringify(state)); }
@@ -316,14 +321,24 @@ export async function loadSharedAdminWorkspaceState(actor?: AdminActor): Promise
   }
 }
 
-export async function saveSharedAdminWorkspaceState(state: AdminWorkspaceState, expectedRevision: number, actor: AdminActor) {
+export async function saveSharedAdminWorkspaceState(state: AdminWorkspaceState, expectedRevision: number, actor: AdminActor): Promise<SharedAdminSaveResult> {
   if (isRemoteAdminWorkspaceEnabled()) {
-    await saveRemoteAdminWorkspaceState(state, expectedRevision, actor);
-    cacheAdminWorkspaceState(state);
-    return;
+    try {
+      await saveRemoteAdminWorkspaceState(state, expectedRevision, actor);
+      cacheAdminWorkspaceState(state);
+      return { source: 'remote' };
+    } catch (error) {
+      if (!isRemoteWorkspaceSetupError(error)) throw error;
+      saveAdminWorkspaceState(state, expectedRevision);
+      return {
+        source: 'local',
+        notice: (error instanceof Error ? error.message : 'Merkezi içerik tabloları bulunamadı.') + ' İşlem bu tarayıcıdaki yerel kopyaya kaydedildi; diğer tarayıcı ve bilgisayarlarda görünmesi için Supabase kurulumu tamamlanmalı.',
+      };
+    }
   }
 
   saveAdminWorkspaceState(state, expectedRevision);
+  return { source: 'local', notice: 'Merkezi içerik altyapısı yapılandırılmadı; işlem bu tarayıcıdaki yerel kopyaya kaydedildi.' };
 }
 
 function withChange(state: AdminWorkspaceState, module: AdminModuleKey, action: AdminChangeLogEntry['action'], entity: Pick<AdminEntityRow, 'id' | 'title'>, detail: string): AdminWorkspaceState {

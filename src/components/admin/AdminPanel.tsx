@@ -51,6 +51,7 @@ import { saveVideoUpload } from '@/lib/video-upload';
 type AdminPanelProps = {
   user: AuthUser;
   onLogout: () => void;
+  isLoggingOut?: boolean;
 };
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
@@ -70,6 +71,7 @@ type PublicationResultState = {
   collection: AdminMutableCollectionKey;
   config: AdminCollectionConfig;
   row: AdminEntityRow;
+  notice?: string;
 };
 
 type DisableTarget = {
@@ -674,6 +676,7 @@ function PublicationResultScreen({ result, isMobile, onClose, onEdit }: { result
             <Text style={styles.kicker}>{isPublished ? 'YAYIN AKIŞI' : 'İNCELEME AKIŞI'}</Text>
             <Text style={styles.resultTitle}>{title}</Text>
             <Text style={styles.resultText}>{detail}</Text>
+            {result.notice ? <Text accessibilityRole="alert" style={styles.resultNotice}>{result.notice}</Text> : null}
           </View>
           <View style={styles.resultMeta}>
             <View style={styles.resultMetaRow}>
@@ -758,7 +761,7 @@ export function AdminPanel(props: AdminPanelProps) {
   if (!initial.state) return <AdminShell {...props} activeModule="dashboard" onModuleChange={() => {}}><EmptyState title="Yönetim verilerine erişilemiyor" text={initial.error} action={<Button label="Yeniden Dene" onPress={reloadSharedState} />} /></AdminShell>;
   return <AdminPanelContent key={initial.source + '-' + String(initial.state.workflow?.revision ?? 0) + '-' + initial.notice} {...props} initialState={initial.state} initialNotice={initial.notice} />;
 }
-function AdminPanelContent({ user, onLogout, initialState, initialNotice = '' }: AdminPanelProps & { initialState: AdminWorkspaceState; initialNotice?: string }) {
+function AdminPanelContent({ user, onLogout, isLoggingOut = false, initialState, initialNotice = '' }: AdminPanelProps & { initialState: AdminWorkspaceState; initialNotice?: string }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 760;
   const [state, setState] = useState<AdminWorkspaceState>(initialState);
@@ -781,9 +784,10 @@ function AdminPanelContent({ user, onLogout, initialState, initialNotice = '' }:
   const commit = async (next: AdminWorkspaceState) => {
     setIsSaving(true);
     try {
-      await saveSharedAdminWorkspaceState(next, state.workflow?.revision ?? 0, user);
+      const result = await saveSharedAdminWorkspaceState(next, state.workflow?.revision ?? 0, user);
       setState(next);
       setError('');
+      return result.notice ?? '';
     } finally {
       setIsSaving(false);
     }
@@ -813,16 +817,16 @@ function AdminPanelContent({ user, onLogout, initialState, initialNotice = '' }:
     void attempt(async () => {
       if (!editor) return;
       const next = saveAdminContent(state, editor.module, editor.collection, editor.draft, user, status, editor.row?.id, editor.row?.version ?? 0);
-      await commit(next);
+      const saveNotice = await commit(next);
       const id = next.workflow!.audit[0].entityId;
       const row = listAdminRows(next, editor.collection).find((item) => item.id === id)!;
       if (status === 'draft') {
         setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
-        setMessage('Taslak sürüm ' + String(row.version) + ' kaydedildi.');
+        setMessage((saveNotice ? saveNotice + ' ' : '') + 'Taslak sürüm ' + String(row.version) + ' kaydedildi.');
         return;
       }
       setEditor(null);
-      setPublicationResult({ status, module: editor.module, collection: editor.collection, config: editor.config, row });
+      setPublicationResult({ status, module: editor.module, collection: editor.collection, config: editor.config, row, notice: saveNotice || undefined });
       setMessage('');
     });
   };
@@ -879,7 +883,7 @@ function AdminPanelContent({ user, onLogout, initialState, initialNotice = '' }:
   };
 
   return (
-    <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); setPublicationResult(null); }} onLogout={onLogout}>
+    <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); setPublicationResult(null); }} onLogout={onLogout} isLoggingOut={isLoggingOut}>
       {!editor && error ? <View style={styles.formIssues}><Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text><Button label="Paneli Yeniden Yükle" variant="secondary" onPress={() => { void attempt(async () => { const result = await loadSharedAdminWorkspaceState(user); setState(result.state); setError(''); setMessage(result.message); }); }} /></View> : null}
       {!editor && isSaving ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>Merkezi içerik kaydediliyor...</Text> : null}
       {!editor && message ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>{message}</Text> : null}
@@ -1050,6 +1054,7 @@ const styles = StyleSheet.create({
   resultSymbol: { width: 28, height: 28 },
   resultTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 26, lineHeight: 32, fontWeight: '700' },
   resultText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 22, fontWeight: '500' },
+  resultNotice: { fontFamily: studentFontFamily, color: studentTokens.danger, fontSize: 13, lineHeight: 20, fontWeight: '700' },
   resultMeta: { width: '100%', borderRadius: 8, backgroundColor: studentTokens.neutral, borderWidth: 1, borderColor: studentTokens.lineSoft, padding: 12, gap: 10 },
   resultMetaRow: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   resultMetaLabel: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 17, fontWeight: '700' },

@@ -13,6 +13,7 @@ type AdminShellProps = {
   activeModule: AdminModuleKey;
   onModuleChange: (module: AdminModuleKey) => void;
   onLogout: () => void;
+  isLoggingOut?: boolean;
   children: ReactNode;
 };
 
@@ -98,7 +99,7 @@ function AdminSidebar({ collapsed, activeModule, onModuleChange, onClose, showCl
   );
 }
 
-export function AdminShell({ user, activeModule, onModuleChange, onLogout, children }: AdminShellProps) {
+export function AdminShell({ user, activeModule, onModuleChange, onLogout, isLoggingOut = false, children }: AdminShellProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1040;
@@ -128,7 +129,7 @@ export function AdminShell({ user, activeModule, onModuleChange, onLogout, child
         <View style={styles.topbarRight}>
           {!isMobile ? <Text style={styles.rolePill}>{adminLabel(user.role)}</Text> : null}
           {isMobile ? <Pressable accessibilityRole="button" accessibilityLabel="Öğrenci paneline dön" onPress={goStudent} style={styles.topbarIconButton}><SymbolView name={studentSymbol} tintColor="#ffffff" size={20} style={styles.iconSymbol} /></Pressable> : <Button label="Öğrenci Paneli" size="sm" variant="secondary" left={<SymbolView name={studentSymbol} tintColor={studentTokens.navy} size={15} style={styles.buttonSymbol} />} onPress={goStudent} />}
-          <Pressable accessibilityRole="button" accessibilityLabel="Admin çıkış" onPress={onLogout} style={({ pressed }) => [styles.topbarIconButton, pressed ? styles.pressed : null]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Admin çıkış" accessibilityState={{ disabled: isLoggingOut }} disabled={isLoggingOut} onPress={onLogout} style={({ pressed }) => [styles.topbarIconButton, isLoggingOut ? styles.disabled : null, pressed ? styles.pressed : null]}>
             <SymbolView name={logoutSymbol} tintColor="#ffffff" size={18} style={styles.iconSymbol} />
           </Pressable>
         </View>
@@ -205,4 +206,5 @@ const styles = StyleSheet.create({
   drawerPanel: { width: 340, maxWidth: '90%', height: '100%', backgroundColor: '#ffffff' },
   drawerPanelMobile: { width: '88%' },
   pressed: { opacity: 0.72 },
+  disabled: { opacity: 0.54 },
 });

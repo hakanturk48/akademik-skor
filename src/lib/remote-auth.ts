@@ -95,5 +95,11 @@ export async function registerRemote(input: {
 }
 
 export async function logoutRemote() {
-  if (supabase) await supabase.auth.signOut();
+  if (!supabase) return;
+
+  const { error } = await supabase.auth.signOut();
+  if (!error) return;
+
+  const localResult = await supabase.auth.signOut({ scope: 'local' });
+  if (localResult.error) throw localResult.error;
 }

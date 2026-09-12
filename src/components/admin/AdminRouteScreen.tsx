@@ -26,7 +26,7 @@ function LoadingPanel() {
   );
 }
 
-function AccessDeniedPanel({ user, reason, onDashboard, onLogout }: { user: AuthUser; reason: string; onDashboard: () => void; onLogout: () => void }) {
+function AccessDeniedPanel({ user, reason, onDashboard, onLogout, isLoggingOut }: { user: AuthUser; reason: string; onDashboard: () => void; onLogout: () => void; isLoggingOut: boolean }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View testID="admin-access-denied" style={styles.accessShell}>
@@ -42,7 +42,7 @@ function AccessDeniedPanel({ user, reason, onDashboard, onLogout }: { user: Auth
           </View>
           <View style={styles.accessActions}>
             <Button label="Öğrenci paneline dön" onPress={onDashboard} style={styles.accessButton} />
-            <Button label="Çıkış yap" variant="secondary" onPress={onLogout} style={styles.accessButton} />
+            <Button label="Çıkış yap" variant="secondary" onPress={onLogout} disabled={isLoggingOut} loading={isLoggingOut} style={styles.accessButton} />
           </View>
         </Card>
       </View>
@@ -54,6 +54,7 @@ export function AdminRouteScreen() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(() => getCurrentUser());
   const [authResolved, setAuthResolved] = useState(() => !isRemoteAuthEnabled());
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const access = getAdminAccessDecision(user);
   const verifiedAdmin = useMemo(() => (access.allowed ? requireAdminRole(user) : null), [access.allowed, user]);
 
@@ -71,11 +72,17 @@ export function AdminRouteScreen() {
   }, []);
 
   useEffect(() => {
-    if (authResolved && !user) router.replace('/login?next=/admin' as Href);
-  }, [authResolved, router, user]);
+    if (authResolved && !user && !isLoggingOut) router.replace('/login?next=/admin' as Href);
+  }, [authResolved, isLoggingOut, router, user]);
 
-  const handleLogout = () => {
-    void logoutRemote();
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logoutRemote();
+    } catch {
+      // Local session cleanup still lets the user leave when the remote request fails.
+    }
     logoutUser();
     setUser(null);
     router.replace('/login?next=/admin' as Href);
@@ -92,13 +99,14 @@ export function AdminRouteScreen() {
         reason={access.reason ?? 'Admin rolü doğrulanamadı.'}
         onDashboard={() => router.replace('/dashboard' as Href)}
         onLogout={handleLogout}
+        isLoggingOut={isLoggingOut}
       />
     );
   }
 
   return (
     <SafeAreaView testID="admin-route-guard" style={styles.safeArea}>
-      <AdminPanel user={verifiedAdmin} onLogout={handleLogout} />
+      <AdminPanel user={verifiedAdmin} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
     </SafeAreaView>
   );
 }

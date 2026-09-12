@@ -30,10 +30,17 @@ function normalizeWorkspaceState(value: unknown, migrate: boolean): AdminWorkspa
   return migrate ? migrateAdminWorkspace(state) : state;
 }
 
+export const remoteWorkspaceSetupMessage = 'Merkezi içerik tabloları bulunamadı. Supabase SQL Editor içinde güncel supabase/schema.sql dosyasını çalıştırın.';
+
+export function isRemoteWorkspaceSetupError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return message === remoteWorkspaceSetupMessage;
+}
+
 function friendlyRemoteError(error: unknown, fallback: string) {
   const message = error && typeof error === 'object' && 'message' in error ? String((error as { message?: unknown }).message ?? '') : '';
   if (/relation .*does not exist|admin_workspaces|published_content_snapshots/i.test(message)) {
-    return new Error('Merkezi içerik tabloları bulunamadı. Supabase SQL Editor içinde güncel supabase/schema.sql dosyasını çalıştırın.');
+    return new Error(remoteWorkspaceSetupMessage);
   }
   if (/row-level security|permission denied|not authorized|JWT/i.test(message)) {
     return new Error('Merkezi içerik kaydı için Supabase admin oturumu/yetkisi gerekli. Admin hesabının profiles.role değeri admin olmalı.');

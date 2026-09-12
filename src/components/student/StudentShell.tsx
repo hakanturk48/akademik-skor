@@ -14,6 +14,7 @@ type StudentShellProps = {
   title: string;
   subtitle: string;
   onLogout: () => void;
+  isLoggingOut?: boolean;
   children: ReactNode;
 };
 
@@ -120,7 +121,7 @@ function SidebarContent({ collapsed, user, groups, bottomItem, showBrand = true,
   );
 }
 
-export function StudentShell({ user, activeRoute, title, subtitle, onLogout, children }: StudentShellProps) {
+export function StudentShell({ user, activeRoute, title, subtitle, onLogout, isLoggingOut = false, children }: StudentShellProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 940;
@@ -200,7 +201,7 @@ export function StudentShell({ user, activeRoute, title, subtitle, onLogout, chi
               </>
             ) : null}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Çıkış yap" onPress={onLogout} style={({ pressed }) => [styles.topIconButton, pressed ? styles.pressed : null]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Çıkış yap" accessibilityState={{ disabled: isLoggingOut }} disabled={isLoggingOut} onPress={onLogout} style={({ pressed }) => [styles.topIconButton, isLoggingOut ? styles.disabled : null, pressed ? styles.pressed : null]}>
             <SymbolView name={logoutSymbol} tintColor="#ffffff" size={17} style={styles.iconSymbol} />
           </Pressable>
         </View>
@@ -295,4 +296,5 @@ const styles = StyleSheet.create({
   drawerBackdrop: { flex: 1 },
   drawerPanel: { width: '86%', maxWidth: 300, height: '100%', backgroundColor: '#ffffff' },
   pressed: { opacity: 0.72 },
+  disabled: { opacity: 0.54 },
 });

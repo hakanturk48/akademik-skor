@@ -89,6 +89,7 @@ export function StudentRouteScreen({ routeKey, children }: StudentRouteScreenPro
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(() => getCurrentUser());
   const [authResolved, setAuthResolved] = useState(() => !isRemoteAuthEnabled());
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const meta = studentRouteMeta[routeKey];
 
   useEffect(() => {
@@ -105,11 +106,17 @@ export function StudentRouteScreen({ routeKey, children }: StudentRouteScreenPro
   }, []);
 
   useEffect(() => {
-    if (authResolved && !user) router.replace('/login' as Href);
-  }, [authResolved, router, user]);
+    if (authResolved && !user && !isLoggingOut) router.replace('/login' as Href);
+  }, [authResolved, isLoggingOut, router, user]);
 
-  const handleLogout = () => {
-    void logoutRemote();
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logoutRemote();
+    } catch {
+      // Local session cleanup still lets the user leave when the remote request fails.
+    }
     logoutUser();
     setUser(null);
     router.replace('/login' as Href);
@@ -127,7 +134,7 @@ export function StudentRouteScreen({ routeKey, children }: StudentRouteScreenPro
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StudentShell user={user} activeRoute={routeKey} title={meta.title} subtitle={meta.subtitle} onLogout={handleLogout}>
+      <StudentShell user={user} activeRoute={routeKey} title={meta.title} subtitle={meta.subtitle} onLogout={handleLogout} isLoggingOut={isLoggingOut}>
         {access.allowed ? children?.(user) ?? <PendingPanel routeKey={routeKey} /> : <LockedPanel routeKey={routeKey} onPlanAction={handlePlanAction} />}
       </StudentShell>
     </SafeAreaView>
