@@ -7,10 +7,10 @@ import { Modal as NativeModal, Pressable, ScrollView, StyleSheet, Text, TextInpu
 import { Button, Card, EmptyState, ErrorState, Skeleton, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
+import { formatVideoTimestamp } from '@/lib/video-media';
 import {
   discoverVideoLessons,
   getVideoLessonCatalog,
-  getVideoLessonById,
   getVideoSubskillFilters,
   getVideoTaskFilters,
   skillThemes,
@@ -61,7 +61,6 @@ const writingSymbol = symbolName('square.and.pencil', 'edit_square');
 const grammarSymbol = symbolName('text.book.closed', 'library_books');
 const vocabSymbol = symbolName('textformat.abc', 'abc');
 const checkCircleSymbol = symbolName('checkmark.circle.fill', 'check_circle');
-const bookmarkSymbol = symbolName('bookmark.fill', 'bookmark');
 const bookmarkOutlineSymbol = symbolName('bookmark', 'bookmark_border');
 const flameSymbol = symbolName('flame.fill', 'local_fire_department');
 const dotsSymbol = symbolName('ellipsis', 'more_vert');
@@ -99,12 +98,13 @@ const skillImageSources: Partial<Record<LearningSkillKey, number>> = {
   writing: require('@/assets/images/skill-writing.png'),
 };
 
-const videoOverviewStats = [
-  { label: 'Total Video Hours', value: '24h 36m', detail: '+4.2h this week', tone: 'blue' as const, icon: videoSymbol },
-  { label: 'Completed Lessons', value: '38', detail: '+6 this week', tone: 'teal' as const, icon: checkCircleSymbol },
-  { label: 'Saved Lessons', value: '12', detail: 'View saved', tone: 'purple' as const, icon: bookmarkSymbol },
-  { label: 'Recommended Pace', value: '3-4 lessons / week', detail: 'You are on track', tone: 'orange' as const, icon: flameSymbol },
-];
+type VideoOverviewStat = {
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'blue' | 'teal' | 'purple' | 'orange';
+  icon: AppSymbolName;
+};
 
 const lessonPresentation: Record<string, { title: string; author: string; time: string; progress: number; completeText: string; thumb?: number; tag?: string }> = {
   'reading-inference-mini-lesson': { title: 'Identifying Author Purpose in Academic Texts', author: 'Sarah Johnson', time: '16:28', progress: 60, completeText: '60% Complete', thumb: skillImageSources.reading, tag: 'READING' },
@@ -155,14 +155,73 @@ function nextValue<T extends string>(items: { value: T }[], current: T) {
   return items[(index + 1) % items.length]?.value ?? items[0].value;
 }
 
-function toneColor(tone: (typeof videoOverviewStats)[number]['tone']) {
+function toneColor(tone: VideoOverviewStat['tone']) {
   if (tone === 'teal') return studentTokens.teal;
   if (tone === 'orange') return studentTokens.orange;
   if (tone === 'purple') return '#9657e8';
   return studentTokens.blue;
 }
 
-function StatCard({ item }: { item: (typeof videoOverviewStats)[number] }) {
+function clampProgress(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function lessonDurationSeconds(lesson: VideoLesson) {
+  return Math.max(0, Math.round(lesson.durationSeconds ?? lesson.durationMinutes * 60));
+}
+
+function lessonDurationLabel(lesson: VideoLesson) {
+  const seconds = lessonDurationSeconds(lesson);
+  return seconds > 0 ? formatVideoTimestamp(seconds) : `${lesson.durationMinutes}:00`;
+}
+
+function formatTotalVideoTime(seconds: number) {
+  const minutes = Math.max(0, Math.round(seconds / 60));
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${remainder}m`;
+  return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
+}
+
+function paceLabel(lessonCount: number) {
+  if (lessonCount >= 8) return '3-4 lessons / week';
+  if (lessonCount >= 4) return '2 lessons / week';
+  return '1 lesson / week';
+}
+
+function buildVideoOverviewStats(catalog: VideoLesson[]): VideoOverviewStat[] {
+  const activeLessons = catalog.filter((lesson) => lesson.status === 'active');
+  const totalSeconds = activeLessons.reduce((total, lesson) => total + lessonDurationSeconds(lesson), 0);
+  const savedLessons = activeLessons.filter((lesson) => lesson.saved).length;
+  const inProgress = activeLessons.filter((lesson) => lesson.progress > 0 && lesson.progress < 100).length;
+  const completed = activeLessons.filter((lesson) => lesson.progress >= 100).length;
+
+  return [
+    { label: 'Total Video Time', value: formatTotalVideoTime(totalSeconds), detail: `${activeLessons.length} published lessons`, tone: 'blue', icon: videoSymbol },
+    { label: 'Completed Lessons', value: String(completed), detail: inProgress > 0 ? `${inProgress} in progress` : 'No progress yet', tone: 'teal', icon: checkCircleSymbol },
+    { label: 'Saved Lessons', value: String(savedLessons), detail: savedLessons > 0 ? 'Saved in live catalog' : 'No saved lessons', tone: 'purple', icon: bookmarkOutlineSymbol },
+    { label: 'Recommended Pace', value: paceLabel(activeLessons.length), detail: activeLessons.length > 1 ? 'Based on published lessons' : 'Add more lessons to adjust', tone: 'orange', icon: flameSymbol },
+  ];
+}
+
+function lessonImageSource(lesson: VideoLesson) {
+  const presentation = lessonPresentation[lesson.id];
+  if (lesson.thumbnail?.startsWith('http')) return { uri: lesson.thumbnail };
+  return presentation?.thumb ?? skillImageSources[lesson.skill];
+}
+
+function selectFeaturedLesson(catalog: VideoLesson[]) {
+  const activeLessons = catalog.filter((lesson) => lesson.status === 'active');
+  const inProgress = activeLessons
+    .filter((lesson) => lesson.progress > 0 && lesson.progress < 100)
+    .sort((first, second) => Date.parse(second.updatedAt) - Date.parse(first.updatedAt));
+
+  if (inProgress[0]) return inProgress[0];
+
+  return [...activeLessons].sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(second.updatedAt) - Date.parse(first.updatedAt) || first.title.localeCompare(second.title))[0] ?? catalog[0];
+}
+
+function StatCard({ item }: { item: VideoOverviewStat }) {
   const color = toneColor(item.tone);
 
   return (
@@ -220,7 +279,7 @@ function FilterOptionGroup<TValue extends string>({ title, items, value, compact
 function LessonThumbnail({ lesson, compact = false }: { lesson: VideoLesson; compact?: boolean }) {
   const theme = skillThemes[lesson.skill];
   const presentation = lessonPresentation[lesson.id];
-  const image = lesson.thumbnail.startsWith('http') ? { uri: lesson.thumbnail } : presentation?.thumb;
+  const image = lessonImageSource(lesson);
 
   return (
     <View style={[styles.lessonThumb, compact ? styles.lessonThumbCompact : null, { backgroundColor: theme.soft }]}>
@@ -238,7 +297,7 @@ function LessonThumbnail({ lesson, compact = false }: { lesson: VideoLesson; com
       {lesson.isPremium ? (
         <View style={styles.premiumPill}><Text style={styles.premiumText}>Premium</Text></View>
       ) : null}
-      <View style={styles.timePill}><Text style={styles.timeText}>{presentation?.time ?? `${lesson.durationMinutes}:00`}</Text></View>
+      <View style={styles.timePill}><Text style={styles.timeText}>{lessonDurationLabel(lesson)}</Text></View>
     </View>
   );
 }
@@ -246,25 +305,29 @@ function LessonThumbnail({ lesson, compact = false }: { lesson: VideoLesson; com
 function HeroVideo({ lesson, compact }: { lesson: VideoLesson; compact: boolean }) {
   const router = useRouter();
   const theme = skillThemes[lesson.skill];
-  const presentation = lessonPresentation[lesson.id];
-  const heroProgress = presentation?.progress ?? lesson.progress;
+  const heroProgress = clampProgress(lesson.progress);
+  const durationText = lessonDurationLabel(lesson);
+  const watchedText = formatVideoTimestamp(Math.round(lessonDurationSeconds(lesson) * heroProgress / 100));
+  const image = lessonImageSource(lesson) ?? skillImageSources.listening;
+  const heroTitle = lesson.title;
+  const heroSubtitle = [lesson.module, lesson.taskTypeLabel].filter(Boolean).join(' · ') || lesson.course;
 
   return (
     <Card style={styles.heroCard} contentStyle={[styles.heroBody, compact ? styles.heroBodyCompact : null]}>
       <View style={[styles.heroMedia, compact ? styles.heroMediaCompact : null]}>
-        <Image source={skillImageSources.listening} style={styles.heroImage} contentFit="cover" accessibilityLabel="Current video lesson visual" />
+        <Image source={image} style={styles.heroImage} contentFit="cover" accessibilityLabel="Current video lesson visual" />
         <View style={styles.heroPlayBubble}>
           <SymbolView name={playSymbol} tintColor="#ffffff" size={22} style={styles.heroPlayIcon} />
         </View>
-        <View style={styles.heroTimePill}><Text style={styles.heroTimeText}>24:35</Text></View>
+        <View style={styles.heroTimePill}><Text style={styles.heroTimeText}>{durationText}</Text></View>
       </View>
       <View style={styles.heroCopy}>
-        <Text style={styles.heroLabel}>CONTINUE LEARNING</Text>
-        <Text style={styles.heroTitle} numberOfLines={compact ? 2 : 1}>{presentation?.title ?? lesson.title}</Text>
-        <Text style={styles.heroSub}>{lesson.module} · {lesson.taskTypeLabel}</Text>
-        <Text style={styles.heroText} numberOfLines={compact ? 3 : 2}>{lesson.description}</Text>
+        <Text style={styles.heroLabel}>{heroProgress > 0 ? 'CONTINUE LEARNING' : 'START LEARNING'}</Text>
+        <Text style={styles.heroTitle} numberOfLines={compact ? 2 : 1}>{heroTitle}</Text>
+        <Text style={styles.heroSub}>{heroSubtitle}</Text>
+        <Text style={styles.heroText} numberOfLines={compact ? 3 : 2}>{lesson.description || lesson.subtitle}</Text>
         <View style={styles.heroProgressRow}>
-          <Text style={styles.heroProgressTime}>24:35 / 34:20</Text>
+          <Text style={styles.heroProgressTime}>{watchedText} / {durationText}</Text>
           <View style={styles.heroTrack}><View style={[styles.heroFill, { width: `${heroProgress}%`, backgroundColor: studentTokens.yellow }]} /></View>
           <Text style={styles.heroProgressValue}>{heroProgress}%</Text>
         </View>
@@ -274,7 +337,7 @@ function HeroVideo({ lesson, compact }: { lesson: VideoLesson; compact: boolean 
           <Image source={require('@/assets/images/dashboard-waveform.png')} style={styles.waveImage} contentFit="contain" accessibilityLabel="Audio waveform" />
         </View>
       ) : null}
-      <Button label="Continue Lesson" size="sm" variant="secondary" onPress={() => router.push(`/learning/videos/${lesson.id}` as Href)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} style={[styles.heroButton, compact ? styles.heroButtonCompact : null]} />
+      <Button label={heroProgress > 0 ? 'Continue Lesson' : 'Start Lesson'} size="sm" variant="secondary" onPress={() => router.push(`/learning/videos/${lesson.id}` as Href)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} style={[styles.heroButton, compact ? styles.heroButtonCompact : null]} />
       <View style={[styles.heroGlow, { backgroundColor: `${theme.accent}22` }]} />
     </Card>
   );
@@ -284,22 +347,24 @@ export function VideoCard({ lesson, user, compact, preview = false }: { lesson: 
   const router = useRouter();
   const theme = skillThemes[lesson.skill];
   const fullAccess = lesson.access === 'free' || getEntitlementAccess(user, 'video-full-access').allowed;
-  const presentation = (!preview && lessonPresentation[lesson.id]) || { title: lesson.title, author: lesson.instructor, progress: lesson.progress, completeText: `${lesson.progress}% Complete` };
-  const ctaLabel = lesson.progress > 0 ? 'Continue' : fullAccess ? 'Start Lesson' : 'Preview';
+  const progress = clampProgress(lesson.progress);
+  const instructor = lesson.instructor.trim() || 'Akademik Skor';
+  const completeText = progress > 0 ? `${progress}% Complete` : 'Ready to start';
+  const ctaLabel = progress > 0 ? 'Continue' : fullAccess ? 'Start Lesson' : 'Preview';
 
   return (
     <Card style={[styles.videoCard, compact ? styles.videoCardCompact : null]} contentStyle={styles.videoBody}>
       <LessonThumbnail lesson={lesson} compact={compact} />
       <View style={styles.videoCopy}>
         <View style={styles.videoTitleRow}>
-          <Text style={styles.videoTitle} numberOfLines={2}>{presentation.title}</Text>
+          <Text style={styles.videoTitle} numberOfLines={2}>{lesson.title}</Text>
           <SymbolView name={dotsSymbol} tintColor={studentTokens.text} size={17} style={styles.dotsIcon} />
         </View>
         <View style={styles.teacherRow}>
           <View style={[styles.teacherAvatar, { backgroundColor: theme.soft }]}>
-            <Text style={[styles.teacherInitial, { color: theme.accent }]}>{presentation.author.charAt(0)}</Text>
+            <Text style={[styles.teacherInitial, { color: theme.accent }]}>{instructor.charAt(0)}</Text>
           </View>
-          <Text style={styles.teacherName} numberOfLines={1}>{presentation.author}</Text>
+          <Text style={styles.teacherName} numberOfLines={1}>{instructor}</Text>
           {lesson.saved ? <SymbolView name={bookmarkOutlineSymbol} tintColor={studentTokens.text} size={15} style={styles.savedIcon} /> : null}
         </View>
         <View style={styles.metaChipRow}>
@@ -309,8 +374,8 @@ export function VideoCard({ lesson, user, compact, preview = false }: { lesson: 
         </View>
         <Text style={styles.videoMetaLine} numberOfLines={1}>{lesson.course} · {lesson.module}</Text>
         <View style={styles.lessonProgressRow}>
-          <View style={styles.lessonTrack}><View style={[styles.lessonFill, { width: `${presentation.progress}%`, backgroundColor: theme.accent }]} /></View>
-          <Text style={styles.lessonProgressText}>{presentation.completeText}</Text>
+          <View style={styles.lessonTrack}><View style={[styles.lessonFill, { width: `${progress}%`, backgroundColor: theme.accent }]} /></View>
+          <Text style={styles.lessonProgressText}>{completeText}</Text>
         </View>
         <View style={[styles.previewRow, !fullAccess ? styles.previewRowLocked : null]}>
           <SymbolView name={!fullAccess ? lockSymbol : playSymbol} tintColor={!fullAccess ? studentTokens.yellowDeep : theme.accent} size={12} style={styles.previewIcon} />
@@ -382,7 +447,8 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   const subskillOptions = useMemo(() => getVideoSubskillFilters(task), [task]);
   const filters = useMemo(() => ({ query, category, task, subskill, level, duration, access, sort }), [access, category, duration, level, query, sort, subskill, task]);
   const catalog = getVideoLessonCatalog();
-  const featured = getVideoLessonById('listening-note-map-lecture') ?? catalog[0];
+  const overviewStats = buildVideoOverviewStats(catalog);
+  const featured = selectFeaturedLesson(catalog);
   const dataError = Boolean(catalogSync.error) && catalog.length === 0;
   const isLoading = catalogSync.loading && catalog.length === 0;
 
@@ -430,6 +496,8 @@ export function VideoLessons({ user }: VideoLessonsProps) {
     return <EmptyState title="No published lessons yet" text="Publish a YouTube or Vimeo video lesson from the admin panel to show it here." action={<Button label="Refresh" variant="secondary" onPress={() => { setCatalogSync((current) => ({ ...current, loading: true, error: '' })); void syncPublishedVideoCatalog().then(() => setCatalogSync((current) => ({ version: current.version + 1, loading: false, error: '' }))).catch((error) => setCatalogSync((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'Video catalog could not be refreshed.' }))); }} />} />;
   }
 
+  const featuredLesson = featured ?? catalog[0]!;
+
   return (
     <View testID="video-lessons-screen" style={styles.screen}>
       <View style={[styles.pageTop, !isTablet ? styles.pageTopCompact : null]}>
@@ -443,11 +511,11 @@ export function VideoLessons({ user }: VideoLessonsProps) {
           </View>
         </View>
         <View style={styles.statsGrid}>
-          {videoOverviewStats.map((item) => <StatCard key={item.label} item={item} />)}
+          {overviewStats.map((item) => <StatCard key={item.label} item={item} />)}
         </View>
       </View>
 
-      <HeroVideo lesson={featured} compact={isCompact} />
+      <HeroVideo lesson={featuredLesson} compact={isCompact} />
 
       <View style={[styles.filtersBar, !isTablet ? styles.filtersBarCompact : null]}>
         <ScrollView horizontal={isCompact} showsHorizontalScrollIndicator={false} style={styles.skillScroll} contentContainerStyle={[styles.skillChips, isCompact ? styles.skillChipsScroll : null]}>
