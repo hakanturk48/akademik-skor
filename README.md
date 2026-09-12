@@ -100,5 +100,6 @@ Admin panelindeki video dersler Firebase yapılandırıldığında `adminWorkspa
 
 - GitHub Actions secrets içinde Firebase public config değerleri tanımlı olmalıdır. Yerelde aynı değerleri `.env.local` içine `.env.example` şablonuyla ekleyin.
 - Eski tarayıcıda localStorage'a kaydedilmiş admin videoları kaybetmemek için yeni sürüm yayınlandıktan sonra önce videoların göründüğü tarayıcıdan admin paneline girin. Uygulama yerel admin workspace revizyonu merkezi kayıttan yeniyse onu Firestore'a aktarır.
+- Canlı sitede öğrenci Video Lessons listesi Firestore'daki yayınlanmış katalogdan beslenir. Demo video seed verileri yalnızca Firebase yapılandırması olmayan lokal geliştirme/fallback modunda görünür.
 - YouTube/Vimeo bağlantılı videolar Firestore katalog kaydıyla tüm cihazlarda görünür.
 - Bilgisayardan video dosyası yükleme şu an canlı akışta kapalıdır; Firebase Storage ve alan adı taşıma aşamasında yeniden açılacaktır.

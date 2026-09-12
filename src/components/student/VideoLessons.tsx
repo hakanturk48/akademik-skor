@@ -426,6 +426,10 @@ export function VideoLessons({ user }: VideoLessonsProps) {
     return <Skeleton lines={6} />;
   }
 
+  if (catalog.length === 0) {
+    return <EmptyState title="No published lessons yet" text="Publish a YouTube or Vimeo video lesson from the admin panel to show it here." action={<Button label="Refresh" variant="secondary" onPress={() => { setCatalogSync((current) => ({ ...current, loading: true, error: '' })); void syncPublishedVideoCatalog().then(() => setCatalogSync((current) => ({ version: current.version + 1, loading: false, error: '' }))).catch((error) => setCatalogSync((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'Video catalog could not be refreshed.' }))); }} />} />;
+  }
+
   return (
     <View testID="video-lessons-screen" style={styles.screen}>
       <View style={[styles.pageTop, !isTablet ? styles.pageTopCompact : null]}>

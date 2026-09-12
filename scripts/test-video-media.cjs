@@ -1,4 +1,9 @@
 /* global __dirname */
+process.env.EXPO_PUBLIC_FIREBASE_API_KEY = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'test-api-key';
+process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN = process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com';
+process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'test-project';
+process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1234567890';
+process.env.EXPO_PUBLIC_FIREBASE_APP_ID = process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:1234567890:web:test';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -61,8 +66,9 @@ assert.equal(document.published.previewDurationSeconds, 120);
 assert.deepEqual(document.published.chapters, [{ startSeconds: 0, title: 'Giriş' }, { startSeconds: 240, title: 'Ana strateji' }]);
 assert.deepEqual(document.published.transcript, [{ startSeconds: 0, text: 'Browser transcript line' }]);
 
-global.window = { localStorage: { getItem: () => JSON.stringify(published) } };
 const studentCatalog = require('../src/lib/student-learning.ts');
+assert.equal(studentCatalog.getVideoLessonCatalog().length, 0);
+global.window = { localStorage: { getItem: (key) => key === 'akademik-skor.published-workspace.v1' ? JSON.stringify(published) : null } };
 const studentLesson = studentCatalog.getVideoLessonById(id);
 assert.equal(studentLesson.mediaProvider, 'youtube');
 assert.equal(studentLesson.mediaUrl, draft.mediaUrl);

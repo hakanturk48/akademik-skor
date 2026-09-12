@@ -1,4 +1,5 @@
 import { loadRemotePublishedWorkspaceState } from '@/lib/admin/remote-workspace';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { formatVideoTimestamp } from '@/lib/video-media';
 import type { LessonResource } from '@/lib/content';
 import type { AdminWorkspaceState } from '@/lib/admin/types';
@@ -846,7 +847,7 @@ export async function syncPublishedVideoCatalog() {
 
 function readPublishedAdminVideoLessons(): VideoLesson[] {
   try {
-    const storedState = readStoredPublishedWorkspace(publishedWorkspaceStorageKey) ?? readStoredPublishedWorkspace(localAdminWorkspaceStorageKey);
+    const storedState = readStoredPublishedWorkspace(publishedWorkspaceStorageKey) ?? (!isFirebaseConfigured ? readStoredPublishedWorkspace(localAdminWorkspaceStorageKey) : null);
     if (!storedState) return [];
     const stored = storedState as {
       catalog?: {
@@ -939,9 +940,12 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
 }
 
 export function getVideoLessonCatalog() {
-  const merged = new Map(videoLessons.map((lesson) => [lesson.id, lesson]));
-  readPublishedAdminVideoLessons().forEach((lesson) => merged.set(lesson.id, lesson));
-  return [...merged.values()];
+  const publishedLessons = readPublishedAdminVideoLessons();
+  if (publishedLessons.length > 0) {
+    return [...publishedLessons].sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(second.updatedAt) - Date.parse(first.updatedAt) || first.title.localeCompare(second.title));
+  }
+
+  return isFirebaseConfigured ? [] : videoLessons;
 }
 
 function includesSearch(value: string, query: string) {
