@@ -37,6 +37,7 @@ type MessageTone = 'error' | 'success';
 const symbolName = (ios: string, web: string): AppSymbolName => ({ ios: ios as SFSymbol, android: web as AndroidSymbol, web: web as AndroidSymbol });
 const arrowSymbol = symbolName('arrow.right', 'arrow_forward');
 const registerSymbol = symbolName('person.badge.plus', 'person_add');
+const mailSymbol = symbolName('envelope', 'mail');
 const eyeSymbol = symbolName('eye', 'visibility');
 const eyeOffSymbol = symbolName('eye.slash', 'visibility_off');
 
@@ -102,6 +103,7 @@ export default function RegisterScreen() {
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState<MessageTone>('error');
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -112,6 +114,13 @@ export default function RegisterScreen() {
     void restoreSession();
     return () => { active = false; };
   }, [router]);
+
+  useEffect(() => {
+    if (!confirmationPending) return;
+
+    const timeout = setTimeout(() => router.replace('/login' as Href), 5000);
+    return () => clearTimeout(timeout);
+  }, [confirmationPending, router]);
 
   const normalizedEmail = email.trim().toLowerCase();
   const emailIsVerified = Boolean(verifiedEmail) && verifiedEmail === normalizedEmail;
@@ -189,8 +198,13 @@ export default function RegisterScreen() {
       try {
         const result = await registerRemote({ name, email, password, goal, role: role === 'admin' ? 'student' : role });
         if (!result.ok) {
-          const confirmationPending = result.message.startsWith('Hesabınız oluşturuldu.');
-          showMessage(result.message, confirmationPending ? 'success' : 'error');
+          const emailConfirmationPending = result.message.startsWith('Hesabınız oluşturuldu.');
+          if (emailConfirmationPending) {
+            setConfirmationPending(true);
+            setMessage('');
+            return;
+          }
+          showMessage(result.message);
           return;
         }
         setMessage('');
@@ -216,6 +230,27 @@ export default function RegisterScreen() {
     setMessage('');
     router.replace('/dashboard' as Href);
   };
+
+  if (confirmationPending) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.confirmationPage}>
+          <View style={styles.confirmationCard}>
+            <View style={styles.confirmationIcon}>
+              <SymbolView name={mailSymbol} tintColor={palette.teal} size={28} style={styles.confirmationIconSymbol} />
+            </View>
+            <Text style={styles.confirmationTitle}>Hesabınız oluşturuldu.</Text>
+            <Text style={styles.confirmationText}>
+              E-posta adresinize gelen doğrulama bağlantısını açtıktan sonra giriş yapabilirsiniz.
+            </Text>
+            <Text style={styles.confirmationCountdown}>
+              5 saniye içinde giriş ekranına yönlendirileceksiniz.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -407,6 +442,13 @@ const styles = StyleSheet.create({
   switchText: { fontFamily: fontFamily, color: palette.text, fontSize: 14, lineHeight: 20, fontWeight: '600' },
   linkButton: { paddingVertical: 2 },
   linkText: { fontFamily: fontFamily, color: palette.teal, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  confirmationPage: { flex: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
+  confirmationCard: { width: '100%', maxWidth: 520, borderRadius: 12, backgroundColor: palette.surface, padding: 32, alignItems: 'center', gap: 14, shadowColor: '#000000', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
+  confirmationIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#e8f7f5', alignItems: 'center', justifyContent: 'center' },
+  confirmationIconSymbol: { width: 28, height: 28 },
+  confirmationTitle: { fontFamily: fontFamily, color: palette.ink, fontSize: 28, lineHeight: 34, fontWeight: '700', textAlign: 'center' },
+  confirmationText: { fontFamily: fontFamily, color: palette.text, fontSize: 15, lineHeight: 23, fontWeight: '600', textAlign: 'center' },
+  confirmationCountdown: { fontFamily: fontFamily, color: palette.muted, fontSize: 13, lineHeight: 20, fontWeight: '600', textAlign: 'center', marginTop: 4 },
   pressed: { opacity: 0.72 },
 });
 
