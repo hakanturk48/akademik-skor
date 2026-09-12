@@ -3,3 +3,4 @@ export * from './service';
 export * from './types';
 export * from './workflow';
 export * from './page-builder';
+export * from './remote-workspace';

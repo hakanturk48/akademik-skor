@@ -1,7 +1,8 @@
 import { contentCatalogSeed, getTaxonomyBreadcrumb, validateContentCatalog } from '@/lib/content';
 import { navigationSeed } from '@/lib/navigation';
 import { buildQuestionSnapshot, readQuestionDraft } from './question-editor';
-import { getAdminDocument, migrateAdminWorkspace, readAdminWorkspace, persistAdminWorkspace, recordAdminRevision, workspaceItems } from './workflow';
+import { getAdminDocument, migrateAdminWorkspace, readAdminWorkspace, persistAdminWorkspace, recordAdminRevision, workspaceItems, workspaceStorageKey } from './workflow';
+import { isRemoteAdminWorkspaceEnabled, loadRemoteAdminWorkspaceState, saveRemoteAdminWorkspaceState } from './remote-workspace';
 import { defaultPageBuilderState } from './page-builder';
 import { parseVideoTimedText, serializeVideoTimedText, validateVideoMediaUrl, type VideoMediaProvider } from '@/lib/video-media';
 
@@ -272,6 +273,57 @@ export function loadAdminWorkspaceState(): AdminWorkspaceState {
 export function saveAdminWorkspaceState(state: AdminWorkspaceState, expectedRevision: number) {
   if (!hasLocalStorage()) throw new Error('Persistent admin storage is unavailable.');
   persistAdminWorkspace(window.localStorage, state, expectedRevision);
+}
+
+type SharedAdminWorkspaceState = {
+  state: AdminWorkspaceState;
+  source: 'local' | 'remote';
+  message: string;
+};
+
+function cacheAdminWorkspaceState(state: AdminWorkspaceState) {
+  if (!hasLocalStorage()) return;
+  try { window.localStorage.setItem(workspaceStorageKey, JSON.stringify(state)); }
+  catch { /* Keep remote state usable even when browser cache is unavailable. */ }
+}
+
+function workspaceRevision(state: AdminWorkspaceState | null) {
+  return state?.workflow?.revision ?? 0;
+}
+
+export async function loadSharedAdminWorkspaceState(actor?: AdminActor): Promise<SharedAdminWorkspaceState> {
+  const local = loadAdminWorkspaceState();
+  if (!isRemoteAdminWorkspaceEnabled()) {
+    return { state: local, source: 'local', message: 'Merkezi içerik altyapısı yapılandırılmadı; yerel demo kayıtları kullanılıyor.' };
+  }
+
+  try {
+    const remote = await loadRemoteAdminWorkspaceState();
+    const localRevision = workspaceRevision(local);
+    const remoteRevision = workspaceRevision(remote);
+
+    if (!remote || localRevision > remoteRevision) {
+      await saveRemoteAdminWorkspaceState(local, remote ? remoteRevision : null, actor);
+      cacheAdminWorkspaceState(local);
+      return { state: local, source: 'remote', message: 'Yerel admin kayıtları merkezi içerik verisine aktarıldı.' };
+    }
+
+    cacheAdminWorkspaceState(remote);
+    return { state: remote, source: 'remote', message: 'Merkezi içerik verisi yüklendi.' };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Merkezi içerik verisi okunamadı.';
+    return { state: local, source: 'local', message: detail + ' Yerel kopya gösteriliyor.' };
+  }
+}
+
+export async function saveSharedAdminWorkspaceState(state: AdminWorkspaceState, expectedRevision: number, actor: AdminActor) {
+  if (isRemoteAdminWorkspaceEnabled()) {
+    await saveRemoteAdminWorkspaceState(state, expectedRevision, actor);
+    cacheAdminWorkspaceState(state);
+    return;
+  }
+
+  saveAdminWorkspaceState(state, expectedRevision);
 }
 
 function withChange(state: AdminWorkspaceState, module: AdminModuleKey, action: AdminChangeLogEntry['action'], entity: Pick<AdminEntityRow, 'id' | 'title'>, detail: string): AdminWorkspaceState {

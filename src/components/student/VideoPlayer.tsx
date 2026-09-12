@@ -1,15 +1,15 @@
-import { createElement, useEffect, useMemo, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { Button, Card, EmptyState, ErrorState, Input, Progress, Tabs, Toast, studentTokens } from '@/components/student/ui';
+import { Button, Card, EmptyState, ErrorState, Input, Progress, Skeleton, Tabs, Toast, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
 import { formatVideoTimestamp, getVideoEmbedUrl } from '@/lib/video-media';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
-import { getCourseVideoLessons, getRelatedVideoLessons, getVideoLessonById, skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
+import { getCourseVideoLessons, getRelatedVideoLessons, getVideoLessonById, skillThemes, syncPublishedVideoCatalog, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 
 const fontFamily = 'Quicksand';
 
@@ -659,12 +659,25 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const isCompact = width < 620;
   const [tab, setTab] = useState<PlayerTab>('overview');
   const [toastVisible, setToastVisible] = useState(false);
+  const [catalogSync, setCatalogSync] = useState({ version: 0, loading: true });
   const noteKey = lessonNotesKey(user.id, lessonId);
   const [studentNoteState, setStudentNoteState] = useState<LessonNoteState>(() => ({ key: noteKey, note: readLessonNote(user.id, lessonId) }));
   const lesson = getVideoLessonById(lessonId);
-  const courseLessons = useMemo(() => getCourseVideoLessons(lessonId), [lessonId]);
-  const relatedLessons = useMemo(() => getRelatedVideoLessons(lessonId).slice(0, 3), [lessonId]);
+  const courseLessons = getCourseVideoLessons(lessonId);
+  const relatedLessons = getRelatedVideoLessons(lessonId).slice(0, 3);
   const studentNote = studentNoteState.key === noteKey ? studentNoteState.note : readLessonNote(user.id, lessonId);
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedVideoCatalog()
+      .then(() => { if (active) setCatalogSync((current) => ({ version: current.version + 1, loading: false })); })
+      .catch(() => { if (active) setCatalogSync((current) => ({ ...current, loading: false })); });
+    return () => { active = false; };
+  }, []);
+
+  if (!lesson && catalogSync.loading) {
+    return <Skeleton lines={6} />;
+  }
 
   if (!lesson) {
     return (

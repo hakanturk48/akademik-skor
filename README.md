@@ -72,7 +72,7 @@ GitHub repository ayarlarında **Settings > Pages > Build and deployment > Sourc
 
 `https://hakanturk48.github.io/akademik-skor/`
 
-GitHub Pages yalnızca statik frontend önizlemesidir. Gerçek kullanıcı doğrulama, admin rol kontrolü, merkezi içerik verisi ve medya storage sonraki backend aşamasında kurulacaktır.
+GitHub Pages statik frontend yayınlar. Supabase yapılandırıldığında kullanıcı doğrulama, admin rol kontrolü ve merkezi içerik verisi cihazdan bağımsız çalışır; Supabase değişkenleri yoksa uygulama yerel demo storage fallback moduna döner.
 
 ## Kalıcı üyelik ve Supabase kurulumu
 
@@ -91,3 +91,12 @@ update public.profiles set role = 'admin' where email = 'admin@example.com';
 ```
 
 LocalStorage'da daha önce oluşturulmuş demo hesaplar merkezi veritabanına otomatik taşınamaz. Supabase yapılandırması etkinleştirildikten sonra yeni kayıtlar cihazdan bağımsız kalıcı olur.
+
+### Merkezi admin içerik ve video yayınları
+
+Admin panelindeki video dersler Supabase yapılandırıldığında `admin_workspaces` tablosuna kaydedilir. Yayına alınan içerikler ayrıca `published_content_snapshots` tablosuna yazılır; öğrenci video listesi ve video detay sayfası bu public snapshot üzerinden başka tarayıcı ve bilgisayarlarda aynı yayınlanmış videoları gösterir.
+
+- SQL Editor'da güncel `supabase/schema.sql` dosyasını tekrar çalıştırın. Bu işlem `profiles` yanında `admin_workspaces` ve `published_content_snapshots` tablolarını ve RLS politikalarını oluşturur.
+- GitHub Actions secrets içinde `EXPO_PUBLIC_SUPABASE_URL` ve `EXPO_PUBLIC_SUPABASE_ANON_KEY` değerleri tanımlı olmalıdır. Yerelde aynı değerleri `.env.local` içine `.env.example` şablonuyla ekleyin.
+- Eski tarayıcıda localStorage'a kaydedilmiş admin videoları kaybetmemek için yeni sürüm yayınlandıktan sonra önce videoların göründüğü tarayıcıdan admin paneline girin. Uygulama yerel admin workspace revizyonu merkezi kayıttan yeniyse onu Supabase'e aktarır.
+- Bundan sonra yayınlanan videolar başka tarayıcı/bilgisayarda admin panelinde ve öğrenci video sayfalarında görünür. Yüklenen dosya tipi `upload` videolar hâlâ tarayıcı IndexedDB içinde kaldığından cihazlar arası medya için YouTube/Vimeo URL'si veya ileride Supabase Storage gerekir.

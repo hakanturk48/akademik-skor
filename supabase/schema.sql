@@ -90,3 +90,81 @@ revoke insert on public.profiles from anon, authenticated;
 
 -- Grant an admin only from Supabase SQL Editor or a protected server process.
 -- update public.profiles set role = 'admin' where email = 'your-admin@example.com';
+
+-- Central content workspace used by the admin panel.
+-- admin_workspaces keeps drafts, review items, revision history, and audit records.
+-- published_content_snapshots is the public read-only snapshot consumed by student pages.
+
+create table if not exists public.admin_workspaces (
+  key text primary key default 'main',
+  state jsonb not null,
+  revision integer not null default 0 check (revision >= 0),
+  updated_by uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.published_content_snapshots (
+  key text primary key default 'main',
+  state jsonb not null,
+  revision integer not null default 0 check (revision >= 0),
+  updated_by uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create index if not exists admin_workspaces_updated_at_idx on public.admin_workspaces(updated_at desc);
+create index if not exists published_content_snapshots_updated_at_idx on public.published_content_snapshots(updated_at desc);
+
+drop trigger if exists admin_workspaces_set_updated_at on public.admin_workspaces;
+create trigger admin_workspaces_set_updated_at
+before update on public.admin_workspaces
+for each row execute procedure public.set_updated_at();
+
+drop trigger if exists published_content_snapshots_set_updated_at on public.published_content_snapshots;
+create trigger published_content_snapshots_set_updated_at
+before update on public.published_content_snapshots
+for each row execute procedure public.set_updated_at();
+
+alter table public.admin_workspaces enable row level security;
+alter table public.published_content_snapshots enable row level security;
+
+drop policy if exists "admin_workspaces_select_admin" on public.admin_workspaces;
+create policy "admin_workspaces_select_admin"
+on public.admin_workspaces for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists "admin_workspaces_insert_admin" on public.admin_workspaces;
+create policy "admin_workspaces_insert_admin"
+on public.admin_workspaces for insert
+to authenticated
+with check (public.is_admin());
+
+drop policy if exists "admin_workspaces_update_admin" on public.admin_workspaces;
+create policy "admin_workspaces_update_admin"
+on public.admin_workspaces for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "published_content_select_public" on public.published_content_snapshots;
+create policy "published_content_select_public"
+on public.published_content_snapshots for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "published_content_insert_admin" on public.published_content_snapshots;
+create policy "published_content_insert_admin"
+on public.published_content_snapshots for insert
+to authenticated
+with check (public.is_admin());
+
+drop policy if exists "published_content_update_admin" on public.published_content_snapshots;
+create policy "published_content_update_admin"
+on public.published_content_snapshots for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+grant select, insert, update on public.admin_workspaces to authenticated;
+grant select on public.published_content_snapshots to anon, authenticated;
+grant insert, update on public.published_content_snapshots to authenticated;

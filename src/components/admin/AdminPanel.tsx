@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Modal as NativeModal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
@@ -23,8 +23,9 @@ import {
   listAdminQuestionRows,
   listAdminRows,
   loadAdminWorkspaceState,
+  loadSharedAdminWorkspaceState,
   reorderAdminEntity,
-  saveAdminWorkspaceState,
+  saveSharedAdminWorkspaceState,
   toggleAdminNavigationVisibility,
   getAdminDocument,
   previewAdminDraft,
@@ -725,14 +726,39 @@ function DisableConfirmation({ target, isMobile, onCancel, onConfirm, error }: {
   );
 }
 
-export function AdminPanel(props: AdminPanelProps) {
-  const read = () => { try { return { state: loadAdminWorkspaceState(), error: '' }; } catch (error) { return { state: null, error: error instanceof Error ? adminMessage(error.message) : 'Yönetim verileri yüklenemedi.' }; } };
-  const [initial, setInitial] = useState(read);
-  if (!initial.state) return <AdminShell {...props} activeModule="dashboard" onModuleChange={() => {}}><EmptyState title="Yönetim verilerine erişilemiyor" text={initial.error} action={<Button label="Yeniden Dene" onPress={() => setInitial(read())} />} /></AdminShell>;
-  return <AdminPanelContent {...props} initialState={initial.state} />;
+type AdminPanelInitialState = {
+  state: AdminWorkspaceState | null;
+  error: string;
+  notice: string;
+  source: 'local' | 'remote';
+};
+
+function readLocalAdminInitial(): AdminPanelInitialState {
+  try { return { state: loadAdminWorkspaceState(), error: '', notice: '', source: 'local' }; }
+  catch (error) { return { state: null, error: error instanceof Error ? adminMessage(error.message) : 'Yönetim verileri yüklenemedi.', notice: '', source: 'local' }; }
 }
 
-function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & { initialState: AdminWorkspaceState }) {
+export function AdminPanel(props: AdminPanelProps) {
+  const [initial, setInitial] = useState<AdminPanelInitialState>(readLocalAdminInitial);
+
+  const reloadSharedState = () => {
+    void loadSharedAdminWorkspaceState(props.user)
+      .then((result) => setInitial({ state: result.state, error: '', notice: result.message, source: result.source }))
+      .catch((error) => setInitial({ state: null, error: error instanceof Error ? adminMessage(error.message) : 'Yönetim verileri yüklenemedi.', notice: '', source: 'local' }));
+  };
+
+  useEffect(() => {
+    let active = true;
+    void loadSharedAdminWorkspaceState(props.user)
+      .then((result) => { if (active) setInitial({ state: result.state, error: '', notice: result.message, source: result.source }); })
+      .catch((error) => { if (active) setInitial((current) => ({ ...current, error: error instanceof Error ? adminMessage(error.message) : 'Yönetim verileri yüklenemedi.', notice: '' })); });
+    return () => { active = false; };
+  }, [props.user]);
+
+  if (!initial.state) return <AdminShell {...props} activeModule="dashboard" onModuleChange={() => {}}><EmptyState title="Yönetim verilerine erişilemiyor" text={initial.error} action={<Button label="Yeniden Dene" onPress={reloadSharedState} />} /></AdminShell>;
+  return <AdminPanelContent key={initial.source + '-' + String(initial.state.workflow?.revision ?? 0) + '-' + initial.notice} {...props} initialState={initial.state} initialNotice={initial.notice} />;
+}
+function AdminPanelContent({ user, onLogout, initialState, initialNotice = '' }: AdminPanelProps & { initialState: AdminWorkspaceState; initialNotice?: string }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 760;
   const [state, setState] = useState<AdminWorkspaceState>(initialState);
@@ -744,19 +770,25 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
   const [publicationResult, setPublicationResult] = useState<PublicationResultState | null>(null);
   const [disableTarget, setDisableTarget] = useState<DisableTarget | null>(null);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(initialNotice);
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeConfig = adminModules.find((module) => module.key === activeModule) ?? adminModules[0];
   const collections = activeModule === 'dashboard' || activeModule === 'page-builder' ? [] : adminModuleCollections[activeModule as Exclude<AdminModuleKey, 'dashboard'>];
   const activeCollection = collectionByModule[activeModule] ?? collections?.[0]?.key ?? 'exams';
   const editorIssues = editor ? validateAdminEntityDraft(editor.collection, editor.draft) : [];
 
-  const commit = (next: AdminWorkspaceState) => {
-    saveAdminWorkspaceState(next, state.workflow?.revision ?? 0);
-    setState(next);
-    setError('');
+  const commit = async (next: AdminWorkspaceState) => {
+    setIsSaving(true);
+    try {
+      await saveSharedAdminWorkspaceState(next, state.workflow?.revision ?? 0, user);
+      setState(next);
+      setError('');
+    } finally {
+      setIsSaving(false);
+    }
   };
-  const attempt = (action: () => void) => { try { action(); } catch (cause) { setError(cause instanceof Error ? adminMessage(cause.message) : 'İşlem tamamlanamadı.'); setMessage(''); } };
+  const attempt = async (action: () => void | Promise<void>) => { try { await action(); } catch (cause) { setError(cause instanceof Error ? adminMessage(cause.message) : 'İşlem tamamlanamadı.'); setMessage(''); } };
 
   const handleCollectionChange = (collection: AdminMutableCollectionKey) => {
     setCollectionByModule((current) => ({ ...current, [activeModule]: collection }));
@@ -777,46 +809,65 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
     setEditor({ mode: 'edit', module: activeModule, collection: config.key, config, row, draft: initialAdminDraft(config.key, row, state.catalog) });
   };
 
-  const saveEditor = (status: Exclude<PublicationStatus, 'archived'>) => attempt(() => {
-    if (!editor) return;
-    const next = saveAdminContent(state, editor.module, editor.collection, editor.draft, user, status, editor.row?.id, editor.row?.version ?? 0);
-    commit(next);
-    const id = next.workflow!.audit[0].entityId;
-    const row = listAdminRows(next, editor.collection).find((item) => item.id === id)!;
-    if (status === 'draft') {
-      setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
-      setMessage(`Taslak sürüm ${row.version} kaydedildi.`);
-      return;
-    }
-    setEditor(null);
-    setPublicationResult({ status, module: editor.module, collection: editor.collection, config: editor.config, row });
-    setMessage('');
-  });
-
-  const restoreVersion = (version: number) => attempt(() => {
-    if (!editor?.row) return;
-    const next = restoreAdminVersion(state, editor.collection, editor.row.id, version, user, editor.row.version ?? 0);
-    commit(next);
-    const row = listAdminRows(next, editor.collection).find((item) => item.id === editor.row!.id)!;
-    setEditor({ ...editor, row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
-    setMessage(`Sürüm ${version}, taslak sürüm ${row.version} olarak geri yüklendi.`);
-  });
-
-  const handleDisable = () => attempt(() => {
-    if (!disableTarget) return;
-    commit(archiveAdminEntity(state, disableTarget.collection, disableTarget.row.id, user, disableTarget.row.version ?? 0));
-    setDisableTarget(null);
-    setMessage('İçerik arşivlendi. Sürüm geçmişi korundu.');
-  });
-
-  const moveRow = (row: AdminEntityRow, config: AdminCollectionConfig, direction: 'up' | 'down') => {
-    attempt(() => { commit(reorderAdminEntity(state, activeModule, config.key, row.id, direction, user)); setMessage('Sıralama taslak olarak kaydedildi. Yayındaki kataloğa uygulamak için yayınlayın.'); });
+  const saveEditor = (status: Exclude<PublicationStatus, 'archived'>) => {
+    void attempt(async () => {
+      if (!editor) return;
+      const next = saveAdminContent(state, editor.module, editor.collection, editor.draft, user, status, editor.row?.id, editor.row?.version ?? 0);
+      await commit(next);
+      const id = next.workflow!.audit[0].entityId;
+      const row = listAdminRows(next, editor.collection).find((item) => item.id === id)!;
+      if (status === 'draft') {
+        setEditor({ ...editor, mode: 'edit', row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
+        setMessage('Taslak sürüm ' + String(row.version) + ' kaydedildi.');
+        return;
+      }
+      setEditor(null);
+      setPublicationResult({ status, module: editor.module, collection: editor.collection, config: editor.config, row });
+      setMessage('');
+    });
   };
 
-  const toggleNavigation = (row: AdminEntityRow, config: AdminCollectionConfig) => attempt(() => { commit(toggleAdminNavigationVisibility(state, config.key, row.id, user)); setMessage(`${row.title} menüde ${'isEnabled' in row.raw && row.raw.isEnabled ? 'gösterildi' : 'gizlendi'}.`); });
+  const restoreVersion = (version: number) => {
+    void attempt(async () => {
+      if (!editor?.row) return;
+      const next = restoreAdminVersion(state, editor.collection, editor.row.id, version, user, editor.row.version ?? 0);
+      await commit(next);
+      const row = listAdminRows(next, editor.collection).find((item) => item.id === editor.row!.id)!;
+      setEditor({ ...editor, row, draft: initialAdminDraft(editor.collection, row, next.catalog) });
+      setMessage('Sürüm ' + String(version) + ', taslak sürüm ' + String(row.version) + ' olarak geri yüklendi.');
+    });
+  };
+
+  const handleDisable = () => {
+    void attempt(async () => {
+      if (!disableTarget) return;
+      await commit(archiveAdminEntity(state, disableTarget.collection, disableTarget.row.id, user, disableTarget.row.version ?? 0));
+      setDisableTarget(null);
+      setMessage('İçerik arşivlendi. Sürüm geçmişi korundu.');
+    });
+  };
+
+  const moveRow = (row: AdminEntityRow, config: AdminCollectionConfig, direction: 'up' | 'down') => {
+    void attempt(async () => {
+      await commit(reorderAdminEntity(state, activeModule, config.key, row.id, direction, user));
+      setMessage('Sıralama taslak olarak kaydedildi. Yayındaki kataloğa uygulamak için yayınlayın.');
+    });
+  };
+
+  const toggleNavigation = (row: AdminEntityRow, config: AdminCollectionConfig) => {
+    void attempt(async () => {
+      await commit(toggleAdminNavigationVisibility(state, config.key, row.id, user));
+      setMessage(row.title + ' menüde ' + ('isEnabled' in row.raw && row.raw.isEnabled ? 'gösterildi' : 'gizlendi') + '.');
+    });
+  };
 
   const pageBuilder = state.pageBuilder ?? defaultPageBuilderState();
-  const updatePageBuilder = (nextPageBuilder: NonNullable<AdminWorkspaceState['pageBuilder']>) => commit({ ...state, pageBuilder: nextPageBuilder });
+  const updatePageBuilder = (nextPageBuilder: NonNullable<AdminWorkspaceState['pageBuilder']>) => {
+    void attempt(async () => {
+      await commit({ ...state, pageBuilder: nextPageBuilder });
+      setMessage('Sayfa düzeni kaydedildi.');
+    });
+  };
   const openPublicationResultRecord = (result: PublicationResultState) => {
     const row = listAdminRows(state, result.collection).find((item) => item.id === result.row.id) ?? result.row;
     setPublicationResult(null);
@@ -829,7 +880,8 @@ function AdminPanelContent({ user, onLogout, initialState }: AdminPanelProps & {
 
   return (
     <AdminShell user={user} activeModule={activeModule} onModuleChange={(module) => { setActiveModule(module); setQuery(''); setPublicationResult(null); }} onLogout={onLogout}>
-      {!editor && error ? <View style={styles.formIssues}><Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text><Button label="Paneli Yeniden Yükle" variant="secondary" onPress={() => attempt(() => { setState(loadAdminWorkspaceState()); setError(''); })} /></View> : null}
+      {!editor && error ? <View style={styles.formIssues}><Text accessibilityRole="alert" style={styles.formIssueText}>{error}</Text><Button label="Paneli Yeniden Yükle" variant="secondary" onPress={() => { void attempt(async () => { const result = await loadSharedAdminWorkspaceState(user); setState(result.state); setError(''); setMessage(result.message); }); }} /></View> : null}
+      {!editor && isSaving ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>Merkezi içerik kaydediliyor...</Text> : null}
       {!editor && message ? <Text accessibilityLiveRegion="polite" style={styles.pageText}>{message}</Text> : null}
       {activeModule === 'dashboard' ? (
         <DashboardView state={state} onQuickAction={(module) => { setActiveModule(module); setQuery(''); }} />

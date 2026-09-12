@@ -1,5 +1,7 @@
+import { loadRemotePublishedWorkspaceState } from '@/lib/admin/remote-workspace';
 import { formatVideoTimestamp } from '@/lib/video-media';
 import type { LessonResource } from '@/lib/content';
+import type { AdminWorkspaceState } from '@/lib/admin/types';
 
 export type LearningSkillKey = 'reading' | 'listening' | 'speaking' | 'writing' | 'vocabulary' | 'grammar';
 export type LearningFilter = 'all' | 'in-progress' | 'completed' | 'saved';
@@ -787,6 +789,9 @@ export const videoLessons: VideoLesson[] = videoLessonSeeds.map((lesson, index) 
   };
 });
 
+const publishedWorkspaceStorageKey = 'akademik-skor.published-workspace.v1';
+const localAdminWorkspaceStorageKey = 'akademik-skor.admin-workspace.v2';
+
 type StoredAdminVideoLesson = {
   id: string;
   title: string;
@@ -809,13 +814,41 @@ type StoredAdminVideoLesson = {
   resources?: LessonResource[];
 };
 
-function readPublishedAdminVideoLessons(): VideoLesson[] {
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return [];
+function hasPublishedWorkspaceStorage() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
 
+function readStoredPublishedWorkspace(key: string): AdminWorkspaceState | null {
+  if (!hasPublishedWorkspaceStorage()) return null;
   try {
-    const raw = window.localStorage.getItem('akademik-skor.admin-workspace.v2');
-    if (!raw) return [];
-    const stored = JSON.parse(raw) as {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AdminWorkspaceState;
+    if (!parsed.catalog || !Array.isArray(parsed.navigation?.groups) || !Array.isArray(parsed.navigation?.items)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function cachePublishedWorkspace(state: AdminWorkspaceState) {
+  if (!hasPublishedWorkspaceStorage()) return;
+  try { window.localStorage.setItem(publishedWorkspaceStorageKey, JSON.stringify(state)); }
+  catch { /* Ignore cache failures; the static catalog remains available. */ }
+}
+
+export async function syncPublishedVideoCatalog() {
+  const remote = await loadRemotePublishedWorkspaceState();
+  if (!remote) return false;
+  cachePublishedWorkspace(remote);
+  return true;
+}
+
+function readPublishedAdminVideoLessons(): VideoLesson[] {
+  try {
+    const storedState = readStoredPublishedWorkspace(publishedWorkspaceStorageKey) ?? readStoredPublishedWorkspace(localAdminWorkspaceStorageKey);
+    if (!storedState) return [];
+    const stored = storedState as {
       catalog?: {
         lessons?: StoredAdminVideoLesson[];
         contentTypes?: { id: string; slug: string }[];
@@ -831,10 +864,11 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
       workflow?: { documents?: Record<string, { collection: string; published?: StoredAdminVideoLesson | null }> };
     };
     const catalog = stored.catalog;
+    const workflow = stored.workflow;
     if (!catalog?.lessons?.length) return [];
     const videoTypeId = catalog.contentTypes?.find((item) => item.slug === 'video-lesson')?.id;
-    const published = stored.workflow?.documents
-      ? Object.values(stored.workflow.documents).map((document) => document.collection === 'lessons' ? document.published : null).filter((item): item is StoredAdminVideoLesson => Boolean(item?.status === 'active'))
+    const published = workflow?.documents
+      ? Object.values(workflow.documents).map((document) => document.collection === 'lessons' ? document.published : null).filter((item): item is StoredAdminVideoLesson => Boolean(item?.status === 'active'))
       : catalog.lessons.filter((item) => item.status === 'active');
 
     return published

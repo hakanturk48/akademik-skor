@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
@@ -14,6 +14,7 @@ import {
   getVideoSubskillFilters,
   getVideoTaskFilters,
   skillThemes,
+  syncPublishedVideoCatalog,
   videoAccessFilters,
   videoDurationFilters,
   videoLevelFilters,
@@ -367,14 +368,23 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   const [access, setAccess] = useState<'all' | VideoAccess>(initial.access);
   const [sort, setSort] = useState<VideoSortMode>(initial.sort);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [catalogSync, setCatalogSync] = useState({ version: 0, loading: true, error: '' });
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedVideoCatalog()
+      .then(() => { if (active) setCatalogSync((current) => ({ version: current.version + 1, loading: false, error: '' })); })
+      .catch((error) => { if (active) setCatalogSync((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'Video catalog could not be refreshed.' })); });
+    return () => { active = false; };
+  }, []);
 
   const taskOptions = useMemo(() => getVideoTaskFilters(category), [category]);
   const subskillOptions = useMemo(() => getVideoSubskillFilters(task), [task]);
   const filters = useMemo(() => ({ query, category, task, subskill, level, duration, access, sort }), [access, category, duration, level, query, sort, subskill, task]);
   const catalog = getVideoLessonCatalog();
   const featured = getVideoLessonById('listening-note-map-lecture') ?? catalog[0];
-  const dataError = !Array.isArray(catalog);
-  const isLoading = false;
+  const dataError = Boolean(catalogSync.error) && catalog.length === 0;
+  const isLoading = catalogSync.loading && catalog.length === 0;
 
   const applyFilters = (partial: Partial<VideoFilterState>) => {
     let next: VideoFilterState = { ...filters, ...partial };
@@ -401,7 +411,7 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   };
 
   const resetFilters = () => applyFilters({ query: '', category: 'all', task: 'all', subskill: 'all', level: 'all', duration: 'all', access: 'all', sort: 'recommended' });
-  const visibleLessons = useMemo(() => discoverVideoLessons(filters), [filters]);
+  const visibleLessons = discoverVideoLessons(filters);
   const sortLabel = videoSortFilters.find((item) => item.value === sort)?.label ?? 'Recommended';
   const levelLabel = videoLevelFilters.find((item) => item.value === level)?.label ?? 'All';
   const durationLabel = videoDurationFilters.find((item) => item.value === duration)?.label ?? 'Any';
@@ -409,7 +419,7 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   const activeFilterCount = [category !== 'all', task !== 'all', subskill !== 'all', level !== 'all', duration !== 'all', access !== 'all', sort !== 'recommended'].filter(Boolean).length;
 
   if (dataError) {
-    return <ErrorState title="Video lessons unavailable" text="The lesson catalog could not be loaded. Please try again shortly." action={<Button label="Retry" variant="secondary" onPress={resetFilters} />} />;
+    return <ErrorState title="Video lessons unavailable" text={catalogSync.error || 'The lesson catalog could not be loaded. Please try again shortly.'} action={<Button label="Retry" variant="secondary" onPress={resetFilters} />} />;
   }
 
   if (isLoading) {
