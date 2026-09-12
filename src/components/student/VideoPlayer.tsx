@@ -20,6 +20,14 @@ type VideoPlayerProps = {
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
 type PlayerTab = 'overview' | 'notes' | 'transcript' | 'resources';
+type LessonNote = {
+  text: string;
+  updatedAt: string;
+};
+type LessonNoteState = {
+  key: string;
+  note: LessonNote | null;
+};
 type CourseLessonState = 'done' | 'active' | 'available' | 'locked';
 type CourseLessonItem = {
   id: string;
@@ -99,6 +107,58 @@ const playerTabs: { value: PlayerTab; label: string }[] = [
 ];
 
 
+
+const lessonNotesStoragePrefix = 'akademik-skor.lesson-notes.v1';
+
+function hasBrowserStorage() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function lessonNotesKey(userId: string, lessonId: string) {
+  return lessonNotesStoragePrefix + ':' + userId + ':' + lessonId;
+}
+
+function normalizeLessonNote(value: unknown): LessonNote | null {
+  if (!value || typeof value !== 'object') return null;
+  const note = value as Partial<LessonNote>;
+  if (typeof note.text !== 'string' || note.text.trim().length === 0) return null;
+  return {
+    text: note.text,
+    updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date().toISOString(),
+  };
+}
+
+function readLessonNote(userId: string, lessonId: string): LessonNote | null {
+  if (!hasBrowserStorage()) return null;
+  try {
+    const raw = window.localStorage.getItem(lessonNotesKey(userId, lessonId));
+    return normalizeLessonNote(raw ? JSON.parse(raw) : null);
+  } catch {
+    return null;
+  }
+}
+
+function saveLessonNote(userId: string, lessonId: string, noteText: string): LessonNote | null {
+  if (noteText.trim().length === 0) {
+    if (hasBrowserStorage()) window.localStorage.removeItem(lessonNotesKey(userId, lessonId));
+    return null;
+  }
+  const note = { text: noteText, updatedAt: new Date().toISOString() };
+  if (hasBrowserStorage()) window.localStorage.setItem(lessonNotesKey(userId, lessonId), JSON.stringify(note));
+  return note;
+}
+
+function noteSummaryTitle(noteText: string) {
+  const firstLine = noteText.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+  if (!firstLine) return 'No notes yet';
+  return firstLine.length > 48 ? firstLine.slice(0, 45) + '...' : firstLine;
+}
+
+function noteUpdatedLabel(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return 'Updated just now';
+  return 'Updated ' + new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(parsed));
+}
 
 function formatLessonDate(value: string) {
   const parsed = Date.parse(value);
@@ -381,17 +441,17 @@ function TranscriptRow({ text, index, fullAccess, timestamp }: { text: string; i
   );
 }
 
-function NotesContent({ lesson }: { lesson: VideoLesson }) {
+function NotesContent({ lesson, noteText, onNoteChange }: { lesson: VideoLesson; noteText: string; onNoteChange: (text: string) => void }) {
   return (
     <View style={styles.notesStack}>
       <Text style={styles.aboutText}>{lesson.notesPrompt}</Text>
-      <Input label="My Notes" multiline numberOfLines={5} placeholder="Write key abbreviations, symbols, or next-practice reminders." style={styles.notesInput} helper="Demo state: saved notes should be scoped to the signed-in student." />
+      <Input label="My Notes" multiline numberOfLines={5} placeholder="Write key abbreviations, symbols, or next-practice reminders." style={styles.notesInput} helper="Saved for this lesson in your browser." value={noteText} onChangeText={onNoteChange} />
     </View>
   );
 }
 
-function TabContent({ tab, lesson, fullAccess, wide }: { tab: PlayerTab; lesson: VideoLesson; fullAccess: boolean; wide: boolean }) {
-  if (tab === 'notes') return <NotesContent lesson={lesson} />;
+function TabContent({ tab, lesson, fullAccess, wide, noteText, onNoteChange }: { tab: PlayerTab; lesson: VideoLesson; fullAccess: boolean; wide: boolean; noteText: string; onNoteChange: (text: string) => void }) {
+  if (tab === 'notes') return <NotesContent lesson={lesson} noteText={noteText} onNoteChange={onNoteChange} />;
 
   if (tab === 'transcript') {
     return (
@@ -413,12 +473,12 @@ function TabContent({ tab, lesson, fullAccess, wide }: { tab: PlayerTab; lesson:
   return <OverviewContent lesson={lesson} fullAccess={fullAccess} wide={wide} />;
 }
 
-function DetailPanel({ lesson, fullAccess, tab, onTabChange, wide }: { lesson: VideoLesson; fullAccess: boolean; tab: PlayerTab; onTabChange: (tab: PlayerTab) => void; wide: boolean }) {
+function DetailPanel({ lesson, fullAccess, tab, onTabChange, wide, noteText, onNoteChange }: { lesson: VideoLesson; fullAccess: boolean; tab: PlayerTab; onTabChange: (tab: PlayerTab) => void; wide: boolean; noteText: string; onNoteChange: (text: string) => void }) {
   return (
     <Card style={styles.detailPanel} contentStyle={styles.detailPanelBody}>
       <Tabs items={playerTabs} value={tab} onChange={onTabChange} />
       <View style={styles.tabContent}>
-        <TabContent tab={tab} lesson={lesson} fullAccess={fullAccess} wide={wide} />
+        <TabContent tab={tab} lesson={lesson} fullAccess={fullAccess} wide={wide} noteText={noteText} onNoteChange={onNoteChange} />
       </View>
     </Card>
   );
@@ -520,21 +580,26 @@ function ResourcesPanel({ lesson, fullAccess, onViewAll }: { lesson: VideoLesson
   );
 }
 
-function NoteSummary() {
+function NoteSummary({ lesson, note, onViewAll }: { lesson: VideoLesson; note: LessonNote | null; onViewAll: () => void }) {
+  const text = note?.text.trim() ?? '';
+  const title = text ? noteSummaryTitle(text) : 'No notes yet';
+  const body = text || lesson.notesPrompt || 'Start a note for this lesson.';
+  const time = note?.updatedAt ? noteUpdatedLabel(note.updatedAt) : 'Current lesson';
+
   return (
     <Card style={styles.notePanel} contentStyle={styles.notePanelBody}>
       <View style={styles.cardHeadRow}>
         <Text style={styles.cardTitle}>MY NOTES</Text>
-        <Pressable accessibilityRole="button"><Text style={styles.viewAll}>View All</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="View all lesson notes" onPress={onViewAll} style={({ pressed }) => [styles.viewAllButton, pressed ? styles.pressed : null]}><Text style={styles.viewAll}>View All</Text></Pressable>
       </View>
-      <View style={styles.noteCard}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open lesson notes" onPress={onViewAll} style={({ pressed }) => [styles.noteCard, pressed ? styles.pressed : null]}>
         <View style={styles.noteCopy}>
-          <Text style={styles.noteTitle}>Key Abbreviations</Text>
-          <Text style={styles.noteText} numberOfLines={2}>Common abbreviation helps save time and improve focus during lectures.</Text>
-          <Text style={styles.noteTime}>Today, 09:15 AM</Text>
+          <Text style={styles.noteTitle}>{title}</Text>
+          <Text style={styles.noteText} numberOfLines={2}>{body}</Text>
+          <Text style={styles.noteTime}>{time}</Text>
         </View>
         <SymbolView name={writingSymbol} tintColor={studentTokens.blue} size={17} style={styles.noteIcon} />
-      </View>
+      </Pressable>
     </Card>
   );
 }
@@ -594,9 +659,12 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const isCompact = width < 620;
   const [tab, setTab] = useState<PlayerTab>('overview');
   const [toastVisible, setToastVisible] = useState(false);
+  const noteKey = lessonNotesKey(user.id, lessonId);
+  const [studentNoteState, setStudentNoteState] = useState<LessonNoteState>(() => ({ key: noteKey, note: readLessonNote(user.id, lessonId) }));
   const lesson = getVideoLessonById(lessonId);
   const courseLessons = useMemo(() => getCourseVideoLessons(lessonId), [lessonId]);
   const relatedLessons = useMemo(() => getRelatedVideoLessons(lessonId).slice(0, 3), [lessonId]);
+  const studentNote = studentNoteState.key === noteKey ? studentNoteState.note : readLessonNote(user.id, lessonId);
 
   if (!lesson) {
     return (
@@ -607,10 +675,15 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const theme = skillThemes[lesson.skill];
   const presentation = presentationForLesson(lesson);
   const fullAccess = getEntitlementAccess(user, 'video-full-access').allowed;
+  const noteText = studentNote?.text ?? '';
 
   const handleSave = () => {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 1800);
+  };
+
+  const handleNoteChange = (text: string) => {
+    setStudentNoteState({ key: noteKey, note: saveLessonNote(user.id, lessonId, text) });
   };
 
   return (
@@ -641,7 +714,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
       <View style={[styles.lessonGrid, isWide ? styles.lessonGridWide : null]}>
         <View style={styles.playerColumn}>
           <PlayerPanel lesson={lesson} fullAccess={fullAccess} compact={isCompact} showQualityMenu={isWide} />
-          <DetailPanel lesson={lesson} fullAccess={fullAccess} tab={tab} onTabChange={setTab} wide={isTablet} />
+          <DetailPanel lesson={lesson} fullAccess={fullAccess} tab={tab} onTabChange={setTab} wide={isTablet} noteText={noteText} onNoteChange={handleNoteChange} />
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
           <LessonsInCourse lessons={courseLessons} currentLessonId={lesson.id} fullAccess={fullAccess} />
@@ -650,7 +723,7 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
       </View>
 
       <View style={[styles.bottomGrid, isTablet ? styles.bottomGridWide : null]}>
-        <NoteSummary />
+        <NoteSummary lesson={lesson} note={studentNote} onViewAll={() => setTab('notes')} />
         <RelatedPanel currentLesson={lesson} lessons={relatedLessons} />
       </View>
     </View>
