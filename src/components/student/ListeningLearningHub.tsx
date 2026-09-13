@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type DimensionValue } from 'react-native';
 
-import { ProgressRecommendationList } from '@/components/student/RecommendationCards';
 import {
   LearningIcon,
   LearningIconBubble,
@@ -19,6 +18,7 @@ import { Badge, Button, Card, ErrorState, Progress, Skeleton, studentTokens } fr
 import type { AuthUser } from '@/lib/auth';
 import {
   createListeningPracticeHref,
+  getListeningHubItems,
   defaultListeningSelection,
   ensureCompatibleSubskill,
   getListeningContinueItem,
@@ -34,6 +34,8 @@ import {
   getListeningTaskTypeById,
   getListeningTaskTypes,
   makeListeningSelection,
+  syncPublishedListeningHubItems,
+  type ListeningHubDisplayItem,
   type ListeningIconKey,
   type ListeningPracticeMode,
   type ListeningPracticeModeId,
@@ -225,9 +227,47 @@ function FocusedPracticeWizard({ selection, selectedMode, compact, onChange, onS
   );
 }
 
-function RecommendationList({ user }: { user: AuthUser }) {
-  return <ProgressRecommendationList user={user} context="listening" skill="listening" limit={3} />;
+function RecommendationList({ items, onStart }: { items: ListeningHubDisplayItem[]; onStart: (item: ListeningHubDisplayItem) => void }) {
+  if (!items.length) {
+    return <Card><Text style={styles.bodyText}>Henüz yayınlanmış listening parçası yok. Admin panelinden Listening Hub kaydı yayınlandığında burada görünür.</Text></Card>;
+  }
+
+  return (
+    <View style={styles.recommendationList}>
+      {items.slice(0, 4).map((item, index) => {
+        const tone: ListeningTone = index === 0 ? "teal" : index === 1 ? "blue" : index === 2 ? "yellow" : "orange";
+        return (
+          <Pressable
+            key={item.id}
+            accessibilityRole="button"
+            accessibilityLabel={item.title + " listening practice başlat"}
+            onPress={() => onStart(item)}
+            style={({ pressed }) => [styles.recommendationRow, pressed ? styles.pressed : null]}
+          >
+            <View style={[styles.rankBubble, { backgroundColor: learningToneSoft(tone) }]}>
+              <Text style={[styles.rankText, { color: learningToneColor(tone) }]}>{index + 1}</Text>
+            </View>
+            <View style={styles.recommendationCopy}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Badge label={item.sessionMode === "exam" ? "Exam" : "Practice"} tone={item.sessionMode === "exam" ? "orange" : "teal"} />
+              </View>
+              <Text style={styles.bodyText}>{item.description || item.meta}</Text>
+              <Text style={styles.metaText}>{item.meta}</Text>
+            </View>
+            <View style={styles.recommendationAction}>
+              <Text style={styles.questionCountText}>{item.questionCount} soru</Text>
+              <View style={styles.recommendationActionPill}>
+                <Text style={styles.recommendationActionText}>{item.actionLabel}</Text>
+              </View>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
+
 
 function LearningChainCard({ selection, onStart }: { selection: ListeningSelection; onStart: () => void }) {
   const router = useRouter();
@@ -312,14 +352,29 @@ function RecentActivityCard() {
 export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [hubSync, setHubSync] = useState({ version: 0, loading: true, error: "" });
+  const [hubRefreshToken, setHubRefreshToken] = useState(0);
   const [modeId, setModeId] = useState<ListeningPracticeModeId>('focused-practice');
   const modes = getListeningPracticeModes();
   const selectedMode = modes.find((mode) => mode.id === modeId) ?? modes[1];
   const [selection, setSelection] = useState<ListeningSelection>(() => defaultListeningSelection);
   const isMobile = width < 768;
   const isWide = width >= 1080;
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedListeningHubItems()
+      .then(() => {
+        if (active) setHubSync((current) => ({ version: current.version + 1, loading: false, error: "" }));
+      })
+      .catch((cause) => {
+        const message = cause instanceof Error ? cause.message : "Listening hub could not refresh.";
+        if (active) setHubSync((current) => ({ ...current, loading: false, error: message }));
+      });
+    return () => { active = false; };
+  }, [hubRefreshToken]);
+
+  const hubItems = getListeningHubItems();
 
   const metrics = useMemo(
     () => getListeningOverview().map((metric) => ({ ...metric, icon: iconFor(metric.iconKey) })),
@@ -335,10 +390,18 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
     router.push(createListeningPracticeHref(nextSelection) as Href);
   };
 
-  const openContinue = () => openPractice(selectionFromContinue());
+  const reloadHub = () => {
+    setHubSync((current) => ({ ...current, loading: true, error: "" }));
+    setHubRefreshToken((value) => value + 1);
+  };
 
-  if (loading) return <ListeningLoading />;
-  if (error) return <ErrorState title="Listening could not load" text={error} action={<Button label="Try again" variant="secondary" />} />;
+  const openContinue = () => openPractice(selectionFromContinue());
+  const openHubItem = (item: ListeningHubDisplayItem) => router.push(item.href as Href);
+  const isHubLoading = hubSync.loading && hubItems.length === 0;
+  const isHubError = Boolean(hubSync.error) && hubItems.length === 0;
+
+  if (isHubLoading) return <ListeningLoading />;
+  if (isHubError) return <ErrorState title="Listening hub could not load" text={hubSync.error} action={<Button label="Tekrar dene" variant="secondary" onPress={reloadHub} />} />;
 
   return (
     <View testID="listening-hub-screen" style={styles.page}>
@@ -354,8 +417,9 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
 
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.primaryColumn}>
-          <LearningSectionTitle title="Recommended for You" />
-          <RecommendationList user={user} />
+          <LearningSectionTitle title="Topic-Based Listening" />
+          {hubSync.error ? <Text style={styles.metaText}>Canlı listening içeriği yenilenemedi; kayıtlı içerik gösteriliyor.</Text> : null}
+          <RecommendationList items={hubItems} onStart={openHubItem} />
 
           <LearningSectionTitle title="Choose Your Practice" />
           <View style={styles.modeGrid}>
@@ -429,6 +493,10 @@ const styles = StyleSheet.create({
   rankBubble: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   rankText: { fontFamily: fontFamily, fontSize: 15, lineHeight: 20, fontWeight: '700' },
   recommendationCopy: { flex: 1, minWidth: 0, gap: 3 },
+  recommendationAction: { alignItems: "flex-end", gap: 7, minWidth: 116 },
+  recommendationActionPill: { minHeight: 34, borderRadius: 9, borderWidth: 1, borderColor: "#d7e0ec", backgroundColor: studentTokens.neutral, paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
+  recommendationActionText: { fontFamily: fontFamily, color: studentTokens.navy, fontSize: 11, lineHeight: 15, fontWeight: "700" },
+  questionCountText: { fontFamily: fontFamily, color: studentTokens.muted, fontSize: 11, lineHeight: 15, fontWeight: "700" },
   chainList: { gap: 8 },
   chainRow: { minHeight: 62, borderRadius: 10, borderWidth: 1, borderColor: '#eef1f6', backgroundColor: '#fbfcff', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   chainStep: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

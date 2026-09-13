@@ -278,6 +278,39 @@ test('reading practice publishing requires five A-E options per question', () =>
   assert.equal(published.wordCount, 12);
   assert.deepEqual(workflow.validatePublication(result, 'readingPracticeScreens', published), []);
 });
+test("listening hub publishing keeps only route metadata and no student progress", () => {
+  const state = fresh();
+  const draft = {
+    ...service.initialAdminDraft("listeningHubItems", undefined, state.catalog),
+    title: "Listening Workflow",
+    slug: "listening-workflow",
+    description: "Topic route for focused listening practice.",
+    listeningTopicId: "topic-biology",
+    listeningTaskTypeId: "task-academic-talk",
+    listeningSubskillId: "sub-detail",
+    listeningDifficultyId: "adaptive",
+    listeningLengthId: "standard",
+    listeningSessionMode: "practice",
+    estimatedMinutes: 20,
+    listeningQuestionCount: 10,
+    listeningActionLabel: "Start Focused Practice",
+  };
+  const result = service.saveAdminContent(state, "listening-hub", "listeningHubItems", draft, actor, "published");
+  const published = workflow.getAdminDocument(result, "listeningHubItems", "listeningHubItems-listening-workflow").published;
+  assert.equal(published.topicId, "topic-biology");
+  assert.equal(published.taskTypeId, "task-academic-talk");
+  assert.equal(published.subskillId, "sub-detail");
+  assert.equal(published.questionCount, 10);
+  assert.equal(published.correctCount, undefined);
+  assert.equal(published.sessions, undefined);
+  assert.equal(published.answers, undefined);
+  assert.deepEqual(workflow.validatePublication(result, "listeningHubItems", published), []);
+
+  const invalid = structuredClone(published);
+  invalid.topicId = "topic-sleep-science";
+  assert.ok(workflow.validatePublication(result, "listeningHubItems", invalid).some((error) => /topic must belong to Listening/.test(error)));
+});
+
 test('archive preserves history and refuses to break published references', () => {
   const published = save(fresh(), 'published');
   const archived = service.archiveAdminEntity(published, 'exams', doc(published).entityId, actor, 1);

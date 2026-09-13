@@ -1,7 +1,7 @@
 import { validateContentCatalog } from '@/lib/content';
 import { getNavigationRouteEntry } from '@/lib/navigation/registry';
 import { validateVideoMediaUrl } from '@/lib/video-media';
-import type { BaseEntity, ContentCatalog, Question, ReadingPracticeScreen, TaxonomyRef } from '@/lib/content';
+import type { BaseEntity, ContentCatalog, ListeningHubItem, Question, ReadingPracticeScreen, TaxonomyRef } from '@/lib/content';
 import type {
   AdminActor, AdminDocument, AdminMutableCollectionKey, AdminRevision, AdminSnapshot,
   AdminWorkspaceState, PublicationStatus, VersionDiff,
@@ -13,7 +13,7 @@ export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'pub
 export const workflowCollections: AdminMutableCollectionKey[] = [
   'navigationGroups', 'navigationItems', 'exams', 'examVersions', 'skills', 'taskTypes',
   'subskills', 'topics', 'levels', 'courses', 'modules', 'lessons', 'vocabularySets',
-  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'readingPracticeScreens', 'practiceSets', 'tests',
+  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', "questions", "readingPracticeScreens", "listeningHubItems", "practiceSets", 'tests',
 ];
 export const workspaceStorageKey = 'akademik-skor.admin-workspace.v2';
 export const legacyWorkspaceStorageKey = 'akademik-skor.admin-workspace.v1';
@@ -23,6 +23,7 @@ export const documentKey = (collection: AdminMutableCollectionKey, id: string) =
 function ensureWorkspaceCatalogShape(state: AdminWorkspaceState) {
   const catalog = state.catalog as unknown as Record<string, AdminSnapshot[]>;
   if (!Array.isArray(catalog.readingPracticeScreens)) catalog.readingPracticeScreens = [];
+  if (!Array.isArray(catalog.listeningHubItems)) catalog.listeningHubItems = [];
 }
 
 export function workspaceItems(state: AdminWorkspaceState, collection: AdminMutableCollectionKey): AdminSnapshot[] {
@@ -171,7 +172,27 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       if (!question.taxonomy.taskTypeId || !question.taxonomy.levelId) issues.push('Task type and difficulty are required.');
       if (live.catalog.contentTypes.find((item) => item.id === question.taxonomy.contentTypeId)?.slug !== 'question') issues.push('Question content type is required.');
     }
-    if (collection === 'readingPracticeScreens') {
+    if (collection === "listeningHubItems") {
+      const item = candidate as ListeningHubItem;
+      const skill = live.catalog.skills.find((entry) => entry.slug === "listening");
+      const topic = live.catalog.topics.find((entry) => entry.id === item.topicId);
+      const task = live.catalog.taskTypes.find((entry) => entry.id === item.taskTypeId);
+      const subskill = live.catalog.subskills.find((entry) => entry.id === item.subskillId);
+      if (!skill) issues.push("Publish an active skills record before using it.");
+      if (!topic || topic.status !== "active") issues.push("Publish an active topics record before using it.");
+      if (!task || task.status !== "active") issues.push("Publish an active taskTypes record before using it.");
+      if (!subskill || subskill.status !== "active") issues.push("Publish an active subskills record before using it.");
+      if (skill && topic && !topic.skillIds.includes(skill.id)) issues.push("Listening hub topic must belong to Listening.");
+      if (skill && task && task.skillId !== skill.id) issues.push("Listening hub task type must belong to Listening.");
+      if (skill && task && subskill && (subskill.skillId !== skill.id || !subskill.taskTypeIds.includes(task.id))) issues.push("Listening hub subskill must match the selected task type.");
+      if (!["adaptive", "easy", "medium", "hard"].includes(item.difficultyId)) issues.push("Listening hub difficulty is invalid.");
+      if (!["quick", "standard", "extended"].includes(item.lengthId)) issues.push("Listening hub length is invalid.");
+      if (!["practice", "exam"].includes(item.sessionMode)) issues.push("Listening hub session mode is invalid.");
+      if (!Number.isFinite(item.estimatedMinutes) || item.estimatedMinutes < 1) issues.push("Listening hub duration is required.");
+      if (!Number.isFinite(item.questionCount) || item.questionCount < 1) issues.push("Listening hub question count is required.");
+      if (!item.actionLabel.trim()) issues.push("Listening hub action label is required.");
+    }
+    if (collection === "readingPracticeScreens") {
       const screen = candidate as ReadingPracticeScreen;
       if (!screen.passageParagraphs.length) issues.push('Reading passage is required before publishing.');
       if (!screen.questions.length) issues.push('Reading practice needs at least one question.');

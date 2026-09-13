@@ -7,7 +7,7 @@ import { WordFlashcard } from '@/components/student/VocabularyLearningScreens';
 import { LearnPanel } from '@/components/student/GrammarLearningScreens';
 import type { AuthUser } from '@/lib/auth';
 import type { AdminDocument, AdminMutableCollectionKey, AdminSnapshot, AdminWorkspaceState, PublicationStatus } from '@/lib/admin';
-import type { BaseEntity, Lesson, Question, ReadingPracticeScreen, VocabularyWord } from '@/lib/content';
+import type { BaseEntity, Lesson, ListeningHubItem, Question, ReadingPracticeScreen, VocabularyWord } from '@/lib/content';
 import { skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 import { formatVideoTimestamp, getVideoEmbedUrl, videoProviderLabel } from '@/lib/video-media';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
@@ -128,7 +128,23 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
       </View> : <Text style={styles.meta}>Henüz soru eklenmemiş.</Text>}
       <Text style={styles.meta}>{screen.questions.length} soru · {screen.passageParagraphs.length} paragraf · {screen.timeLimitSeconds} sn</Text>
     </Card>;
-  } else if (collection === 'vocabularyWords') {
+  } else if (collection === "listeningHubItems") {
+    const item = snapshot as ListeningHubItem;
+    const topic = catalog.topics.find((entry) => entry.id === item.topicId)?.title ?? "Konu seçilmedi";
+    const taskType = catalog.taskTypes.find((entry) => entry.id === item.taskTypeId)?.title ?? "Soru türü seçilmedi";
+    const subskill = catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
+    content = <Card title={item.title} right={<Badge label={base.isPremium ? "Premium" : "Ücretsiz"} tone={base.isPremium ? "yellow" : "teal"} />}>
+      <Text style={styles.meta}>Listening Hub · {adminLabel(item.sessionMode)} · {adminLabel(item.difficultyId)} · {adminLabel(item.lengthId)}</Text>
+      <Text style={styles.body}>{base.description ?? ""}</Text>
+      <View style={styles.option}>
+        <Text style={styles.heading}>Practice rotası</Text>
+        <Text style={styles.body}>Konu: {topic}</Text>
+        <Text style={styles.body}>Soru türü: {taskType}</Text>
+        <Text style={styles.body}>Alt beceri: {subskill}</Text>
+      </View>
+      <Text style={styles.meta}>{item.questionCount} soru · {item.estimatedMinutes} dk · Buton: {item.actionLabel}</Text>
+    </Card>;
+  } else if (collection === "vocabularyWords") {
     const word = snapshot as VocabularyWord;
     content = <WordFlashcard preview onAnswer={noop} onToggleSaved={noop}
       word={{ ...word, word: word.term, definition: word.meaning, ipa: '', pronunciationLabel: '', partOfSpeech: word.partOfSpeech ?? '', academicExample: word.example ?? '', toeflExample: '', collocations: [], wordFamily: [], synonyms: [], antonyms: [], contentTags: [] }}

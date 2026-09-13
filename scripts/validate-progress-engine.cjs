@@ -80,7 +80,7 @@ for (const token of ['useWindowDimensions', 'numberOfLines', 'Show reason', 'Pro
 
 assert.ok(dashboardSource.includes('ProgressRecommendationPanel') && dashboardSource.includes('context="dashboard"'), 'Dashboard must use shared recommendation service');
 assert.ok(myLearningSource.includes('getTopRecommendation') && myLearningSource.includes("context: 'my-learning'") && !myLearningSource.includes('recommendedNext,'), 'My Learning must use shared top recommendation');
-assert.ok(listeningSource.includes('ProgressRecommendationList') && listeningSource.includes('context="listening"') && !listeningSource.includes('getListeningRecommendations'), 'Listening Hub must use shared recommendation list');
+assert.ok(listeningSource.includes("getListeningHubItems") && listeningSource.includes("Topic-Based Listening") && !listeningSource.includes("getListeningRecommendations"), "Listening Hub must use published topic-based entries");
 assert.ok(vocabularySource.includes('ProgressRecommendationPanel') && vocabularySource.includes('context="vocabulary"'), 'Vocabulary must use shared recommendation panel');
 assert.ok(grammarSource.includes('ProgressRecommendationPanel') && grammarSource.includes('context="grammar"'), 'Grammar must use shared recommendation panel');
 assert.ok(progressSource.includes('ProgressRecommendationList') && progressSource.includes('context="progress"'), 'My Progress must use shared recommendation list');

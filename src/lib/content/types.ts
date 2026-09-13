@@ -132,6 +132,22 @@ export interface Lesson extends BaseEntity {
   transcriptId?: string;
 }
 
+export type ListeningHubDifficultyId = "adaptive" | "easy" | "medium" | "hard";
+export type ListeningHubLengthId = "quick" | "standard" | "extended";
+export type ListeningHubSessionMode = "practice" | "exam";
+
+export interface ListeningHubItem extends BaseEntity {
+  topicId: string;
+  taskTypeId: string;
+  subskillId: string;
+  difficultyId: ListeningHubDifficultyId;
+  lengthId: ListeningHubLengthId;
+  sessionMode: ListeningHubSessionMode;
+  estimatedMinutes: number;
+  questionCount: number;
+  actionLabel: string;
+}
+
 export interface VocabularySet extends BaseEntity {
   taxonomy: TaxonomyRef;
   wordIds: string[];
@@ -374,6 +390,7 @@ export interface ContentCatalog {
   courses: Course[];
   modules: Module[];
   lessons: Lesson[];
+  listeningHubItems: ListeningHubItem[];
   vocabularySets: VocabularySet[];
   vocabularyWords: VocabularyWord[];
   vocabularyProgress: VocabularyProgress[];
@@ -414,8 +431,9 @@ export type TaxonomyCollectionName =
 export type ContentCollectionName =
   | 'courses'
   | 'modules'
-  | 'lessons'
-  | 'vocabularySets'
+  | "lessons"
+  | "listeningHubItems"
+  | "vocabularySets"
   | 'grammarLessons'
   | 'practiceSets'
   | 'questions'

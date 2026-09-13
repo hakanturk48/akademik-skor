@@ -49,6 +49,7 @@ const seed = {
   subskills: [
     base('sub-main-idea', 'main-idea', 'Main Idea', { sortOrder: 10, skillId: 'skill-listening', taskTypeIds: ['task-academic-talk', 'task-reading-passage'] }),
     base('sub-detail', 'detail', 'Detail', { sortOrder: 20, skillId: 'skill-listening', taskTypeIds: ['task-academic-talk'] }),
+    base("sub-note-taking", "note-taking", "Note Taking", { sortOrder: 25, skillId: "skill-listening", taskTypeIds: ["task-academic-talk"] }),
     base('sub-inference', 'inference', 'Inference', { sortOrder: 30, skillId: 'skill-reading', taskTypeIds: ['task-reading-passage'] }),
     base('sub-fluency-coherence', 'fluency-coherence', 'Fluency & Coherence', { sortOrder: 40, skillId: 'skill-speaking', taskTypeIds: ['task-independent-speaking'] }),
     base('sub-organization', 'organization', 'Organization', { sortOrder: 50, skillId: 'skill-writing', taskTypeIds: ['task-integrated-writing'] }),
@@ -72,6 +73,7 @@ const seed = {
     base('ctype-course', 'course', 'Course', { sortOrder: 10, collection: 'courses' }),
     base('ctype-module', 'module', 'Module', { sortOrder: 20, collection: 'modules' }),
     base('ctype-video-lesson', 'video-lesson', 'Video Lesson', { sortOrder: 30, collection: 'lessons' }),
+    base("ctype-listening-hub", "listening-hub", "Listening Hub Item", { sortOrder: 35, collection: "listeningHubItems" }),
     base('ctype-practice-set', 'practice-set', 'Practice Set', { sortOrder: 40, collection: 'practiceSets' }),
     base('ctype-question', 'question', 'Question', { sortOrder: 45, collection: 'questions' }),
     base('ctype-mini-test', 'mini-test', 'Mini Test', { sortOrder: 50, collection: 'tests' }),
@@ -92,6 +94,11 @@ const seed = {
   lessons: [
     base('lesson-listening-note-map', 'listening-note-map-lecture', 'Lecture 03: Note Taking', { description: 'Note-map strategy for academic talks.', isPremium: true, courseId: 'course-academic-listening', moduleId: 'module-listening-foundations', taxonomy: tx('skill-listening', 'task-academic-talk', ['sub-main-idea'], ['topic-biology'], 'level-intermediate', 'ctype-video-lesson', ['tag-high-yield', 'tag-free-preview']), durationSeconds: 2060, estimatedMinutes: 34, mediaUrl: 'demo://videos/listening-note-map', transcriptId: 'transcript-listening-note-map' }),
     base('lesson-listening-archived-outline', 'archived-outline-lecture', 'Archived Outline Lecture', { status: 'inactive', sortOrder: 90, visibility: 'private', courseId: 'course-academic-listening', moduleId: 'module-listening-foundations', taxonomy: tx('skill-listening', 'task-academic-talk', ['sub-detail'], ['topic-campus-life'], 'level-foundation', 'ctype-video-lesson', ['tag-review']), durationSeconds: 900, estimatedMinutes: 15, mediaUrl: 'demo://videos/archived-outline' }),
+  ],
+  listeningHubItems: [
+    base("listening-hub-academic-talk-detail", "academic-talk-detail-biology", "Academic Talk - Detail Practice", { description: "Topic-based listening route for stated detail questions in academic talks.", topicId: "topic-biology", taskTypeId: "task-academic-talk", subskillId: "sub-detail", difficultyId: "adaptive", lengthId: "standard", sessionMode: "practice", estimatedMinutes: 20, questionCount: 10, actionLabel: "Start Focused Practice" }),
+    base("listening-hub-note-map-main-idea", "note-map-main-idea", "Note Map Main Idea", { sortOrder: 20, description: "Practice identifying the central point while organizing lecture notes.", topicId: "topic-campus-life", taskTypeId: "task-academic-talk", subskillId: "sub-main-idea", difficultyId: "medium", lengthId: "quick", sessionMode: "practice", estimatedMinutes: 12, questionCount: 8, actionLabel: "Start Practice" }),
+    base("listening-hub-academic-talk-section", "academic-talk-section-practice", "Academic Talk Section Practice", { sortOrder: 30, isPremium: true, description: "Longer listening route for section pacing and full academic talk stamina.", topicId: "topic-biology", taskTypeId: "task-academic-talk", subskillId: "sub-note-taking", difficultyId: "hard", lengthId: "extended", sessionMode: "exam", estimatedMinutes: 30, questionCount: 17, actionLabel: "Start Exam Practice" }),
   ],
   vocabularySets: [base('vocab-set-academic-collocations', 'academic-collocations-set-08', 'Academic Collocations 08', { taxonomy: tx('skill-vocabulary', 'task-vocabulary-review', ['sub-academic-collocations'], ['topic-academic-language'], 'level-intermediate', 'ctype-vocabulary-set', ['tag-review']), wordIds: ['word-ubiquitous', 'word-mitigate'], targetLevelId: 'level-intermediate' })],
   vocabularyWords: [
@@ -122,6 +129,9 @@ const seed = {
     base('option-grammar-a', 'grammar-transition-a', 'Option A', { questionId: 'question-grammar-transition', optionKey: 'A', body: 'Therefore', isCorrect: false }),
     base('option-grammar-b', 'grammar-transition-b', 'Option B', { sortOrder: 20, questionId: 'question-grammar-transition', optionKey: 'B', body: 'Nevertheless', isCorrect: true }),
     base('option-grammar-c', 'grammar-transition-c', 'Option C', { sortOrder: 30, questionId: 'question-grammar-transition', optionKey: 'C', body: 'In addition', isCorrect: false }),
+  ],
+  readingPracticeScreens: [
+    base("reading-practice-main-idea", "reading-main-idea-sleep", "Reading Practice", { description: "Main idea reading practice screen.", subtitle: "Main Idea · Practice Set 3 · TOEFL iBT Reading", questionType: "Main Idea", timeLimitSeconds: 1200, timeRemainingSeconds: 1200, currentQuestionIndex: 0, answeredCount: 0, markedCount: 0, wordCount: 44, sourceLabel: "Adapted reading passage", passageTitle: "The Science of Sleep: Why Rest Matters", passageParagraphs: ["Sleep affects memory, attention, emotional control, and physical recovery. Researchers continue to study its full complexity, but evidence shows that regular rest supports both learning and long-term health.", "Poor sleep can weaken concentration and decision-making. Small routine changes, such as consistent sleep times and reduced screen exposure, can improve rest quality."], questions: [{ prompt: "What is the main idea of the passage?", options: [{ key: "A", text: "Sleep research has ended completely." }, { key: "B", text: "Sleep supports both mental and physical performance." }, { key: "C", text: "Screen exposure always improves sleep." }, { key: "D", text: "Decision-making is unrelated to rest." }, { key: "E", text: "Only athletes need consistent sleep." }], correctOptionKey: "B" }], supportFocusTitle: "READING FOCUS", supportFocusText: "Main idea questions reward the answer that covers the whole passage.", supportProgress: 0, reviewTitle: "NEXT REVIEW", reviewTips: ["Eliminate choices that mention only one detail.", "Choose the option that summarizes the complete passage."] }),
   ],
   tests: [
     base('test-mini-listening-note-map', 'listening-note-map-mini-test', 'Listening Note Map Mini Test', { taxonomy: tx('skill-listening', 'task-academic-talk', ['sub-main-idea'], ['topic-biology'], 'level-intermediate', 'ctype-mini-test', ['tag-timed']), sectionIds: ['section-mini-listening'], totalMinutes: 12, totalQuestions: 1 }),

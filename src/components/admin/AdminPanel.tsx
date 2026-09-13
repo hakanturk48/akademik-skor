@@ -12,6 +12,9 @@ import type { AuthUser } from '@/lib/auth';
 import {
   adminModuleCollections,
   adminModules,
+  adminListeningDifficultyOptions,
+  adminListeningLengthOptions,
+  adminListeningSessionModeOptions,
   publicationStatuses,
   adminVisibilityOptions,
   collectionSupportsPremium,
@@ -99,7 +102,8 @@ const initialCollectionByModule: Partial<Record<AdminModuleKey, AdminMutableColl
   taxonomy: 'exams',
   courses: 'courses',
   'video-lessons': 'lessons',
-  'reading-practice': 'readingPracticeScreens',
+  "reading-practice": "readingPracticeScreens",
+  "listening-hub": "listeningHubItems",
   vocabulary: 'vocabularySets',
   grammar: 'grammarCategories',
   'question-bank': 'questions',
@@ -405,7 +409,7 @@ function ModuleManager({ module, state, collection, onCollectionChange, query, o
     </View>
   );
 }
-function OptionSelector<T extends string>({ label, options, value, onChange }: { label: string; options: T[]; value: T; onChange: (value: T) => void }) {
+function OptionSelector<T extends string>({ label, options, value, onChange }: { label: string; options: readonly T[]; value: T; onChange: (value: T) => void }) {
   return (
     <View style={styles.formGroup}>
       <Text style={styles.formLabel}>{label}</Text>
@@ -573,6 +577,17 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   const document = editor.row ? getAdminDocument(state, editor.collection, editor.row.id) : undefined;
   const preview = historicalPreview ?? previewAdminDraft(state, editor.collection, draft, editor.row?.id);
 
+  const listeningSkillIdValue = state.catalog.skills.find((item) => item.slug === "listening")?.id ?? "";
+  const listeningTopicOptions = state.catalog.topics.filter((item) => item.skillIds.includes(listeningSkillIdValue));
+  const listeningTaskTypeOptions = state.catalog.taskTypes.filter((item) => item.skillId === listeningSkillIdValue);
+  const currentListeningTaskTypeId = draft.listeningTaskTypeId ?? listeningTaskTypeOptions[0]?.id ?? "";
+  const listeningSubskillOptions = state.catalog.subskills.filter((item) => item.skillId === listeningSkillIdValue && (!currentListeningTaskTypeId || item.taskTypeIds.includes(currentListeningTaskTypeId)));
+  const changeListeningTaskType = (listeningTaskTypeId: string) => {
+    const compatibleSubskill = state.catalog.subskills.find((item) => item.id === draft.listeningSubskillId && item.skillId === listeningSkillIdValue && item.taskTypeIds.includes(listeningTaskTypeId))
+      ?? state.catalog.subskills.find((item) => item.skillId === listeningSkillIdValue && item.taskTypeIds.includes(listeningTaskTypeId));
+    onChange({ ...draft, listeningTaskTypeId, listeningSubskillId: compatibleSubskill?.id ?? "" });
+  };
+
   return (
     <NativeModal transparent visible animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onClose}>
       <View style={[styles.modalOverlay, isMobile ? styles.modalOverlayMobile : null]}>
@@ -673,6 +688,43 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <Text style={styles.formLabel}>Altyazı / transkript</Text>
                   <TextInput accessibilityLabel="Altyazı / transkript" value={draft.transcriptText ?? ''} onChangeText={(value) => setField('transcriptText', value)} placeholder={'00:00|Dersin giriş cümlesi\n00:18|İlk önemli nokta'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                   <Text style={styles.formHelper}>Her satır: zaman|metin. Satırlar öğrenci VideoPlayer içindeki Transcript sekmesine taşınır.</Text>
+                </View>
+              </View>
+            ) : null}
+
+
+            {editor.collection === "listeningHubItems" ? (
+              <View style={styles.videoSourceSection}>
+                <View>
+                  <Text style={styles.formLabel}>Listening Hub içeriği</Text>
+                  <Text style={styles.formHelper}>Bu modül yalnızca konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci doğru-yanlış, mastery veya oturum geçmişi burada tutulmaz.</Text>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <CatalogSelector label="Konu" options={listeningTopicOptions} value={draft.listeningTopicId} onChange={(listeningTopicId) => setField("listeningTopicId", listeningTopicId)} />
+                  <CatalogSelector label="Soru türü" options={listeningTaskTypeOptions} value={draft.listeningTaskTypeId} onChange={changeListeningTaskType} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <CatalogSelector label="Alt beceri" options={listeningSubskillOptions} value={draft.listeningSubskillId} onChange={(listeningSubskillId) => setField("listeningSubskillId", listeningSubskillId)} />
+                  <OptionSelector label="Zorluk" options={adminListeningDifficultyOptions} value={draft.listeningDifficultyId ?? "adaptive"} onChange={(listeningDifficultyId) => setField("listeningDifficultyId", listeningDifficultyId)} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <OptionSelector label="Uzunluk" options={adminListeningLengthOptions} value={draft.listeningLengthId ?? "standard"} onChange={(listeningLengthId) => setField("listeningLengthId", listeningLengthId)} />
+                  <OptionSelector label="Oturum" options={adminListeningSessionModeOptions} value={draft.listeningSessionMode ?? "practice"} onChange={(listeningSessionMode) => setField("listeningSessionMode", listeningSessionMode)} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Tahmini süre (dakika)</Text>
+                    <TextInput accessibilityLabel="Tahmini süre" value={String(draft.estimatedMinutes ?? 20)} onChangeText={(value) => setField("estimatedMinutes", Number(value.replace(/[^0-9]/g, "")) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Soru sayısı</Text>
+                    <TextInput accessibilityLabel="Soru sayısı" value={String(draft.listeningQuestionCount ?? 10)} onChangeText={(value) => setField("listeningQuestionCount", Number(value.replace(/[^0-9]/g, "")) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Buton etiketi</Text>
+                  <TextInput accessibilityLabel="Buton etiketi" value={draft.listeningActionLabel ?? "Start Focused Practice"} onChangeText={(value) => setField("listeningActionLabel", value)} placeholder="Start Focused Practice" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  <Text style={styles.formHelper}>Öğrenci listening sayfasındaki kart butonunda görünür ve practice ekranına yönlendirir.</Text>
                 </View>
               </View>
             ) : null}

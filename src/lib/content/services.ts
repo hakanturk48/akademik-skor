@@ -30,8 +30,8 @@ export const taxonomyCollections = [
 export const taxonomizedCollections = [
   'courses',
   'modules',
-  'lessons',
-  'vocabularySets',
+  "lessons",
+  "vocabularySets",
   'grammarLessons',
   'practiceSets',
   'questions',
@@ -45,6 +45,7 @@ export const catalogCollections = [
   'courses',
   'modules',
   'lessons',
+  "listeningHubItems",
   'vocabularySets',
   'vocabularyWords',
   'vocabularyProgress',
@@ -342,8 +343,13 @@ export function validateContentCatalog(catalog: ContentCatalog): ValidationIssue
     module.lessonIds.forEach((id) => requireRef('lessons', id, module.id, 'lessonIds'));
   }
   for (const lesson of catalog.lessons) {
-    requireRef('courses', lesson.courseId, lesson.id, 'courseId');
-    requireRef('modules', lesson.moduleId, lesson.id, 'moduleId');
+    requireRef("courses", lesson.courseId, lesson.id, "courseId");
+    requireRef("modules", lesson.moduleId, lesson.id, "moduleId");
+  }
+  for (const item of catalog.listeningHubItems) {
+    requireRef("topics", item.topicId, item.id, "topicId");
+    requireRef("taskTypes", item.taskTypeId, item.id, "taskTypeId");
+    requireRef("subskills", item.subskillId, item.id, "subskillId");
   }
   for (const set of catalog.vocabularySets) {
     requireRef('levels', set.targetLevelId, set.id, 'targetLevelId');

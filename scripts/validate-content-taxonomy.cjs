@@ -8,7 +8,7 @@ const visibilityValues = new Set(['public', 'authenticated', 'private']);
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const collections = [
   'exams','examVersions','skills','taskTypes','subskills','topics','levels','contentTypes','contentTags',
-  'courses','modules','lessons','vocabularySets','vocabularyWords','vocabularyProgress','grammarCategories','grammarTopics','grammarLessons','grammarProgress',
+  'courses','modules','lessons',"listeningHubItems",'vocabularySets','vocabularyWords','vocabularyProgress','grammarCategories','grammarTopics','grammarLessons','grammarProgress',
   'practiceSets','questions','questionOptions','readingPracticeScreens','tests','testSections','attempts','answers','speakingTasks','speakingAttempts','writingTasks','writingSubmissions','contentProgress','studyPlans','studyPlanTasks','entitlements','featureConfigs',
 ];
 const taxonomized = ['courses','modules','lessons','vocabularySets','grammarLessons','practiceSets','questions','tests','speakingTasks','writingTasks'];
@@ -53,6 +53,23 @@ catalog.topics.forEach((item) => item.skillIds.forEach((id) => expectRef('skills
 catalog.courses.forEach((item) => item.moduleIds.forEach((id) => expectRef('modules', id, `${item.id}.moduleIds`)));
 catalog.modules.forEach((item) => { expectRef('courses', item.courseId, `${item.id}.courseId`); item.lessonIds.forEach((id) => expectRef('lessons', id, `${item.id}.lessonIds`)); });
 catalog.lessons.forEach((item) => { expectRef('courses', item.courseId, `${item.id}.courseId`); expectRef('modules', item.moduleId, `${item.id}.moduleId`); });
+const listeningSkill = bySlug("skills", "listening");
+const listeningDifficultyIds = new Set(["adaptive", "easy", "medium", "hard"]);
+const listeningLengthIds = new Set(["quick", "standard", "extended"]);
+const listeningSessionModes = new Set(["practice", "exam"]);
+catalog.listeningHubItems.forEach((item) => {
+  expectRef("topics", item.topicId, item.id + ".topicId");
+  expectRef("taskTypes", item.taskTypeId, item.id + ".taskTypeId");
+  expectRef("subskills", item.subskillId, item.id + ".subskillId");
+  assert.equal(byId("taskTypes", item.taskTypeId).skillId, listeningSkill.id, item.id + ".taskTypeId must be listening");
+  assert.equal(byId("subskills", item.subskillId).skillId, listeningSkill.id, item.id + ".subskillId must be listening");
+  assert.ok(byId("topics", item.topicId).skillIds.includes(listeningSkill.id), item.id + ".topicId must support listening");
+  assert.ok(listeningDifficultyIds.has(item.difficultyId), item.id + ".difficultyId invalid");
+  assert.ok(listeningLengthIds.has(item.lengthId), item.id + ".lengthId invalid");
+  assert.ok(listeningSessionModes.has(item.sessionMode), item.id + ".sessionMode invalid");
+  assert.ok(item.estimatedMinutes > 0, item.id + ".estimatedMinutes must be positive");
+  assert.ok(item.questionCount > 0, item.id + ".questionCount must be positive");
+});
 catalog.vocabularySets.forEach((item) => { expectRef('levels', item.targetLevelId, `${item.id}.targetLevelId`); item.wordIds.forEach((id) => expectRef('vocabularyWords', id, `${item.id}.wordIds`)); });
 catalog.vocabularyWords.forEach((item) => { expectRef('vocabularySets', item.setId, `${item.id}.setId`); expectRef('levels', item.levelId, `${item.id}.levelId`); item.tagIds.forEach((id) => expectRef('contentTags', id, `${item.id}.tagIds`)); });
 catalog.vocabularyProgress.forEach((item) => expectRef('vocabularyWords', item.wordId, `${item.id}.wordId`));

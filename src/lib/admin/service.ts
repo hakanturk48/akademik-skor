@@ -16,6 +16,7 @@ import type {
   Visibility,
   Question,
   LessonResource,
+  ListeningHubItem,
   ReadingPracticeScreen,
 } from '@/lib/content';
 import type { NavigationGroup, NavigationIconKey, NavigationItem, NavigationSeed } from '@/lib/navigation';
@@ -48,6 +49,7 @@ export const adminModules: AdminModuleConfig[] = [
   { key: 'courses', title: 'Kurslar', description: 'Kurs, modül ve ders yapısı.', iconKey: 'courses' },
   { key: 'video-lessons', title: 'Video Dersler', description: 'Video ders bilgileri, erişim ve sıralama.', iconKey: 'video' },
   { key: 'reading-practice', title: 'Okuma Pratiği', description: 'Reading Practice ekranı, passage ve soru akışı.', iconKey: 'reading' },
+  { key: "listening-hub", title: "Listening Hub", description: "Konu bazlı listening parçaları ve practice rotaları.", iconKey: "listening" },
   { key: 'vocabulary', title: 'Kelime Çalışmaları', description: 'Kelime setleri ve kelimeler.', iconKey: 'vocabulary' },
   { key: 'grammar', title: 'Dil Bilgisi', description: 'Dil bilgisi kategorileri, konuları ve dersleri.', iconKey: 'grammar' },
   { key: 'question-bank', title: 'Soru Bankası', description: 'Sorular, filtreler ve cevap seçenekleri.', iconKey: 'questions' },
@@ -81,6 +83,9 @@ export const adminModuleCollections: Record<Exclude<AdminModuleKey, 'dashboard'>
   'reading-practice': [
     { key: 'readingPracticeScreens', label: 'Okuma Pratikleri', singularLabel: 'Okuma Pratiği', description: 'Reading Practice ekranının passage, soru ve yönergeleri.' },
   ],
+  "listening-hub": [
+    { key: "listeningHubItems", label: "Listening Parçaları", singularLabel: "Listening Parçası", description: "Listening sayfasında konu bazlı gösterilecek canlı practice girişleri." },
+  ],
   vocabulary: [
     { key: 'vocabularySets', label: 'Kelime Setleri', singularLabel: 'Kelime Seti', description: 'Gruplandırılmış TOEFL kelime setleri.' },
     { key: 'vocabularyWords', label: 'Kelimeler', singularLabel: 'Kelime', description: 'Kelime kartları ve tekrar içerikleri.' },
@@ -103,6 +108,9 @@ export const adminModuleCollections: Record<Exclude<AdminModuleKey, 'dashboard'>
 
 export const adminStatusOptions: EntityStatus[] = ['draft', 'active', 'inactive', 'archived'];
 export const adminVisibilityOptions: Visibility[] = ['public', 'authenticated', 'private'];
+export const adminListeningDifficultyOptions: ListeningHubItem["difficultyId"][] = ["adaptive", "easy", "medium", "hard"];
+export const adminListeningLengthOptions: ListeningHubItem["lengthId"][] = ["quick", "standard", "extended"];
+export const adminListeningSessionModeOptions: ListeningHubItem["sessionMode"][] = ["practice", "exam"];
 
 function hasLocalStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -401,6 +409,79 @@ function readingPracticeFieldsFromDraft(draft: Partial<AdminEntityDraft>, existi
     reviewTips: parseReviewTipsText(draft.reviewTipsText ?? (serializeReviewTipsText(existing?.reviewTips) || String(defaults.reviewTipsText))),
   };
 }
+
+function listeningSkillId(catalog: ContentCatalog) {
+  return catalog.skills.find((item) => item.slug === "listening")?.id ?? firstId(catalog.skills);
+}
+
+function listeningTaskOptions(catalog: ContentCatalog) {
+  const skillId = listeningSkillId(catalog);
+  return catalog.taskTypes.filter((item) => item.skillId === skillId);
+}
+
+function listeningTopicOptions(catalog: ContentCatalog) {
+  const skillId = listeningSkillId(catalog);
+  return catalog.topics.filter((item) => item.skillIds.includes(skillId));
+}
+
+function listeningSubskillOptions(catalog: ContentCatalog, taskTypeId?: string) {
+  const skillId = listeningSkillId(catalog);
+  return catalog.subskills.filter((item) => item.skillId === skillId && (!taskTypeId || item.taskTypeIds.includes(taskTypeId)));
+}
+
+function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminEntityDraft> {
+  const task = listeningTaskOptions(catalog)[0];
+  const topic = listeningTopicOptions(catalog)[0];
+  const subskill = listeningSubskillOptions(catalog, task?.id)[0];
+  return {
+    title: "Academic Talk - Detail Practice",
+    slug: "academic-talk-detail-practice",
+    description: "Topic-based listening route for focused practice.",
+    listeningTopicId: topic?.id ?? "",
+    listeningTaskTypeId: task?.id ?? "",
+    listeningSubskillId: subskill?.id ?? "",
+    listeningDifficultyId: "adaptive",
+    listeningLengthId: "standard",
+    listeningSessionMode: "practice",
+    estimatedMinutes: 20,
+    listeningQuestionCount: 10,
+    listeningActionLabel: "Start Focused Practice",
+  };
+}
+
+function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<AdminEntityDraft> {
+  return {
+    listeningTopicId: item?.topicId,
+    listeningTaskTypeId: item?.taskTypeId,
+    listeningSubskillId: item?.subskillId,
+    listeningDifficultyId: item?.difficultyId,
+    listeningLengthId: item?.lengthId,
+    listeningSessionMode: item?.sessionMode,
+    estimatedMinutes: item?.estimatedMinutes,
+    listeningQuestionCount: item?.questionCount,
+    listeningActionLabel: item?.actionLabel,
+  };
+}
+
+function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: ContentCatalog, existing?: Partial<ListeningHubItem>): Omit<ListeningHubItem, keyof BaseEntity> {
+  const defaults = defaultListeningHubDraftFields(catalog);
+  const taskOptions = listeningTaskOptions(catalog);
+  const taskTypeId = taskOptions.some((item) => item.id === draft.listeningTaskTypeId) ? String(draft.listeningTaskTypeId) : existing?.taskTypeId ?? String(defaults.listeningTaskTypeId ?? "");
+  const subskillOptions = listeningSubskillOptions(catalog, taskTypeId);
+  const topicOptions = listeningTopicOptions(catalog);
+  return {
+    topicId: topicOptions.some((item) => item.id === draft.listeningTopicId) ? String(draft.listeningTopicId) : existing?.topicId ?? String(defaults.listeningTopicId ?? ""),
+    taskTypeId,
+    subskillId: subskillOptions.some((item) => item.id === draft.listeningSubskillId) ? String(draft.listeningSubskillId) : existing?.subskillId ?? String(defaults.listeningSubskillId ?? ""),
+    difficultyId: adminListeningDifficultyOptions.includes(draft.listeningDifficultyId ?? "adaptive") ? draft.listeningDifficultyId ?? "adaptive" : existing?.difficultyId ?? "adaptive",
+    lengthId: adminListeningLengthOptions.includes(draft.listeningLengthId ?? "standard") ? draft.listeningLengthId ?? "standard" : existing?.lengthId ?? "standard",
+    sessionMode: adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice") ? draft.listeningSessionMode ?? "practice" : existing?.sessionMode ?? "practice",
+    estimatedMinutes: clampAdminNumber(draft.estimatedMinutes ?? existing?.estimatedMinutes ?? defaults.estimatedMinutes, 1, 240),
+    questionCount: clampAdminNumber(draft.listeningQuestionCount ?? existing?.questionCount ?? defaults.listeningQuestionCount, 1, 100),
+    actionLabel: draft.listeningActionLabel?.trim() || existing?.actionLabel || "Start Focused Practice",
+  };
+}
+
 function contentTypeId(catalog: ContentCatalog, slug: string) {
   return catalog.contentTypes.find((item) => item.slug === slug)?.id ?? firstId(catalog.contentTypes);
 }
@@ -651,8 +732,10 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
         resources: resources.resources,
       };
     }
-    case 'readingPracticeScreens':
+    case "readingPracticeScreens":
       return { ...base, ...readingPracticeFieldsFromDraft({ ...defaultReadingPracticeDraftFields(), ...draft }) };
+    case "listeningHubItems":
+      return { ...base, ...listeningHubFieldsFromDraft({ ...defaultListeningHubDraftFields(catalog), ...draft }, catalog) };
     case 'vocabularySets':
       return { ...base, taxonomy, wordIds: [], targetLevelId: firstId(catalog.levels) };
     case 'vocabularyWords':
@@ -701,7 +784,7 @@ function createEntityCandidate(state: AdminWorkspaceState, module: AdminModuleKe
   return withChange(next, module, draft.status === 'active' ? 'publish' : 'create', rowFromEntity(next, collection, entity), `${entity.title} oluşturuldu.`);
 }
 
-function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationItem>(collection: AdminMutableCollectionKey, entity: T, draft: Partial<AdminEntityDraft>): T {
+function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationItem>(collection: AdminMutableCollectionKey, entity: T, draft: Partial<AdminEntityDraft>, catalog: ContentCatalog = contentCatalogSeed): T {
   const updatedAt = nowIso();
   const next = {
     ...entity,
@@ -755,8 +838,12 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
     }
   }
 
-  if (collection === 'readingPracticeScreens') {
+  if (collection === "readingPracticeScreens") {
     Object.assign(next as BaseEntity & ReadingPracticeScreen, readingPracticeFieldsFromDraft(draft, next as Partial<ReadingPracticeScreen>));
+  }
+
+  if (collection === "listeningHubItems") {
+    Object.assign(next as BaseEntity & ListeningHubItem, listeningHubFieldsFromDraft(draft, catalog, next as Partial<ListeningHubItem>));
   }
 
   return next;
@@ -778,7 +865,7 @@ function updateEntityCandidate(state: AdminWorkspaceState, module: AdminModuleKe
   }
 
   const record = next.catalog as unknown as Record<string, BaseEntity[]>;
-  record[collection] = (record[collection] ?? []).map((item) => (item.id === id ? applyDraftToEntity(collection, item, draft) : item));
+  record[collection] = (record[collection] ?? []).map((item) => (item.id === id ? applyDraftToEntity(collection, item, draft, next.catalog) : item));
   const row = listAdminRows(next, collection).find((item) => item.id === id);
   return row ? withChange(next, module, draft.status === 'active' ? 'publish' : 'edit', row, `${row.title} güncellendi.`) : next;
 }
@@ -828,7 +915,7 @@ export function reorderAdminEntity(state: AdminWorkspaceState, module: AdminModu
 
 export function previewAdminDraft(state: AdminWorkspaceState, collection: AdminMutableCollectionKey, draft: AdminEntityDraft, id?: string) {
   const existing = id ? workspaceItems(state, collection).find((item) => item.id === id) : undefined;
-  const candidate = existing ? applyDraftToEntity(collection, existing, draft) : makeTypedEntity(state, collection, draft);
+  const candidate = existing ? applyDraftToEntity(collection, existing, draft, state.catalog) : makeTypedEntity(state, collection, draft);
   return collection === 'questions' ? buildQuestionSnapshot(state.catalog, candidate as Question, draft.question) : candidate;
 }
 
@@ -882,9 +969,16 @@ function relationSummary(state: AdminWorkspaceState, collection: AdminCollection
     return `${count} bağlantı · ${entity.placement}`;
   }
 
-  if (collection === 'readingPracticeScreens') {
+  if (collection === "readingPracticeScreens") {
     const screen = entity as BaseEntity & Partial<ReadingPracticeScreen>;
     return `${screen.questions?.length ?? 0} soru · ${screen.passageParagraphs?.length ?? 0} paragraf`;
+  }
+
+  if (collection === "listeningHubItems") {
+    const item = entity as BaseEntity & Partial<ListeningHubItem>;
+    const topic = state.catalog.topics.find((entry) => entry.id === item.topicId)?.title ?? "Konu seçilmedi";
+    const subskill = state.catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
+    return `Listening hub route · ${topic} · ${subskill} · ${item.questionCount ?? 0} soru`;
   }
 
   if ('taxonomy' in entity) {
@@ -949,7 +1043,7 @@ export function listAdminRows(state: AdminWorkspaceState, collection: AdminMutab
 }
 
 export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashboardMetrics {
-  const contentCollections: AdminMutableCollectionKey[] = ['courses', 'modules', 'lessons', 'readingPracticeScreens', 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
+  const contentCollections: AdminMutableCollectionKey[] = ["courses", "modules", "lessons", "readingPracticeScreens", "listeningHubItems", 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
   const rows = contentCollections.flatMap((collection) => listAdminRows(state, collection));
 
   return {
@@ -963,7 +1057,7 @@ export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashb
 
 export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: AdminEntityRow, catalog?: ContentCatalog): AdminEntityDraft {
   if (row) {
-    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
+    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & Partial<ListeningHubItem> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
     return {
       title: row.title,
       slug: row.slug,
@@ -987,7 +1081,8 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
         durationSeconds: raw.durationSeconds ?? 900,
         estimatedMinutes: raw.estimatedMinutes ?? 15,
       } : {}),
-      ...(collection === 'readingPracticeScreens' ? readingPracticeDraftFromScreen(raw, row) : {}),
+      ...(collection === "readingPracticeScreens" ? readingPracticeDraftFromScreen(raw, row) : {}),
+      ...(collection === "listeningHubItems" ? listeningHubDraftFromItem(raw) : {}),
       ...(collection === 'questions' && catalog ? { question: readQuestionDraft(catalog, row.raw as Question) } : {}),
     };
   }
@@ -1003,7 +1098,8 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
     prompt: '',
     explanation: '',
     ...(collection === 'lessons' ? { mediaProvider: 'youtube' as const, mediaUrl: '', courseId: firstId(catalog?.courses ?? []), moduleId: firstId(catalog?.modules ?? []), thumbnailUrl: '', previewDurationSeconds: 0, chaptersText: '', transcriptText: '', resourcesText: '', durationSeconds: 900, estimatedMinutes: 15 } : {}),
-    ...(collection === 'readingPracticeScreens' ? defaultReadingPracticeDraftFields() : {}),
+    ...(collection === "readingPracticeScreens" ? defaultReadingPracticeDraftFields() : {}),
+    ...(collection === "listeningHubItems" ? defaultListeningHubDraftFields(catalog ?? contentCatalogSeed) : {}),
     ...(collection === 'questions' && catalog ? { question: { taxonomy: defaultTaxonomy(catalog, 'question'), stimulus: '', options: [] } } : {}),
   };
 }
@@ -1024,6 +1120,16 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push('Bölümler her satırda zaman|başlık biçiminde olmalı.');
     if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push('Transkript her satırda zaman|metin biçiminde olmalı.');
     if (draft.resourcesText && parseLessonResourcesText(draft.resourcesText).invalidLines.length) issues.push('Kaynaklar her satırda başlık|tür|boyut|url|premium biçiminde olmalı.');
+  }
+  if (collection === "listeningHubItems") {
+    if (!draft.listeningTopicId) issues.push("Listening hub topic is required.");
+    if (!draft.listeningTaskTypeId) issues.push("Listening hub task type is required.");
+    if (!draft.listeningSubskillId) issues.push("Listening hub subskill is required.");
+    if (!adminListeningDifficultyOptions.includes(draft.listeningDifficultyId ?? "adaptive")) issues.push("Listening hub difficulty is invalid.");
+    if (!adminListeningLengthOptions.includes(draft.listeningLengthId ?? "standard")) issues.push("Listening hub length is invalid.");
+    if (!adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice")) issues.push("Listening hub session mode is invalid.");
+    if ((draft.estimatedMinutes ?? 0) < 1) issues.push("Listening hub duration is required.");
+    if ((draft.listeningQuestionCount ?? 0) < 1) issues.push("Listening hub question count is required.");
   }
   if (collection === 'readingPracticeScreens') {
     const paragraphs = parseReadingPassageText(draft.passageText);

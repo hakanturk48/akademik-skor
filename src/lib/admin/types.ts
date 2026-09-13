@@ -1,5 +1,5 @@
 import type { AuthRole } from '@/lib/auth';
-import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, QuestionOption, ReadingPracticeQuestion, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
+import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, ListeningHubItem, QuestionOption, ReadingPracticeQuestion, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
 import type { VideoMediaProvider } from '@/lib/video-media';
 import type { NavigationGroup, NavigationItem } from '@/lib/navigation';
 
@@ -10,7 +10,8 @@ export type AdminModuleKey =
   | 'taxonomy'
   | 'courses'
   | 'video-lessons'
-  | 'reading-practice'
+  | "reading-practice"
+  | "listening-hub"
   | 'vocabulary'
   | 'grammar'
   | 'question-bank'
@@ -25,6 +26,7 @@ export type AdminIconKey =
   | 'courses'
   | 'video'
   | 'reading'
+  | "listening"
   | 'vocabulary'
   | 'grammar'
   | 'questions'
@@ -55,8 +57,9 @@ export type AdminMutableCollectionKey =
   | 'grammarTopics'
   | 'grammarLessons'
   | 'questions'
-  | 'readingPracticeScreens'
-  | 'practiceSets'
+  | "readingPracticeScreens"
+  | "listeningHubItems"
+  | "practiceSets"
   | 'tests';
 
 export type AdminAccessDecision = {
@@ -297,6 +300,14 @@ export type AdminEntityDraft = {
   supportProgress?: number;
   reviewTitle?: string;
   reviewTipsText?: string;
+  listeningTopicId?: string;
+  listeningTaskTypeId?: string;
+  listeningSubskillId?: string;
+  listeningDifficultyId?: ListeningHubItem["difficultyId"];
+  listeningLengthId?: ListeningHubItem["lengthId"];
+  listeningSessionMode?: ListeningHubItem["sessionMode"];
+  listeningQuestionCount?: number;
+  listeningActionLabel?: string;
 };
 
 export type AdminQuestionDraft = {

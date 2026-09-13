@@ -47,7 +47,10 @@ for (const title of [
   expect(files.service.includes(`title: '${title}'`), `Admin module missing: ${title}`);
 }
 
-for (const fn of ['saveAdminContent', 'previewAdminDraft', 'archiveAdminEntity', 'reorderAdminEntity']) {
+expect(files.service.includes("listening-hub") && files.service.includes("Listening Hub"), "Admin module missing: Listening Hub key/title.");
+expect(files.panel.includes("listeningHubItems"), "Admin panel must expose Listening Hub editor.");
+
+for (const fn of ["saveAdminContent", "previewAdminDraft", "archiveAdminEntity", "reorderAdminEntity"]) {
   expect(files.service.includes(`function ${fn}`) || files.service.includes(`export function ${fn}`), `Admin CRUD function missing: ${fn}`);
 }
 
@@ -55,7 +58,7 @@ for (const token of ['navigationGroups', 'navigationItems', 'exams', 'examVersio
   expect(files.service.includes(token), `Taxonomy/navigation collection missing: ${token}`);
 }
 
-for (const token of ['courses', 'modules', 'lessons', 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests']) {
+for (const token of ['courses', 'modules', 'lessons', "listeningHubItems", 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests']) {
   expect(files.service.includes(token), `Content collection missing: ${token}`);
 }
 
