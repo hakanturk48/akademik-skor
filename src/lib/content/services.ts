@@ -55,6 +55,7 @@ export const catalogCollections = [
   'practiceSets',
   'questions',
   'questionOptions',
+  'readingPracticeScreens',
   'tests',
   'testSections',
   'attempts',
@@ -71,7 +72,7 @@ export const catalogCollections = [
 ] as const satisfies readonly CatalogCollectionName[];
 
 function collectionItems(catalog: ContentCatalog, collection: CatalogCollectionName): BaseEntity[] {
-  return catalog[collection] as unknown as BaseEntity[];
+  return (catalog[collection] ?? []) as unknown as BaseEntity[];
 }
 
 function findById<T extends BaseEntity>(items: T[], id?: string): T | undefined {

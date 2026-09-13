@@ -7,7 +7,7 @@ import { WordFlashcard } from '@/components/student/VocabularyLearningScreens';
 import { LearnPanel } from '@/components/student/GrammarLearningScreens';
 import type { AuthUser } from '@/lib/auth';
 import type { AdminDocument, AdminMutableCollectionKey, AdminSnapshot, AdminWorkspaceState, PublicationStatus } from '@/lib/admin';
-import type { BaseEntity, Lesson, Question, VocabularyWord } from '@/lib/content';
+import type { BaseEntity, Lesson, Question, ReadingPracticeScreen, VocabularyWord } from '@/lib/content';
 import { skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 import { formatVideoTimestamp, getVideoEmbedUrl, videoProviderLabel } from '@/lib/video-media';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
@@ -115,6 +115,19 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
       ) : <Text style={styles.meta}>{lesson.mediaUrl ? `${videoProviderLabel(lesson.mediaProvider)} kaynağı kaydedildi. Öğrenci önizlemesi web ortamında açılır.` : 'Video bağlantısı eklenmedi. Taslak kaydedilebilir ancak yayınlanamaz.'}</Text>}
       <Text style={styles.body}>{base.description}</Text>
     </View>;
+  } else if (collection === 'readingPracticeScreens') {
+    const screen = snapshot as ReadingPracticeScreen;
+    const activeQuestion = screen.questions[Math.min(Math.max(screen.currentQuestionIndex, 0), Math.max(0, screen.questions.length - 1))] ?? screen.questions[0];
+    content = <Card title={screen.title} right={<Badge label={base.isPremium ? 'Premium' : 'Ücretsiz'} tone={base.isPremium ? 'yellow' : 'teal'} />}>
+      <Text style={styles.meta}>{screen.subtitle}</Text>
+      <Text style={styles.heading}>{screen.passageTitle}</Text>
+      {screen.passageParagraphs.slice(0, 2).map((paragraph) => <Text key={paragraph} style={styles.body}>{paragraph}</Text>)}
+      {activeQuestion ? <View style={styles.option}>
+        <Text style={styles.heading}>{activeQuestion.prompt}</Text>
+        {activeQuestion.options.map((option) => <Text key={option.key} style={styles.body}>{option.key}. {option.text}{option.key === activeQuestion.correctOptionKey ? ' ✓' : ''}</Text>)}
+      </View> : <Text style={styles.meta}>Henüz soru eklenmemiş.</Text>}
+      <Text style={styles.meta}>{screen.questions.length} soru · {screen.passageParagraphs.length} paragraf · {screen.timeLimitSeconds} sn</Text>
+    </Card>;
   } else if (collection === 'vocabularyWords') {
     const word = snapshot as VocabularyWord;
     content = <WordFlashcard preview onAnswer={noop} onToggleSaved={noop}

@@ -34,6 +34,7 @@ const adminIconRegistry: Record<AdminIconKey, AppSymbolName> = {
   taxonomy: symbolName('point.3.connected.trianglepath.dotted', 'account_tree'),
   courses: symbolName('books.vertical', 'library_books'),
   video: symbolName('play.rectangle', 'smart_display'),
+  reading: symbolName('book', 'menu_book'),
   vocabulary: symbolName('textformat.abc', 'abc'),
   grammar: symbolName('text.book.closed', 'article'),
   questions: symbolName('questionmark.square', 'quiz'),

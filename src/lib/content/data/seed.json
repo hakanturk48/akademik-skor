@@ -1705,5 +1705,267 @@
         "includesMockTests": true
       }
     }
+  ],
+  "readingPracticeScreens": [
+    {
+      "id": "readingPracticeScreens-reading-practice",
+      "slug": "reading-practice",
+      "title": "Reading Practice",
+      "description": "Main Idea · Practice Set 3 · TOEFL iBT Reading",
+      "status": "active",
+      "sortOrder": 10,
+      "visibility": "authenticated",
+      "isPremium": false,
+      "createdAt": "2026-09-04T00:00:00.000Z",
+      "updatedAt": "2026-09-04T00:00:00.000Z",
+      "subtitle": "Main Idea · Practice Set 3 · TOEFL iBT Reading",
+      "questionType": "Main Idea",
+      "timeLimitSeconds": 1200,
+      "timeRemainingSeconds": 1104,
+      "currentQuestionIndex": 3,
+      "answeredCount": 4,
+      "markedCount": 0,
+      "wordCount": 247,
+      "sourceLabel": "Adapted from scientific American",
+      "passageTitle": "The Science of Sleep: Why Rest Matters",
+      "passageParagraphs": [
+        "Sleep is a fundamental biological process that affects nearly every aspect of human health and performance. While scientists are still uncovering the full complexity of sleep, research has shown that a good night's rest plays a critical role in memory consolidation, immune function, emotional regulation, and physical recovery.",
+        "During sleep, the brain cycles through different stages, including both REM (rapid eye movement) and non-REM sleep. REM sleep is associated with dreaming and learning, while non-REM sleep is linked to deep rest and tissue repair. These cycles repeat several times throughout the night, typically lasting 90 to 110 minutes each.",
+        "Chronic sleep deprivation, on the other hand, has been tied to a range of negative outcomes. It can impair concentration, weaken decision-making, increase stress hormones, and even contribute to long-term health problems like heart disease and diabetes. Despite these risks, many people, especially students and professionals, regularly sacrifice sleep due to busy schedules or poor habits.",
+        "Improving sleep quality does not always require dramatic changes. Simple steps like maintaining a consistent sleep schedule, limiting screen time before bed, and creating a dark, quiet environment can have a meaningful impact. In short, prioritizing sleep is one of the most effective ways to support both mental and physical well-being."
+      ],
+      "questions": [
+        {
+          "prompt": "Which sentence best states the main idea of paragraph 1?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Scientists already understand every detail of sleep."
+            },
+            {
+              "key": "B",
+              "text": "Sleep strongly supports health, learning, emotion, and recovery."
+            },
+            {
+              "key": "C",
+              "text": "Physical recovery only happens during REM sleep."
+            },
+            {
+              "key": "D",
+              "text": "Students need less sleep than other adults."
+            }
+          ],
+          "correctOptionKey": "B"
+        },
+        {
+          "prompt": "What is the main purpose of paragraph 2?",
+          "options": [
+            {
+              "key": "A",
+              "text": "To explain that sleep includes repeating stages with different functions."
+            },
+            {
+              "key": "B",
+              "text": "To argue that REM sleep is harmful for learners."
+            },
+            {
+              "key": "C",
+              "text": "To compare sleep research with medical treatment."
+            },
+            {
+              "key": "D",
+              "text": "To list common causes of poor sleep."
+            }
+          ],
+          "correctOptionKey": "A"
+        },
+        {
+          "prompt": "According to the passage, what can chronic sleep deprivation do?",
+          "options": [
+            {
+              "key": "A",
+              "text": "It can improve stress tolerance."
+            },
+            {
+              "key": "B",
+              "text": "It can eliminate the need for exercise."
+            },
+            {
+              "key": "C",
+              "text": "It can harm concentration and long-term health."
+            },
+            {
+              "key": "D",
+              "text": "It can make REM cycles shorter than usual."
+            }
+          ],
+          "correctOptionKey": "C"
+        },
+        {
+          "prompt": "What is the main idea of the passage?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Sleep cycles are composed of REM and non-REM stages."
+            },
+            {
+              "key": "B",
+              "text": "Sleep plays a vital role in both mental and physical health."
+            },
+            {
+              "key": "C",
+              "text": "Many people suffer from sleep deprivation due to stress."
+            },
+            {
+              "key": "D",
+              "text": "Small lifestyle changes can significantly improve sleep quality."
+            }
+          ],
+          "correctOptionKey": "B"
+        },
+        {
+          "prompt": "Which detail best supports the idea that sleep affects performance?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Cycles usually last 90 to 110 minutes."
+            },
+            {
+              "key": "B",
+              "text": "People can create a dark and quiet room."
+            },
+            {
+              "key": "C",
+              "text": "Sleep deprivation can weaken decision-making."
+            },
+            {
+              "key": "D",
+              "text": "Researchers are still studying sleep."
+            }
+          ],
+          "correctOptionKey": "C",
+          "marked": true
+        },
+        {
+          "prompt": "Why does the passage mention students and professionals?",
+          "options": [
+            {
+              "key": "A",
+              "text": "To show groups that often sacrifice sleep because of schedules."
+            },
+            {
+              "key": "B",
+              "text": "To prove that only these groups need sleep."
+            },
+            {
+              "key": "C",
+              "text": "To compare different TOEFL study plans."
+            },
+            {
+              "key": "D",
+              "text": "To introduce a new scientific experiment."
+            }
+          ],
+          "correctOptionKey": "A"
+        },
+        {
+          "prompt": "Which change is suggested as a way to improve sleep quality?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Increasing screen time before bed."
+            },
+            {
+              "key": "B",
+              "text": "Keeping an inconsistent schedule."
+            },
+            {
+              "key": "C",
+              "text": "Creating a dark, quiet environment."
+            },
+            {
+              "key": "D",
+              "text": "Avoiding all physical recovery."
+            }
+          ],
+          "correctOptionKey": "C"
+        },
+        {
+          "prompt": "What does the final paragraph mainly emphasize?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Only dramatic lifestyle changes can help."
+            },
+            {
+              "key": "B",
+              "text": "Simple habits can meaningfully improve sleep."
+            },
+            {
+              "key": "C",
+              "text": "Sleep stages stop after the first cycle."
+            },
+            {
+              "key": "D",
+              "text": "Scientists have ended sleep research."
+            }
+          ],
+          "correctOptionKey": "B"
+        },
+        {
+          "prompt": "Which phrase best describes the organization of the passage?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Problem, fictional example, and personal story."
+            },
+            {
+              "key": "B",
+              "text": "Definition, benefits, risks, and practical advice."
+            },
+            {
+              "key": "C",
+              "text": "Question, experiment, and interview transcript."
+            },
+            {
+              "key": "D",
+              "text": "Historical timeline and statistical appendix."
+            }
+          ],
+          "correctOptionKey": "B"
+        },
+        {
+          "prompt": "What is the author most likely to agree with?",
+          "options": [
+            {
+              "key": "A",
+              "text": "Sleep should be treated as a priority for well-being."
+            },
+            {
+              "key": "B",
+              "text": "Sleep is useful only for physical recovery."
+            },
+            {
+              "key": "C",
+              "text": "Busy people cannot improve their sleep."
+            },
+            {
+              "key": "D",
+              "text": "REM sleep prevents learning."
+            }
+          ],
+          "correctOptionKey": "A"
+        }
+      ],
+      "supportFocusTitle": "READING FOCUS",
+      "supportFocusText": "Main idea questions reward structure, not isolated details.",
+      "supportProgress": 72,
+      "supportHint": "Practice Accuracy /100: 72 · Target section score: 24/30",
+      "reviewTitle": "NEXT REVIEW",
+      "reviewTips": [
+        "Eliminate answer choices that focus on only one paragraph.",
+        "Confirm the selected answer covers the whole passage."
+      ]
+    }
   ]
 }

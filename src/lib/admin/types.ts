@@ -10,6 +10,7 @@ export type AdminModuleKey =
   | 'taxonomy'
   | 'courses'
   | 'video-lessons'
+  | 'reading-practice'
   | 'vocabulary'
   | 'grammar'
   | 'question-bank'
@@ -23,6 +24,7 @@ export type AdminIconKey =
   | 'taxonomy'
   | 'courses'
   | 'video'
+  | 'reading'
   | 'vocabulary'
   | 'grammar'
   | 'questions'
@@ -53,6 +55,7 @@ export type AdminMutableCollectionKey =
   | 'grammarTopics'
   | 'grammarLessons'
   | 'questions'
+  | 'readingPracticeScreens'
   | 'practiceSets'
   | 'tests';
 
@@ -276,6 +279,24 @@ export type AdminEntityDraft = {
   resourcesText?: string;
   durationSeconds?: number;
   estimatedMinutes?: number;
+  subtitle?: string;
+  questionType?: string;
+  timeLimitSeconds?: number;
+  timeRemainingSeconds?: number;
+  currentQuestionIndex?: number;
+  answeredCount?: number;
+  markedCount?: number;
+  wordCount?: number;
+  sourceLabel?: string;
+  passageTitle?: string;
+  passageText?: string;
+  readingQuestionsText?: string;
+  supportFocusTitle?: string;
+  supportFocusText?: string;
+  supportProgress?: number;
+  supportHint?: string;
+  reviewTitle?: string;
+  reviewTipsText?: string;
 };
 
 export type AdminQuestionDraft = {

@@ -9,7 +9,7 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const collections = [
   'exams','examVersions','skills','taskTypes','subskills','topics','levels','contentTypes','contentTags',
   'courses','modules','lessons','vocabularySets','vocabularyWords','vocabularyProgress','grammarCategories','grammarTopics','grammarLessons','grammarProgress',
-  'practiceSets','questions','questionOptions','tests','testSections','attempts','answers','speakingTasks','speakingAttempts','writingTasks','writingSubmissions','contentProgress','studyPlans','studyPlanTasks','entitlements','featureConfigs',
+  'practiceSets','questions','questionOptions','readingPracticeScreens','tests','testSections','attempts','answers','speakingTasks','speakingAttempts','writingTasks','writingSubmissions','contentProgress','studyPlans','studyPlanTasks','entitlements','featureConfigs',
 ];
 const taxonomized = ['courses','modules','lessons','vocabularySets','grammarLessons','practiceSets','questions','tests','speakingTasks','writingTasks'];
 

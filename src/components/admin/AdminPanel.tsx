@@ -99,6 +99,7 @@ const initialCollectionByModule: Partial<Record<AdminModuleKey, AdminMutableColl
   taxonomy: 'exams',
   courses: 'courses',
   'video-lessons': 'lessons',
+  'reading-practice': 'readingPracticeScreens',
   vocabulary: 'vocabularySets',
   grammar: 'grammarCategories',
   'question-bank': 'questions',
@@ -580,6 +581,102 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               </View>
             ) : null}
 
+
+            {editor.collection === 'readingPracticeScreens' ? (
+              <View style={styles.videoSourceSection}>
+                <View>
+                  <Text style={styles.formLabel}>Reading Practice içeriği</Text>
+                  <Text style={styles.formHelper}>Bu ekran soru bankası veya alıştırma setlerine bağlı değildir. Passage, soru akışı ve destek kutuları ayrı yayınlanır.</Text>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Alt başlık</Text>
+                    <TextInput accessibilityLabel="Alt başlık" value={draft.subtitle ?? ''} onChangeText={(value) => setField('subtitle', value)} placeholder="Main Idea · Practice Set 3 · TOEFL iBT Reading" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Soru türü</Text>
+                    <TextInput accessibilityLabel="Soru türü" value={draft.questionType ?? ''} onChangeText={(value) => setField('questionType', value)} placeholder="Main Idea" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Süre sınırı (saniye)</Text>
+                    <TextInput accessibilityLabel="Süre sınırı" value={String(draft.timeLimitSeconds ?? 0)} onChangeText={(value) => setField('timeLimitSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Kalan süre (saniye)</Text>
+                    <TextInput accessibilityLabel="Kalan süre" value={String(draft.timeRemainingSeconds ?? 0)} onChangeText={(value) => setField('timeRemainingSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Aktif soru numarası</Text>
+                    <TextInput accessibilityLabel="Aktif soru numarası" value={String((draft.currentQuestionIndex ?? 0) + 1)} onChangeText={(value) => setField('currentQuestionIndex', Math.max(0, (Number(value.replace(/[^0-9]/g, '')) || 1) - 1))} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Cevaplanan soru sayısı</Text>
+                    <TextInput accessibilityLabel="Cevaplanan soru sayısı" value={String(draft.answeredCount ?? 0)} onChangeText={(value) => setField('answeredCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>İşaretli soru sayısı</Text>
+                    <TextInput accessibilityLabel="İşaretli soru sayısı" value={String(draft.markedCount ?? 0)} onChangeText={(value) => setField('markedCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Kelime sayısı</Text>
+                    <TextInput accessibilityLabel="Kelime sayısı" value={String(draft.wordCount ?? 0)} onChangeText={(value) => setField('wordCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Passage başlığı</Text>
+                    <TextInput accessibilityLabel="Passage başlığı" value={draft.passageTitle ?? ''} onChangeText={(value) => setField('passageTitle', value)} placeholder="The Science of Sleep: Why Rest Matters" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Kaynak etiketi</Text>
+                    <TextInput accessibilityLabel="Kaynak etiketi" value={draft.sourceLabel ?? ''} onChangeText={(value) => setField('sourceLabel', value)} placeholder="Adapted from ..." placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Passage metni</Text>
+                  <TextInput accessibilityLabel="Passage metni" value={draft.passageText ?? ''} onChangeText={(value) => setField('passageText', value)} placeholder="Paragrafları boş satırla ayırın." placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Paragraflar öğrenci ekranındaki sol okuma kartında gösterilir.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Sorular ve seçenekler</Text>
+                  <TextInput accessibilityLabel="Reading soruları" value={draft.readingQuestionsText ?? ''} onChangeText={(value) => setField('readingQuestionsText', value)} placeholder={'Soru metni\nA|Seçenek A\nB*|Doğru seçenek\nC|Seçenek C\n---\nİkinci soru metni'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her soru bloğunu --- ile ayırın. Doğru seçeneği yıldızla işaretleyin: B*|metin.</Text>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Odak başlığı</Text>
+                    <TextInput accessibilityLabel="Odak başlığı" value={draft.supportFocusTitle ?? ''} onChangeText={(value) => setField('supportFocusTitle', value)} placeholder="READING FOCUS" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Odak ilerlemesi</Text>
+                    <TextInput accessibilityLabel="Odak ilerlemesi" value={String(draft.supportProgress ?? 0)} onChangeText={(value) => setField('supportProgress', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Odak metni</Text>
+                  <TextInput accessibilityLabel="Odak metni" value={draft.supportFocusText ?? ''} onChangeText={(value) => setField('supportFocusText', value)} placeholder="Main idea questions reward structure..." placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Odak ipucu</Text>
+                  <TextInput accessibilityLabel="Odak ipucu" value={draft.supportHint ?? ''} onChangeText={(value) => setField('supportHint', value)} placeholder="Practice Accuracy /100: 72 ..." placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Tekrar başlığı</Text>
+                    <TextInput accessibilityLabel="Tekrar başlığı" value={draft.reviewTitle ?? ''} onChangeText={(value) => setField('reviewTitle', value)} placeholder="NEXT REVIEW" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Tekrar ipuçları</Text>
+                    <TextInput accessibilityLabel="Tekrar ipuçları" value={draft.reviewTipsText ?? ''} onChangeText={(value) => setField('reviewTipsText', value)} placeholder={'Her satıra bir ipucu yazın.'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
             {editor.collection === 'questions' ? (
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Cevap açıklaması</Text>
@@ -1047,3 +1144,4 @@ const styles = StyleSheet.create({
   confirmActions: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
   confirmButton: { minWidth: 132 },
 });
+

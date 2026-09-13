@@ -214,6 +214,39 @@ export interface QuestionOption extends BaseEntity {
   rationale?: string;
 }
 
+export interface ReadingPracticeOption {
+  key: string;
+  text: string;
+}
+
+export interface ReadingPracticeQuestion {
+  prompt: string;
+  options: ReadingPracticeOption[];
+  correctOptionKey?: string;
+  marked?: boolean;
+}
+
+export interface ReadingPracticeScreen extends BaseEntity {
+  subtitle: string;
+  questionType: string;
+  timeLimitSeconds: number;
+  timeRemainingSeconds: number;
+  currentQuestionIndex: number;
+  answeredCount: number;
+  markedCount: number;
+  wordCount?: number;
+  sourceLabel?: string;
+  passageTitle: string;
+  passageParagraphs: string[];
+  questions: ReadingPracticeQuestion[];
+  supportFocusTitle: string;
+  supportFocusText: string;
+  supportProgress: number;
+  supportHint: string;
+  reviewTitle: string;
+  reviewTips: string[];
+}
+
 export interface Test extends BaseEntity {
   taxonomy: TaxonomyRef;
   sectionIds: string[];
@@ -352,6 +385,7 @@ export interface ContentCatalog {
   practiceSets: PracticeSet[];
   questions: Question[];
   questionOptions: QuestionOption[];
+  readingPracticeScreens: ReadingPracticeScreen[];
   tests: Test[];
   testSections: TestSection[];
   attempts: Attempt[];

@@ -1,7 +1,7 @@
 import { validateContentCatalog } from '@/lib/content';
 import { getNavigationRouteEntry } from '@/lib/navigation/registry';
 import { validateVideoMediaUrl } from '@/lib/video-media';
-import type { BaseEntity, ContentCatalog, Question, TaxonomyRef } from '@/lib/content';
+import type { BaseEntity, ContentCatalog, Question, ReadingPracticeScreen, TaxonomyRef } from '@/lib/content';
 import type {
   AdminActor, AdminDocument, AdminMutableCollectionKey, AdminRevision, AdminSnapshot,
   AdminWorkspaceState, PublicationStatus, VersionDiff,
@@ -11,17 +11,23 @@ export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'pub
 export const workflowCollections: AdminMutableCollectionKey[] = [
   'navigationGroups', 'navigationItems', 'exams', 'examVersions', 'skills', 'taskTypes',
   'subskills', 'topics', 'levels', 'courses', 'modules', 'lessons', 'vocabularySets',
-  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests',
+  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'readingPracticeScreens', 'practiceSets', 'tests',
 ];
 export const workspaceStorageKey = 'akademik-skor.admin-workspace.v2';
 export const legacyWorkspaceStorageKey = 'akademik-skor.admin-workspace.v1';
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const documentKey = (collection: AdminMutableCollectionKey, id: string) => `${collection}:${id}`;
 
+function ensureWorkspaceCatalogShape(state: AdminWorkspaceState) {
+  const catalog = state.catalog as unknown as Record<string, AdminSnapshot[]>;
+  if (!Array.isArray(catalog.readingPracticeScreens)) catalog.readingPracticeScreens = [];
+}
+
 export function workspaceItems(state: AdminWorkspaceState, collection: AdminMutableCollectionKey): AdminSnapshot[] {
   if (collection === 'navigationGroups') return state.navigation.groups;
   if (collection === 'navigationItems') return state.navigation.items;
-  return state.catalog[collection];
+  ensureWorkspaceCatalogShape(state);
+  return (state.catalog as unknown as Record<string, AdminSnapshot[]>)[collection] ?? [];
 }
 
 function replaceItem(state: AdminWorkspaceState, collection: AdminMutableCollectionKey, snapshot: AdminSnapshot) {
@@ -42,6 +48,7 @@ function legacyStatus(item: AdminSnapshot): PublicationStatus {
 // Imported records have no reliable actor; do not invent publication attribution.
 export function migrateAdminWorkspace(state: AdminWorkspaceState): AdminWorkspaceState & { workflow: NonNullable<AdminWorkspaceState['workflow']> } {
   const next = copy(state);
+  ensureWorkspaceCatalogShape(next);
   if (next.workflow) {
     if (next.workflow.schemaVersion !== 2 || !next.workflow.documents || !Array.isArray(next.workflow.audit)) {
       throw new Error('Unsupported admin workspace. Existing data has not been overwritten.');
@@ -162,6 +169,13 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       if (!question.taxonomy.taskTypeId || !question.taxonomy.levelId) issues.push('Task type and difficulty are required.');
       if (live.catalog.contentTypes.find((item) => item.id === question.taxonomy.contentTypeId)?.slug !== 'question') issues.push('Question content type is required.');
     }
+    if (collection === 'readingPracticeScreens') {
+      const screen = candidate as ReadingPracticeScreen;
+      if (!screen.passageParagraphs.length) issues.push('Reading passage is required before publishing.');
+      if (!screen.questions.length) issues.push('Reading practice needs at least one question.');
+      if (screen.questions.some((question) => question.options.length < 2)) issues.push('Every reading question needs at least two options.');
+      if (screen.questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every reading question needs a correct option.');
+    }
     if (collection === 'lessons') {
       const lesson = candidate as BaseEntity & { mediaProvider?: 'youtube' | 'vimeo' | 'upload'; mediaUrl?: string };
       const mediaIssue = validateVideoMediaUrl(lesson.mediaProvider, lesson.mediaUrl);
@@ -254,3 +268,5 @@ export function persistAdminWorkspace(storage: StoragePort, next: AdminWorkspace
   try { storage.setItem(workspaceStorageKey, JSON.stringify(next)); }
   catch { throw new Error('Save failed. Browser storage may be full or unavailable. Your changes remain in the editor.'); }
 }
+
+

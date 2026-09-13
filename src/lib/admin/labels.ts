@@ -10,7 +10,7 @@ const labels: Record<string, string> = {
   skills: 'Beceriler', taskTypes: 'Soru Türleri', subskills: 'Alt Beceriler', topics: 'Konular', levels: 'Seviyeler',
   courses: 'Kurslar', modules: 'Modüller', lessons: 'Dersler', vocabularySets: 'Kelime Setleri', vocabularyWords: 'Kelimeler',
   grammarCategories: 'Dil Bilgisi Kategorileri', grammarTopics: 'Dil Bilgisi Konuları', grammarLessons: 'Dil Bilgisi Dersleri',
-  questions: 'Sorular', questionOptions: 'Cevap Seçenekleri', practiceSets: 'Alıştırma Setleri', tests: 'Testler',
+  questions: 'Sorular', questionOptions: 'Cevap Seçenekleri', readingPracticeScreens: 'Okuma Pratikleri', practiceSets: 'Alıştırma Setleri', tests: 'Testler',
   contentTypes: 'İçerik Türleri', contentTags: 'Etiketler', title: 'Başlık', slug: 'Bağlantı adı', description: 'Açıklama',
   status: 'Durum', visibility: 'Görünürlük', sortOrder: 'Sıralama', isPremium: 'Premium erişim', prompt: 'Soru metni',
   explanation: 'Cevap açıklaması', stimulus: 'Kaynak metin', taxonomy: 'Sınıflandırma',
@@ -23,7 +23,7 @@ const labels: Record<string, string> = {
   durationSeconds: 'Süre (saniye)', estimatedMinutes: 'Tahmini süre (dakika)', route: 'Sayfa adresi',
   mediaProvider: 'Video sağlayıcısı', mediaUrl: 'Video bağlantısı', thumbnailUrl: 'Thumbnail bağlantısı',
   previewDurationSeconds: 'Önizleme süresi (saniye)', chapters: 'Bölümler', transcript: 'Altyazı / transkript',
-  resources: 'Kaynaklar', resourcesText: 'Kaynaklar', url: 'Bağlantı', sizeLabel: 'Boyut', premium: 'Premium',
+  resources: 'Kaynaklar', resourcesText: 'Kaynaklar', subtitle: 'Alt başlık', questionType: 'Soru türü', timeLimitSeconds: 'Süre sınırı', timeRemainingSeconds: 'Kalan süre', currentQuestionIndex: 'Aktif soru', answeredCount: 'Cevaplanan soru sayısı', markedCount: 'İşaretli soru sayısı', wordCount: 'Kelime sayısı', sourceLabel: 'Kaynak etiketi', passageTitle: 'Passage başlığı', passageParagraphs: 'Passage paragrafları', passageText: 'Passage metni', readingQuestionsText: 'Reading soruları', supportFocusTitle: 'Odak başlığı', supportFocusText: 'Odak metni', supportProgress: 'Odak ilerlemesi', supportHint: 'Odak ipucu', reviewTitle: 'Tekrar başlığı', reviewTips: 'Tekrar ipuçları', reviewTipsText: 'Tekrar ipuçları', url: 'Bağlantı', sizeLabel: 'Boyut', premium: 'Premium',
   isEnabled: 'Etkin', requiredPlan: 'Gerekli plan', allowedRoles: 'İzinli roller', iconKey: 'Simge', sort: 'Sıralama',
 };
 
@@ -57,6 +57,10 @@ const errors: Record<string, string> = {
   'A valid Vimeo video URL is required before publishing.': 'Yayınlamadan önce geçerli bir Vimeo bağlantısı eklenmeli.',
   'A stored video file is required before publishing.': 'Yayınlamadan önce yüklenmiş bir video dosyası seçilmeli.',
   'Yüklenen video dosyası seçilmeli.': 'Yayınlamadan önce yüklenmiş bir video dosyası seçilmeli.',
+  'Reading passage is required before publishing.': 'Yayınlamadan önce okuma metni eklenmeli.',
+  'Reading practice needs at least one question.': 'Okuma pratiğinde en az bir soru olmalı.',
+  'Every reading question needs at least two options.': 'Her okuma sorusunda en az iki seçenek olmalı.',
+  'Every reading question needs a correct option.': 'Her okuma sorusunda doğru seçenek işaretlenmeli.',
   'Admin access is required.': 'Yönetici yetkisi gerekli.',
   'This content changed. Reopen it before saving.': 'Bu içerik başka bir işlemde değiştirildi. Kaydetmeden önce yeniden açın.',
   'Content was not found.': 'İçerik bulunamadı.',

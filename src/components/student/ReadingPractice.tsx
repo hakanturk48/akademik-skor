@@ -1,18 +1,15 @@
+import { useEffect, useMemo, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
+import type { ReadingPracticeQuestion, ReadingPracticeScreen } from '@/lib/content';
+import { countReadingPracticeWords, formatReadingPracticeTimer, getReadingPracticeScreen, syncPublishedReadingPracticeScreens } from '@/lib/reading-practice-content';
 
 const fontFamily = 'Quicksand';
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
-
-type AnswerOption = {
-  key: string;
-  text: string;
-  selected?: boolean;
-};
 
 type MetricItem = {
   value: string;
@@ -33,28 +30,35 @@ const checkSymbol = symbolName('checkmark', 'check');
 const flagSymbol = symbolName('flag', 'flag');
 const targetSymbol = symbolName('target', 'track_changes');
 
-const passageParagraphs = [
-  'Sleep is a fundamental biological process that affects nearly every aspect of human health and performance. While scientists are still uncovering the full complexity of sleep, research has shown that a good night\'s rest plays a critical role in memory consolidation, immune function, emotional regulation, and physical recovery.',
-  'During sleep, the brain cycles through different stages, including both REM (rapid eye movement) and non-REM sleep. REM sleep is associated with dreaming and learning, while non-REM sleep is linked to deep rest and tissue repair. These cycles repeat several times throughout the night, typically lasting 90 to 110 minutes each.',
-  'Chronic sleep deprivation, on the other hand, has been tied to a range of negative outcomes. It can impair concentration, weaken decision-making, increase stress hormones, and even contribute to long-term health problems like heart disease and diabetes. Despite these risks, many people, especially students and professionals, regularly sacrifice sleep due to busy schedules or poor habits.',
-  'Improving sleep quality does not always require dramatic changes. Simple steps like maintaining a consistent sleep schedule, limiting screen time before bed, and creating a dark, quiet environment can have a meaningful impact. In short, prioritizing sleep is one of the most effective ways to support both mental and physical well-being.',
-];
+const emptyQuestion: ReadingPracticeQuestion = {
+  prompt: 'No question configured yet.',
+  options: [],
+};
 
-const metrics: MetricItem[] = [
-  { value: '4', label: 'Answered', color: studentTokens.teal },
-  { value: '0', label: 'Marked', color: studentTokens.yellowDeep },
-  { value: '6', label: 'Not Answered', color: '#b7c0d2' },
-  { value: '4 / 10', label: 'Questions', color: studentTokens.navy },
-];
+function clampCount(value: number | undefined, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.round(value ?? min)));
+}
 
-const answerOptions: AnswerOption[] = [
-  { key: 'A', text: 'Sleep cycles are composed of REM and non-REM stages.' },
-  { key: 'B', text: 'Sleep plays a vital role in both mental and physical health.', selected: true },
-  { key: 'C', text: 'Many people suffer from sleep deprivation due to stress.' },
-  { key: 'D', text: 'Small lifestyle changes can significantly improve sleep quality.' },
-];
+function getActiveQuestionIndex(content: ReadingPracticeScreen) {
+  const questionCount = Math.max(1, content.questions.length);
+  return clampCount(content.currentQuestionIndex, 0, questionCount - 1);
+}
 
-const questionNumbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+function buildMetrics(content: ReadingPracticeScreen): MetricItem[] {
+  const questionCount = Math.max(1, content.questions.length);
+  const activeQuestion = getActiveQuestionIndex(content);
+  const answered = clampCount(content.answeredCount, 0, questionCount);
+  const marked = clampCount(content.markedCount, 0, questionCount);
+  const unanswered = Math.max(0, questionCount - answered);
+
+  return [
+    { value: String(answered), label: 'Answered', color: studentTokens.teal },
+    { value: String(marked), label: 'Marked', color: studentTokens.yellowDeep },
+    { value: String(unanswered), label: 'Not Answered', color: '#b7c0d2' },
+    { value: `${activeQuestion + 1} / ${questionCount}`, label: 'Questions', color: studentTokens.navy },
+  ];
+}
 
 function HeaderMetric({ item }: { item: MetricItem }) {
   return (
@@ -68,7 +72,7 @@ function HeaderMetric({ item }: { item: MetricItem }) {
   );
 }
 
-function PageHeader({ compact }: { compact: boolean }) {
+function PageHeader({ compact, content, metrics }: { compact: boolean; content: ReadingPracticeScreen; metrics: MetricItem[] }) {
   const router = useRouter();
 
   return (
@@ -84,8 +88,8 @@ function PageHeader({ compact }: { compact: boolean }) {
             <SymbolView name={bookSymbol} tintColor={studentTokens.blue} size={25} style={styles.titleIcon} />
           </View>
           <View style={styles.titleCopy}>
-            <Text style={styles.pageTitle}>Reading Practice</Text>
-            <Text style={styles.pageSubtitle}>Main Idea · Practice Set 3 · TOEFL iBT Reading</Text>
+            <Text style={styles.pageTitle}>{content.title}</Text>
+            <Text style={styles.pageSubtitle}>{content.subtitle || content.description}</Text>
           </View>
         </View>
 
@@ -97,20 +101,20 @@ function PageHeader({ compact }: { compact: boolean }) {
   );
 }
 
-function PracticeToolbar({ compact }: { compact: boolean }) {
+function PracticeToolbar({ compact, content, timerText }: { compact: boolean; content: ReadingPracticeScreen; timerText: string }) {
   return (
     <Card style={styles.toolbarCard} contentStyle={[styles.toolbarBody, compact ? styles.toolbarBodyCompact : null]}>
       <View style={styles.toolbarItemWide}>
         <View style={styles.toolbarDiamond} />
         <Text style={styles.toolbarLabel}>Question Type</Text>
-        <Text style={styles.toolbarValue}>Main Idea</Text>
+        <Text style={styles.toolbarValue}>{content.questionType}</Text>
         <SymbolView name={arrowSymbol} tintColor="#7a8398" size={12} style={styles.toolbarIcon} />
       </View>
       {!compact ? <View style={styles.toolbarDivider} /> : null}
       <View style={styles.toolbarItem}>
         <SymbolView name={clockSymbol} tintColor={studentTokens.navy} size={15} style={styles.toolbarIcon} />
         <Text style={styles.toolbarLabel}>Time Remaining</Text>
-        <Text style={styles.toolbarValue}>18:24</Text>
+        <Text style={styles.toolbarValue}>{timerText}</Text>
       </View>
       {!compact ? <View style={styles.toolbarDivider} /> : null}
       <View style={styles.toolbarItem}>
@@ -135,48 +139,55 @@ function PracticeToolbar({ compact }: { compact: boolean }) {
   );
 }
 
-function PassageCard() {
+function PassageCard({ content }: { content: ReadingPracticeScreen }) {
+  const paragraphs = content.passageParagraphs.length ? content.passageParagraphs : ['No passage configured yet.'];
+  const wordCount = content.wordCount || countReadingPracticeWords(paragraphs);
+
   return (
     <Card style={styles.practiceCard} contentStyle={styles.passageBody}>
       <Text style={styles.cardKicker}>Passage 1 of 1</Text>
-      <Text style={styles.passageTitle}>The Science of Sleep: Why Rest Matters</Text>
+      <Text style={styles.passageTitle}>{content.passageTitle}</Text>
       <View style={styles.passageTextStack}>
-        {passageParagraphs.map((paragraph) => <Text key={paragraph} style={styles.passageText}>{paragraph}</Text>)}
+        {paragraphs.map((paragraph, index) => <Text key={`${index}-${paragraph.slice(0, 24)}`} style={styles.passageText}>{paragraph}</Text>)}
       </View>
       <View style={styles.passageFooter}>
         <View style={styles.footerInfo}>
           <SymbolView name={documentSymbol} tintColor="#7a8398" size={14} style={styles.footerIcon} />
-          <Text style={styles.footerText}>Word Count: 247</Text>
+          <Text style={styles.footerText}>Word Count: {wordCount}</Text>
         </View>
-        <Text style={styles.sourceText}>Source: Adapted from scientific American</Text>
+        {content.sourceLabel ? <Text style={styles.sourceText}>Source: {content.sourceLabel}</Text> : null}
       </View>
     </Card>
   );
 }
 
-function AnswerRow({ option }: { option: AnswerOption }) {
+function AnswerRow({ option, selected }: { option: ReadingPracticeQuestion['options'][number]; selected: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(option.selected) }} style={({ pressed }) => [styles.answerRow, option.selected ? styles.answerSelected : null, pressed ? styles.pressed : null]}>
-      <View style={[styles.answerLetter, option.selected ? styles.answerLetterSelected : null]}>
-        <Text style={[styles.answerLetterText, option.selected ? styles.answerLetterTextSelected : null]}>{option.key}</Text>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} style={({ pressed }) => [styles.answerRow, selected ? styles.answerSelected : null, pressed ? styles.pressed : null]}>
+      <View style={[styles.answerLetter, selected ? styles.answerLetterSelected : null]}>
+        <Text style={[styles.answerLetterText, selected ? styles.answerLetterTextSelected : null]}>{option.key}</Text>
       </View>
-      <Text style={[styles.answerText, option.selected ? styles.answerTextSelected : null]}>{option.text}</Text>
+      <Text style={[styles.answerText, selected ? styles.answerTextSelected : null]}>{option.text}</Text>
     </Pressable>
   );
 }
 
-function QuestionNavigator() {
+function QuestionNavigator({ content, activeIndex }: { content: ReadingPracticeScreen; activeIndex: number }) {
+  const questionCount = Math.max(1, content.questions.length);
+  const answered = clampCount(content.answeredCount, 0, questionCount);
+  const marked = clampCount(content.markedCount, 0, questionCount);
+
   return (
     <View style={styles.navigatorPanel}>
       <Text style={styles.navigatorLabel}>Question Navigator</Text>
       <View style={styles.navigatorRow}>
-        {questionNumbers.map((item, index) => {
-          const answered = index < 3;
-          const active = item === '4';
-          const marked = item === '5';
+        {Array.from({ length: questionCount }, (_, index) => {
+          const active = index === activeIndex;
+          const isAnswered = index < answered;
+          const isMarked = Boolean(content.questions[index]?.marked) || index < marked;
           return (
-            <View key={item} style={[styles.navigatorItem, answered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null, marked ? styles.navigatorMarked : null]}>
-              <Text style={[styles.navigatorText, active ? styles.navigatorTextActive : null]}>{item}</Text>
+            <View key={index} style={[styles.navigatorItem, isAnswered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null, isMarked ? styles.navigatorMarked : null]}>
+              <Text style={[styles.navigatorText, active ? styles.navigatorTextActive : null]}>{index + 1}</Text>
             </View>
           );
         })}
@@ -185,23 +196,27 @@ function QuestionNavigator() {
   );
 }
 
-function QuestionCard({ compact }: { compact: boolean }) {
+function QuestionCard({ compact, content, timerText }: { compact: boolean; content: ReadingPracticeScreen; timerText: string }) {
+  const activeIndex = getActiveQuestionIndex(content);
+  const activeQuestion = content.questions[activeIndex] ?? emptyQuestion;
+  const questionCount = Math.max(1, content.questions.length);
+
   return (
     <Card style={styles.practiceCard} contentStyle={styles.questionBody}>
       <View style={styles.questionTop}>
         <View style={styles.questionTitleGroup}>
-          <Text style={styles.cardKicker}>Question 4 of 10</Text>
-          <Text style={styles.questionTitle}>What is the main idea of the passage?</Text>
+          <Text style={styles.cardKicker}>Question {activeIndex + 1} of {questionCount}</Text>
+          <Text style={styles.questionTitle}>{activeQuestion.prompt}</Text>
         </View>
         <View style={styles.timePill}>
           <SymbolView name={clockSymbol} tintColor={studentTokens.orange} size={13} style={styles.timeIcon} />
-          <Text style={styles.timeText}>18:24</Text>
+          <Text style={styles.timeText}>{timerText}</Text>
         </View>
         {!compact ? <SymbolView name={moreSymbol} tintColor={studentTokens.text} size={18} style={styles.moreIcon} /> : null}
       </View>
 
       <View style={styles.answerList}>
-        {answerOptions.map((option) => <AnswerRow key={option.key} option={option} />)}
+        {activeQuestion.options.map((option) => <AnswerRow key={option.key} option={option} selected={option.key === activeQuestion.correctOptionKey} />)}
       </View>
 
       <View style={styles.reviewRow}>
@@ -210,7 +225,7 @@ function QuestionCard({ compact }: { compact: boolean }) {
         <SymbolView name={flagSymbol} tintColor={studentTokens.blue} size={13} style={styles.reviewIcon} />
       </View>
 
-      <QuestionNavigator />
+      <QuestionNavigator content={content} activeIndex={activeIndex} />
 
       <View style={[styles.questionActions, compact ? styles.questionActionsCompact : null]}>
         <Button label="Previous" size="sm" variant="secondary" style={[styles.navButton, compact ? styles.navButtonCompact : null]} />
@@ -222,34 +237,35 @@ function QuestionCard({ compact }: { compact: boolean }) {
   );
 }
 
-function SkillFocusCard() {
+function SkillFocusCard({ content }: { content: ReadingPracticeScreen }) {
   return (
     <Card style={styles.supportCard} contentStyle={styles.supportBody}>
       <View style={styles.supportHead}>
-        <Text style={styles.supportTitle}>READING FOCUS</Text>
+        <Text style={styles.supportTitle}>{content.supportFocusTitle}</Text>
         <View style={styles.focusIconBox}>
           <SymbolView name={targetSymbol} tintColor={studentTokens.yellowDeep} size={18} style={styles.focusIcon} />
         </View>
       </View>
-      <Text style={styles.supportMainText}>Main idea questions reward structure, not isolated details.</Text>
-      <Progress value={72} color={studentTokens.yellowDeep} style={styles.focusProgress} />
-      <Text style={styles.supportHint}>Practice Accuracy /100: 72 · Target section score: 24/30</Text>
+      <Text style={styles.supportMainText}>{content.supportFocusText}</Text>
+      <Progress value={content.supportProgress} color={studentTokens.yellowDeep} style={styles.focusProgress} />
+      <Text style={styles.supportHint}>{content.supportHint}</Text>
     </Card>
   );
 }
 
-function ReviewTipsCard() {
+function ReviewTipsCard({ content }: { content: ReadingPracticeScreen }) {
+  const tips = content.reviewTips.length ? content.reviewTips : ['No review tips configured yet.'];
+
   return (
     <Card style={styles.supportCard} contentStyle={styles.supportBody}>
       <View style={styles.supportHead}>
-        <Text style={styles.supportTitle}>NEXT REVIEW</Text>
+        <Text style={styles.supportTitle}>{content.reviewTitle}</Text>
         <View style={styles.checkIconBox}>
           <SymbolView name={checkSymbol} tintColor={studentTokens.teal} size={18} style={styles.focusIcon} />
         </View>
       </View>
       <View style={styles.tipList}>
-        <Text style={styles.tipText}>Eliminate answer choices that focus on only one paragraph.</Text>
-        <Text style={styles.tipText}>Confirm the selected answer covers the whole passage.</Text>
+        {tips.map((tip, index) => <Text key={`${index}-${tip.slice(0, 24)}`} style={styles.tipText}>{tip}</Text>)}
       </View>
     </Card>
   );
@@ -257,32 +273,44 @@ function ReviewTipsCard() {
 
 export function ReadingPractice() {
   const { width } = useWindowDimensions();
+  const [content, setContent] = useState(() => getReadingPracticeScreen());
   const isWide = width >= 1040;
   const isTablet = width >= 760;
   const isCompact = width < 620;
+  const metrics = useMemo(() => buildMetrics(content), [content]);
+  const timerText = formatReadingPracticeTimer(content.timeRemainingSeconds);
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedReadingPracticeScreens()
+      .catch(() => false)
+      .finally(() => {
+        if (active) setContent(getReadingPracticeScreen());
+      });
+    return () => { active = false; };
+  }, []);
 
   return (
     <View testID="reading-practice-screen" style={styles.screen}>
-      <PageHeader compact={!isTablet} />
-      <PracticeToolbar compact={isCompact} />
+      <PageHeader compact={!isTablet} content={content} metrics={metrics} />
+      <PracticeToolbar compact={isCompact} content={content} timerText={timerText} />
 
       <View style={[styles.practiceGrid, isWide ? styles.practiceGridWide : null]}>
         <View style={styles.passageColumn}>
-          <PassageCard />
+          <PassageCard content={content} />
         </View>
         <View style={[styles.questionColumn, !isWide ? styles.questionColumnStacked : null]}>
-          <QuestionCard compact={isCompact} />
+          <QuestionCard compact={isCompact} content={content} timerText={timerText} />
         </View>
       </View>
 
       <View style={[styles.supportGrid, isTablet ? styles.supportGridWide : null]}>
-        <SkillFocusCard />
-        <ReviewTipsCard />
+        <SkillFocusCard content={content} />
+        <ReviewTipsCard content={content} />
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   screen: { gap: 10 },
   pressed: { opacity: 0.72 },
@@ -390,3 +418,4 @@ const styles = StyleSheet.create({
   tipList: { gap: 8 },
   tipText: { fontFamily: fontFamily, color: '#4f5870', fontSize: 10, lineHeight: 15, fontWeight: '600' },
 });
+

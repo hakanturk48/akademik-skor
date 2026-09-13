@@ -16,6 +16,7 @@ import type {
   Visibility,
   Question,
   LessonResource,
+  ReadingPracticeScreen,
 } from '@/lib/content';
 import type { NavigationGroup, NavigationIconKey, NavigationItem, NavigationSeed } from '@/lib/navigation';
 
@@ -46,6 +47,7 @@ export const adminModules: AdminModuleConfig[] = [
   { key: 'taxonomy', title: 'Sınıflandırma', description: 'Sınav, beceri, soru türü, konu ve seviye yapısı.', iconKey: 'taxonomy' },
   { key: 'courses', title: 'Kurslar', description: 'Kurs, modül ve ders yapısı.', iconKey: 'courses' },
   { key: 'video-lessons', title: 'Video Dersler', description: 'Video ders bilgileri, erişim ve sıralama.', iconKey: 'video' },
+  { key: 'reading-practice', title: 'Okuma Pratiği', description: 'Reading Practice ekranı, passage ve soru akışı.', iconKey: 'reading' },
   { key: 'vocabulary', title: 'Kelime Çalışmaları', description: 'Kelime setleri ve kelimeler.', iconKey: 'vocabulary' },
   { key: 'grammar', title: 'Dil Bilgisi', description: 'Dil bilgisi kategorileri, konuları ve dersleri.', iconKey: 'grammar' },
   { key: 'question-bank', title: 'Soru Bankası', description: 'Sorular, filtreler ve cevap seçenekleri.', iconKey: 'questions' },
@@ -75,6 +77,9 @@ export const adminModuleCollections: Record<Exclude<AdminModuleKey, 'dashboard'>
   ],
   'video-lessons': [
     { key: 'lessons', label: 'Video Dersler', singularLabel: 'Video Ders', description: 'Sınıflandırılmış video ders kataloğu.', contentTypeSlug: 'video-lesson' },
+  ],
+  'reading-practice': [
+    { key: 'readingPracticeScreens', label: 'Okuma Pratikleri', singularLabel: 'Okuma Pratiği', description: 'Reading Practice ekranının passage, soru ve yönergeleri.' },
   ],
   vocabulary: [
     { key: 'vocabularySets', label: 'Kelime Setleri', singularLabel: 'Kelime Seti', description: 'Gruplandırılmış TOEFL kelime setleri.' },
@@ -186,6 +191,185 @@ function serializeLessonResourcesText(resources?: LessonResource[]) {
   return (resources ?? []).map((resource) => [resource.title, resource.type, resource.sizeLabel, resource.url, resource.premium ? 'premium' : undefined].filter(Boolean).join('|')).join('\n');
 }
 
+
+const defaultReadingPassageText = [
+  "Sleep is a fundamental biological process that affects nearly every aspect of human health and performance. While scientists are still uncovering the full complexity of sleep, research has shown that a good night's rest plays a critical role in memory consolidation, immune function, emotional regulation, and physical recovery.",
+  'During sleep, the brain cycles through different stages, including both REM (rapid eye movement) and non-REM sleep. REM sleep is associated with dreaming and learning, while non-REM sleep is linked to deep rest and tissue repair. These cycles repeat several times throughout the night, typically lasting 90 to 110 minutes each.',
+  'Chronic sleep deprivation, on the other hand, has been tied to a range of negative outcomes. It can impair concentration, weaken decision-making, increase stress hormones, and even contribute to long-term health problems like heart disease and diabetes. Despite these risks, many people, especially students and professionals, regularly sacrifice sleep due to busy schedules or poor habits.',
+  'Improving sleep quality does not always require dramatic changes. Simple steps like maintaining a consistent sleep schedule, limiting screen time before bed, and creating a dark, quiet environment can have a meaningful impact. In short, prioritizing sleep is one of the most effective ways to support both mental and physical well-being.',
+].join('\n\n');
+
+const defaultReadingQuestionsText = [
+  "Which sentence best states the main idea of paragraph 1?\nA|Scientists already understand every detail of sleep.\nB*|Sleep strongly supports health, learning, emotion, and recovery.\nC|Physical recovery only happens during REM sleep.\nD|Students need less sleep than other adults.",
+  'What is the main purpose of paragraph 2?\nA*|To explain that sleep includes repeating stages with different functions.\nB|To argue that REM sleep is harmful for learners.\nC|To compare sleep research with medical treatment.\nD|To list common causes of poor sleep.',
+  'According to the passage, what can chronic sleep deprivation do?\nA|It can improve stress tolerance.\nB|It can eliminate the need for exercise.\nC*|It can harm concentration and long-term health.\nD|It can make REM cycles shorter than usual.',
+  'What is the main idea of the passage?\nA|Sleep cycles are composed of REM and non-REM stages.\nB*|Sleep plays a vital role in both mental and physical health.\nC|Many people suffer from sleep deprivation due to stress.\nD|Small lifestyle changes can significantly improve sleep quality.',
+].join('\n---\n');
+const defaultReadingReviewTipsText = 'Eliminate answer choices that focus on only one paragraph.\nConfirm the selected answer covers the whole passage.';
+
+function defaultReadingPracticeDraftFields(): Partial<AdminEntityDraft> {
+  return {
+    title: 'Reading Practice',
+    slug: 'reading-practice',
+    description: 'Main Idea · Practice Set 3 · TOEFL iBT Reading',
+    subtitle: 'Main Idea · Practice Set 3 · TOEFL iBT Reading',
+    questionType: 'Main Idea',
+    timeLimitSeconds: 1200,
+    timeRemainingSeconds: 1104,
+    currentQuestionIndex: 3,
+    answeredCount: 4,
+    markedCount: 0,
+    wordCount: 247,
+    sourceLabel: 'Adapted from scientific American',
+    passageTitle: 'The Science of Sleep: Why Rest Matters',
+    passageText: defaultReadingPassageText,
+    readingQuestionsText: defaultReadingQuestionsText,
+    supportFocusTitle: 'READING FOCUS',
+    supportFocusText: 'Main idea questions reward structure, not isolated details.',
+    supportProgress: 72,
+    supportHint: 'Practice Accuracy /100: 72 · Target section score: 24/30',
+    reviewTitle: 'NEXT REVIEW',
+    reviewTipsText: defaultReadingReviewTipsText,
+  };
+}
+
+function clampAdminNumber(value: unknown, min: number, max: number) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, Math.round(number)));
+}
+
+function parseReadingPassageText(value?: string) {
+  return (value ?? '').split(/\r?\n\s*\r?\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+}
+
+function serializeReadingPassageText(paragraphs?: string[]) {
+  return (paragraphs ?? []).join('\n\n');
+}
+
+function countReadingWords(paragraphs: string[]) {
+  return paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;
+}
+
+function parseReviewTipsText(value?: string) {
+  return (value ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function serializeReviewTipsText(tips?: string[]) {
+  return (tips ?? []).join('\n');
+}
+
+function parseReadingPracticeQuestionsText(value?: string) {
+  const questions: ReadingPracticeScreen['questions'] = [];
+  const invalidLines: string[] = [];
+  const blocks = (value ?? '').split(/\r?\n\s*-{3,}\s*\r?\n/).map((block) => block.trim()).filter(Boolean);
+
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const prompt = lines.shift() ?? '';
+    const options: ReadingPracticeScreen['questions'][number]['options'] = [];
+    let correctOptionKey: string | undefined;
+    let marked = false;
+
+    for (const line of lines) {
+      const meta = /^(correct|dogru|doğru|marked|isaretli|işaretli)\s*[:=]\s*(.+)$/i.exec(line);
+      if (meta) {
+        const key = meta[1].toLowerCase();
+        if (key === 'marked' || key === 'isaretli' || key === 'işaretli') {
+          marked = ['1', 'true', 'evet', 'yes'].includes(meta[2].trim().toLowerCase());
+        } else {
+          correctOptionKey = meta[2].trim().toUpperCase().slice(0, 1);
+        }
+        continue;
+      }
+
+      const option = /^([A-Z])(\*)?\s*\|\s*(.+)$/i.exec(line);
+      if (!option) {
+        invalidLines.push(line);
+        continue;
+      }
+
+      const optionKey = option[1].toUpperCase();
+      if (option[2]) correctOptionKey = optionKey;
+      options.push({ key: optionKey, text: option[3].trim() });
+    }
+
+    if (!prompt || options.length < 2 || new Set(options.map((option) => option.key)).size !== options.length) {
+      invalidLines.push(block);
+      continue;
+    }
+
+    questions.push({ prompt, options, ...(correctOptionKey ? { correctOptionKey } : {}), ...(marked ? { marked } : {}) });
+  }
+
+  return { questions, invalidLines };
+}
+
+function serializeReadingPracticeQuestionsText(questions?: ReadingPracticeScreen['questions']) {
+  return (questions ?? []).map((question) => [
+    question.prompt,
+    ...question.options.map((option) => `${option.key}${option.key === question.correctOptionKey ? '*' : ''}|${option.text}`),
+    question.marked ? 'marked: true' : undefined,
+  ].filter(Boolean).join('\n')).join('\n---\n');
+}
+
+function readingPracticeDraftFromScreen(screen?: Partial<ReadingPracticeScreen>, row?: Pick<AdminEntityRow, 'description'>): Partial<AdminEntityDraft> {
+  const defaults = defaultReadingPracticeDraftFields();
+  return {
+    subtitle: screen?.subtitle ?? row?.description ?? defaults.subtitle,
+    questionType: screen?.questionType ?? defaults.questionType,
+    timeLimitSeconds: screen?.timeLimitSeconds ?? defaults.timeLimitSeconds,
+    timeRemainingSeconds: screen?.timeRemainingSeconds ?? defaults.timeRemainingSeconds,
+    currentQuestionIndex: screen?.currentQuestionIndex ?? defaults.currentQuestionIndex,
+    answeredCount: screen?.answeredCount ?? defaults.answeredCount,
+    markedCount: screen?.markedCount ?? defaults.markedCount,
+    wordCount: screen?.wordCount ?? defaults.wordCount,
+    sourceLabel: screen?.sourceLabel ?? defaults.sourceLabel,
+    passageTitle: screen?.passageTitle ?? defaults.passageTitle,
+    passageText: serializeReadingPassageText(screen?.passageParagraphs) || defaults.passageText,
+    readingQuestionsText: serializeReadingPracticeQuestionsText(screen?.questions) || defaults.readingQuestionsText,
+    supportFocusTitle: screen?.supportFocusTitle ?? defaults.supportFocusTitle,
+    supportFocusText: screen?.supportFocusText ?? defaults.supportFocusText,
+    supportProgress: screen?.supportProgress ?? defaults.supportProgress,
+    supportHint: screen?.supportHint ?? defaults.supportHint,
+    reviewTitle: screen?.reviewTitle ?? defaults.reviewTitle,
+    reviewTipsText: serializeReviewTipsText(screen?.reviewTips) || defaults.reviewTipsText,
+  };
+}
+
+function readingPracticeFieldsFromDraft(draft: Partial<AdminEntityDraft>, existing?: Partial<ReadingPracticeScreen>): Omit<ReadingPracticeScreen, keyof BaseEntity> {
+  const defaults = defaultReadingPracticeDraftFields();
+  const existingPassageText = serializeReadingPassageText(existing?.passageParagraphs);
+  const existingQuestionsText = serializeReadingPracticeQuestionsText(existing?.questions);
+  const passageParagraphs = parseReadingPassageText(draft.passageText ?? (existingPassageText || String(defaults.passageText)));
+  const parsedQuestions = parseReadingPracticeQuestionsText(draft.readingQuestionsText ?? (existingQuestionsText || String(defaults.readingQuestionsText)));
+  const fallbackQuestions = parseReadingPracticeQuestionsText(String(defaults.readingQuestionsText)).questions;
+  const questions = parsedQuestions.questions.length ? parsedQuestions.questions : fallbackQuestions;
+  const totalQuestions = Math.max(1, questions.length);
+  const timeLimitSeconds = clampAdminNumber(draft.timeLimitSeconds ?? existing?.timeLimitSeconds ?? defaults.timeLimitSeconds, 0, 24 * 60 * 60);
+  const timeRemainingSeconds = clampAdminNumber(draft.timeRemainingSeconds ?? existing?.timeRemainingSeconds ?? defaults.timeRemainingSeconds, 0, Math.max(timeLimitSeconds, 1));
+
+  return {
+    subtitle: draft.subtitle?.trim() || existing?.subtitle || draft.description?.trim() || String(defaults.subtitle),
+    questionType: draft.questionType?.trim() || existing?.questionType || String(defaults.questionType),
+    timeLimitSeconds,
+    timeRemainingSeconds,
+    currentQuestionIndex: clampAdminNumber(draft.currentQuestionIndex ?? existing?.currentQuestionIndex ?? defaults.currentQuestionIndex, 0, totalQuestions - 1),
+    answeredCount: clampAdminNumber(draft.answeredCount ?? existing?.answeredCount ?? defaults.answeredCount, 0, totalQuestions),
+    markedCount: clampAdminNumber(draft.markedCount ?? existing?.markedCount ?? defaults.markedCount, 0, totalQuestions),
+    wordCount: clampAdminNumber(draft.wordCount ?? existing?.wordCount ?? countReadingWords(passageParagraphs), 0, 99999),
+    sourceLabel: draft.sourceLabel?.trim() || existing?.sourceLabel || String(defaults.sourceLabel),
+    passageTitle: draft.passageTitle?.trim() || existing?.passageTitle || String(defaults.passageTitle),
+    passageParagraphs: passageParagraphs.length ? passageParagraphs : parseReadingPassageText(String(defaults.passageText)),
+    questions,
+    supportFocusTitle: draft.supportFocusTitle?.trim() || existing?.supportFocusTitle || String(defaults.supportFocusTitle),
+    supportFocusText: draft.supportFocusText?.trim() || existing?.supportFocusText || String(defaults.supportFocusText),
+    supportProgress: clampAdminNumber(draft.supportProgress ?? existing?.supportProgress ?? defaults.supportProgress, 0, 100),
+    supportHint: draft.supportHint?.trim() || existing?.supportHint || String(defaults.supportHint),
+    reviewTitle: draft.reviewTitle?.trim() || existing?.reviewTitle || String(defaults.reviewTitle),
+    reviewTips: parseReviewTipsText(draft.reviewTipsText ?? (serializeReviewTipsText(existing?.reviewTips) || String(defaults.reviewTipsText))),
+  };
+}
 function contentTypeId(catalog: ContentCatalog, slug: string) {
   return catalog.contentTypes.find((item) => item.slug === slug)?.id ?? firstId(catalog.contentTypes);
 }
@@ -236,7 +420,6 @@ function nextSortOrder(items: { sortOrder: number }[]) {
 function collectionItems(catalog: ContentCatalog, collection: AdminMutableCollectionKey): BaseEntity[] {
   return (catalog as unknown as Record<string, BaseEntity[]>)[collection] ?? [];
 }
-
 function contentTypeMatches(catalog: ContentCatalog, item: BaseEntity, config?: AdminCollectionConfig) {
   if (!config?.contentTypeSlug || !('taxonomy' in item)) return true;
   const expectedContentTypeId = catalog.contentTypes.find((type) => type.slug === config.contentTypeSlug)?.id;
@@ -437,6 +620,8 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
         resources: resources.resources,
       };
     }
+    case 'readingPracticeScreens':
+      return { ...base, ...readingPracticeFieldsFromDraft({ ...defaultReadingPracticeDraftFields(), ...draft }) };
     case 'vocabularySets':
       return { ...base, taxonomy, wordIds: [], targetLevelId: firstId(catalog.levels) };
     case 'vocabularyWords':
@@ -537,6 +722,10 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
     if (draft.resourcesText !== undefined) {
       lesson.resources = parseLessonResourcesText(draft.resourcesText).resources;
     }
+  }
+
+  if (collection === 'readingPracticeScreens') {
+    Object.assign(next as BaseEntity & ReadingPracticeScreen, readingPracticeFieldsFromDraft(draft, next as Partial<ReadingPracticeScreen>));
   }
 
   return next;
@@ -662,6 +851,11 @@ function relationSummary(state: AdminWorkspaceState, collection: AdminCollection
     return `${count} bağlantı · ${entity.placement}`;
   }
 
+  if (collection === 'readingPracticeScreens') {
+    const screen = entity as BaseEntity & Partial<ReadingPracticeScreen>;
+    return `${screen.questions?.length ?? 0} soru · ${screen.passageParagraphs?.length ?? 0} paragraf`;
+  }
+
   if ('taxonomy' in entity) {
     const taxonomy = (entity as BaseEntity & { taxonomy?: TaxonomyRef }).taxonomy;
     const breadcrumb = taxonomy ? getTaxonomyBreadcrumb(state.catalog, taxonomy).join(' / ') : '';
@@ -724,7 +918,7 @@ export function listAdminRows(state: AdminWorkspaceState, collection: AdminMutab
 }
 
 export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashboardMetrics {
-  const contentCollections: AdminMutableCollectionKey[] = ['courses', 'modules', 'lessons', 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
+  const contentCollections: AdminMutableCollectionKey[] = ['courses', 'modules', 'lessons', 'readingPracticeScreens', 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
   const rows = contentCollections.flatMap((collection) => listAdminRows(state, collection));
 
   return {
@@ -738,7 +932,7 @@ export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashb
 
 export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: AdminEntityRow, catalog?: ContentCatalog): AdminEntityDraft {
   if (row) {
-    const raw = row.raw as BaseEntity & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
+    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
     return {
       title: row.title,
       slug: row.slug,
@@ -762,6 +956,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
         durationSeconds: raw.durationSeconds ?? 900,
         estimatedMinutes: raw.estimatedMinutes ?? 15,
       } : {}),
+      ...(collection === 'readingPracticeScreens' ? readingPracticeDraftFromScreen(raw, row) : {}),
       ...(collection === 'questions' && catalog ? { question: readQuestionDraft(catalog, row.raw as Question) } : {}),
     };
   }
@@ -777,6 +972,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
     prompt: '',
     explanation: '',
     ...(collection === 'lessons' ? { mediaProvider: 'youtube' as const, mediaUrl: '', courseId: firstId(catalog?.courses ?? []), moduleId: firstId(catalog?.modules ?? []), thumbnailUrl: '', previewDurationSeconds: 0, chaptersText: '', transcriptText: '', resourcesText: '', durationSeconds: 900, estimatedMinutes: 15 } : {}),
+    ...(collection === 'readingPracticeScreens' ? defaultReadingPracticeDraftFields() : {}),
     ...(collection === 'questions' && catalog ? { question: { taxonomy: defaultTaxonomy(catalog, 'question'), stimulus: '', options: [] } } : {}),
   };
 }
@@ -797,6 +993,18 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push('Bölümler her satırda zaman|başlık biçiminde olmalı.');
     if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push('Transkript her satırda zaman|metin biçiminde olmalı.');
     if (draft.resourcesText && parseLessonResourcesText(draft.resourcesText).invalidLines.length) issues.push('Kaynaklar her satırda başlık|tür|boyut|url|premium biçiminde olmalı.');
+  }
+  if (collection === 'readingPracticeScreens') {
+    const paragraphs = parseReadingPassageText(draft.passageText);
+    const questions = parseReadingPracticeQuestionsText(draft.readingQuestionsText);
+    if ((draft.passageTitle ?? '').trim().length < 2) issues.push('Passage başlığı en az 2 karakter olmalı.');
+    if (!paragraphs.length) issues.push('Reading passage is required before publishing.');
+    if (questions.invalidLines.length) issues.push('Sorular her blokta soru metni ve A|seçenek biçiminde olmalı. Doğru seçenek için B*|metin kullanın.');
+    if (!questions.questions.length) issues.push('Reading practice needs at least one question.');
+    if (questions.questions.some((question) => question.options.length < 2)) issues.push('Every reading question needs at least two options.');
+    if (questions.questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every reading question needs a correct option.');
+    if ((draft.currentQuestionIndex ?? 0) < 0 || (draft.currentQuestionIndex ?? 0) >= Math.max(1, questions.questions.length)) issues.push('Aktif soru numarası mevcut soru sayısını aşamaz.');
+    if ((draft.timeRemainingSeconds ?? 0) > (draft.timeLimitSeconds ?? Number.MAX_SAFE_INTEGER)) issues.push('Kalan süre toplam süreyi aşamaz.');
   }
   return issues;
 }
@@ -852,3 +1060,5 @@ export function collectionLabel(collection: AdminMutableCollectionKey) {
 export function contentTypeLabel(catalog: ContentCatalog, contentType?: ContentType) {
   return contentType?.title ?? catalog.contentTypes[0]?.title ?? 'Content';
 }
+
+
