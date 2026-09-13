@@ -7,6 +7,8 @@ import type {
   AdminWorkspaceState, PublicationStatus, VersionDiff,
 } from './types';
 
+const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
+
 export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'published', 'archived'];
 export const workflowCollections: AdminMutableCollectionKey[] = [
   'navigationGroups', 'navigationItems', 'exams', 'examVersions', 'skills', 'taskTypes',
@@ -173,8 +175,11 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       const screen = candidate as ReadingPracticeScreen;
       if (!screen.passageParagraphs.length) issues.push('Reading passage is required before publishing.');
       if (!screen.questions.length) issues.push('Reading practice needs at least one question.');
-      if (screen.questions.some((question) => question.options.length < 2)) issues.push('Every reading question needs at least two options.');
+      if (screen.questions.some((question) => question.prompt.trim().length < 8)) issues.push('Every reading question needs a prompt.');
+      if (screen.questions.some((question) => question.options.length !== readingPracticeOptionKeys.length || !readingPracticeOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push('Every reading question needs exactly five options.');
+      if (screen.questions.some((question) => question.options.some((option) => !option.text.trim()))) issues.push('Every reading option needs text.');
       if (screen.questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every reading question needs a correct option.');
+      if (screen.questions.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push('Reading option texts must be distinct.');
     }
     if (collection === 'lessons') {
       const lesson = candidate as BaseEntity & { mediaProvider?: 'youtube' | 'vimeo' | 'upload'; mediaUrl?: string };
@@ -268,5 +273,3 @@ export function persistAdminWorkspace(storage: StoragePort, next: AdminWorkspace
   try { storage.setItem(workspaceStorageKey, JSON.stringify(next)); }
   catch { throw new Error('Save failed. Browser storage may be full or unavailable. Your changes remain in the editor.'); }
 }
-
-

@@ -200,12 +200,40 @@ const defaultReadingPassageText = [
 ].join('\n\n');
 
 const defaultReadingQuestionsText = [
-  "Which sentence best states the main idea of paragraph 1?\nA|Scientists already understand every detail of sleep.\nB*|Sleep strongly supports health, learning, emotion, and recovery.\nC|Physical recovery only happens during REM sleep.\nD|Students need less sleep than other adults.",
-  'What is the main purpose of paragraph 2?\nA*|To explain that sleep includes repeating stages with different functions.\nB|To argue that REM sleep is harmful for learners.\nC|To compare sleep research with medical treatment.\nD|To list common causes of poor sleep.',
-  'According to the passage, what can chronic sleep deprivation do?\nA|It can improve stress tolerance.\nB|It can eliminate the need for exercise.\nC*|It can harm concentration and long-term health.\nD|It can make REM cycles shorter than usual.',
-  'What is the main idea of the passage?\nA|Sleep cycles are composed of REM and non-REM stages.\nB*|Sleep plays a vital role in both mental and physical health.\nC|Many people suffer from sleep deprivation due to stress.\nD|Small lifestyle changes can significantly improve sleep quality.',
+  "Which sentence best states the main idea of paragraph 1?\nA|Scientists already understand every detail of sleep.\nB*|Sleep strongly supports health, learning, emotion, and recovery.\nC|Physical recovery only happens during REM sleep.\nD|Students need less sleep than other adults.\nE|Sleep has no relationship to memory or emotion.",
+  'What is the main purpose of paragraph 2?\nA*|To explain that sleep includes repeating stages with different functions.\nB|To argue that REM sleep is harmful for learners.\nC|To compare sleep research with medical treatment.\nD|To list common causes of poor sleep.\nE|To recommend replacing sleep with short naps.',
+  'According to the passage, what can chronic sleep deprivation do?\nA|It can improve stress tolerance.\nB|It can eliminate the need for exercise.\nC*|It can harm concentration and long-term health.\nD|It can make REM cycles shorter than usual.\nE|It can make every student perform better.',
+  'What is the main idea of the passage?\nA|Sleep cycles are composed of REM and non-REM stages.\nB*|Sleep plays a vital role in both mental and physical health.\nC|Many people suffer from sleep deprivation due to stress.\nD|Small lifestyle changes can significantly improve sleep quality.\nE|The passage mainly compares sleep with exercise.',
 ].join('\n---\n');
 const defaultReadingReviewTipsText = 'Eliminate answer choices that focus on only one paragraph.\nConfirm the selected answer covers the whole passage.';
+const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'] as const;
+
+type ReadingPracticeQuestionDraft = ReadingPracticeScreen['questions'][number];
+
+function isReadingPracticeOptionKey(value: string): value is typeof readingPracticeOptionKeys[number] {
+  return (readingPracticeOptionKeys as readonly string[]).includes(value);
+}
+
+function normalizeReadingPracticeQuestion(question?: Partial<ReadingPracticeQuestionDraft>): ReadingPracticeQuestionDraft {
+  const rawOptions = question?.options ?? [];
+  const options = readingPracticeOptionKeys.map((key) => {
+    const match = rawOptions.find((option) => option.key.toUpperCase() === key);
+    return { key, text: match?.text?.trim() ?? '' };
+  });
+  const rawCorrect = question?.correctOptionKey?.toUpperCase() ?? '';
+  const correctOptionKey = isReadingPracticeOptionKey(rawCorrect) ? rawCorrect : undefined;
+
+  return {
+    prompt: question?.prompt?.trim() ?? '',
+    options,
+    ...(correctOptionKey ? { correctOptionKey } : {}),
+    ...(question?.marked ? { marked: true } : {}),
+  };
+}
+
+function normalizeReadingPracticeQuestions(questions?: ReadingPracticeQuestionDraft[]) {
+  return (questions ?? []).map((question) => normalizeReadingPracticeQuestion(question));
+}
 
 function defaultReadingPracticeDraftFields(): Partial<AdminEntityDraft> {
   return {
@@ -215,15 +243,16 @@ function defaultReadingPracticeDraftFields(): Partial<AdminEntityDraft> {
     subtitle: 'Main Idea · Practice Set 3 · TOEFL iBT Reading',
     questionType: 'Main Idea',
     timeLimitSeconds: 1200,
-    timeRemainingSeconds: 1104,
-    currentQuestionIndex: 3,
-    answeredCount: 4,
+    timeRemainingSeconds: 1200,
+    currentQuestionIndex: 0,
+    answeredCount: 0,
     markedCount: 0,
-    wordCount: 247,
+    wordCount: countReadingWords(parseReadingPassageText(defaultReadingPassageText)),
     sourceLabel: 'Adapted from scientific American',
     passageTitle: 'The Science of Sleep: Why Rest Matters',
     passageText: defaultReadingPassageText,
     readingQuestionsText: defaultReadingQuestionsText,
+    readingQuestions: parseReadingPracticeQuestionsText(defaultReadingQuestionsText).questions,
     supportFocusTitle: 'READING FOCUS',
     supportFocusText: 'Main idea questions reward structure, not isolated details.',
     supportProgress: 72,
@@ -294,19 +323,19 @@ function parseReadingPracticeQuestionsText(value?: string) {
       options.push({ key: optionKey, text: option[3].trim() });
     }
 
-    if (!prompt || options.length < 2 || new Set(options.map((option) => option.key)).size !== options.length) {
+    if (!prompt || !options.length || new Set(options.map((option) => option.key)).size !== options.length) {
       invalidLines.push(block);
       continue;
     }
 
-    questions.push({ prompt, options, ...(correctOptionKey ? { correctOptionKey } : {}), ...(marked ? { marked } : {}) });
+    questions.push(normalizeReadingPracticeQuestion({ prompt, options, ...(correctOptionKey ? { correctOptionKey } : {}), ...(marked ? { marked } : {}) }));
   }
 
   return { questions, invalidLines };
 }
 
 function serializeReadingPracticeQuestionsText(questions?: ReadingPracticeScreen['questions']) {
-  return (questions ?? []).map((question) => [
+  return normalizeReadingPracticeQuestions(questions).map((question) => [
     question.prompt,
     ...question.options.map((option) => `${option.key}${option.key === question.correctOptionKey ? '*' : ''}|${option.text}`),
     question.marked ? 'marked: true' : undefined,
@@ -315,19 +344,23 @@ function serializeReadingPracticeQuestionsText(questions?: ReadingPracticeScreen
 
 function readingPracticeDraftFromScreen(screen?: Partial<ReadingPracticeScreen>, row?: Pick<AdminEntityRow, 'description'>): Partial<AdminEntityDraft> {
   const defaults = defaultReadingPracticeDraftFields();
+  const passageParagraphs = screen?.passageParagraphs?.length ? screen.passageParagraphs : parseReadingPassageText(String(defaults.passageText));
+  const questions = normalizeReadingPracticeQuestions(screen?.questions?.length ? screen.questions : defaults.readingQuestions);
+
   return {
     subtitle: screen?.subtitle ?? row?.description ?? defaults.subtitle,
     questionType: screen?.questionType ?? defaults.questionType,
     timeLimitSeconds: screen?.timeLimitSeconds ?? defaults.timeLimitSeconds,
-    timeRemainingSeconds: screen?.timeRemainingSeconds ?? defaults.timeRemainingSeconds,
-    currentQuestionIndex: screen?.currentQuestionIndex ?? defaults.currentQuestionIndex,
-    answeredCount: screen?.answeredCount ?? defaults.answeredCount,
-    markedCount: screen?.markedCount ?? defaults.markedCount,
-    wordCount: screen?.wordCount ?? defaults.wordCount,
+    timeRemainingSeconds: screen?.timeLimitSeconds ?? defaults.timeLimitSeconds,
+    currentQuestionIndex: 0,
+    answeredCount: 0,
+    markedCount: 0,
+    wordCount: countReadingWords(passageParagraphs),
     sourceLabel: screen?.sourceLabel ?? defaults.sourceLabel,
     passageTitle: screen?.passageTitle ?? defaults.passageTitle,
-    passageText: serializeReadingPassageText(screen?.passageParagraphs) || defaults.passageText,
-    readingQuestionsText: serializeReadingPracticeQuestionsText(screen?.questions) || defaults.readingQuestionsText,
+    passageText: serializeReadingPassageText(passageParagraphs),
+    readingQuestionsText: serializeReadingPracticeQuestionsText(questions),
+    readingQuestions: questions,
     supportFocusTitle: screen?.supportFocusTitle ?? defaults.supportFocusTitle,
     supportFocusText: screen?.supportFocusText ?? defaults.supportFocusText,
     supportProgress: screen?.supportProgress ?? defaults.supportProgress,
@@ -342,25 +375,26 @@ function readingPracticeFieldsFromDraft(draft: Partial<AdminEntityDraft>, existi
   const existingPassageText = serializeReadingPassageText(existing?.passageParagraphs);
   const existingQuestionsText = serializeReadingPracticeQuestionsText(existing?.questions);
   const passageParagraphs = parseReadingPassageText(draft.passageText ?? (existingPassageText || String(defaults.passageText)));
-  const parsedQuestions = parseReadingPracticeQuestionsText(draft.readingQuestionsText ?? (existingQuestionsText || String(defaults.readingQuestionsText)));
-  const fallbackQuestions = parseReadingPracticeQuestionsText(String(defaults.readingQuestionsText)).questions;
-  const questions = parsedQuestions.questions.length ? parsedQuestions.questions : fallbackQuestions;
-  const totalQuestions = Math.max(1, questions.length);
+  const parsedQuestions = draft.readingQuestions?.length
+    ? { questions: normalizeReadingPracticeQuestions(draft.readingQuestions), invalidLines: [] }
+    : parseReadingPracticeQuestionsText(draft.readingQuestionsText ?? (existingQuestionsText || String(defaults.readingQuestionsText)));
+  const fallbackQuestions = normalizeReadingPracticeQuestions(defaults.readingQuestions);
+  const questions = normalizeReadingPracticeQuestions(parsedQuestions.questions.length ? parsedQuestions.questions : fallbackQuestions);
+  const finalPassageParagraphs = passageParagraphs.length ? passageParagraphs : parseReadingPassageText(String(defaults.passageText));
   const timeLimitSeconds = clampAdminNumber(draft.timeLimitSeconds ?? existing?.timeLimitSeconds ?? defaults.timeLimitSeconds, 0, 24 * 60 * 60);
-  const timeRemainingSeconds = clampAdminNumber(draft.timeRemainingSeconds ?? existing?.timeRemainingSeconds ?? defaults.timeRemainingSeconds, 0, Math.max(timeLimitSeconds, 1));
 
   return {
     subtitle: draft.subtitle?.trim() || existing?.subtitle || draft.description?.trim() || String(defaults.subtitle),
     questionType: draft.questionType?.trim() || existing?.questionType || String(defaults.questionType),
     timeLimitSeconds,
-    timeRemainingSeconds,
-    currentQuestionIndex: clampAdminNumber(draft.currentQuestionIndex ?? existing?.currentQuestionIndex ?? defaults.currentQuestionIndex, 0, totalQuestions - 1),
-    answeredCount: clampAdminNumber(draft.answeredCount ?? existing?.answeredCount ?? defaults.answeredCount, 0, totalQuestions),
-    markedCount: clampAdminNumber(draft.markedCount ?? existing?.markedCount ?? defaults.markedCount, 0, totalQuestions),
-    wordCount: clampAdminNumber(draft.wordCount ?? existing?.wordCount ?? countReadingWords(passageParagraphs), 0, 99999),
+    timeRemainingSeconds: timeLimitSeconds,
+    currentQuestionIndex: 0,
+    answeredCount: 0,
+    markedCount: 0,
+    wordCount: countReadingWords(finalPassageParagraphs),
     sourceLabel: draft.sourceLabel?.trim() || existing?.sourceLabel || String(defaults.sourceLabel),
     passageTitle: draft.passageTitle?.trim() || existing?.passageTitle || String(defaults.passageTitle),
-    passageParagraphs: passageParagraphs.length ? passageParagraphs : parseReadingPassageText(String(defaults.passageText)),
+    passageParagraphs: finalPassageParagraphs,
     questions,
     supportFocusTitle: draft.supportFocusTitle?.trim() || existing?.supportFocusTitle || String(defaults.supportFocusTitle),
     supportFocusText: draft.supportFocusText?.trim() || existing?.supportFocusText || String(defaults.supportFocusText),
@@ -996,15 +1030,19 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
   }
   if (collection === 'readingPracticeScreens') {
     const paragraphs = parseReadingPassageText(draft.passageText);
-    const questions = parseReadingPracticeQuestionsText(draft.readingQuestionsText);
+    const parsed = draft.readingQuestions?.length
+      ? { questions: normalizeReadingPracticeQuestions(draft.readingQuestions), invalidLines: [] }
+      : parseReadingPracticeQuestionsText(draft.readingQuestionsText);
+    const questions = normalizeReadingPracticeQuestions(parsed.questions);
     if ((draft.passageTitle ?? '').trim().length < 2) issues.push('Passage başlığı en az 2 karakter olmalı.');
     if (!paragraphs.length) issues.push('Reading passage is required before publishing.');
-    if (questions.invalidLines.length) issues.push('Sorular her blokta soru metni ve A|seçenek biçiminde olmalı. Doğru seçenek için B*|metin kullanın.');
-    if (!questions.questions.length) issues.push('Reading practice needs at least one question.');
-    if (questions.questions.some((question) => question.options.length < 2)) issues.push('Every reading question needs at least two options.');
-    if (questions.questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every reading question needs a correct option.');
-    if ((draft.currentQuestionIndex ?? 0) < 0 || (draft.currentQuestionIndex ?? 0) >= Math.max(1, questions.questions.length)) issues.push('Aktif soru numarası mevcut soru sayısını aşamaz.');
-    if ((draft.timeRemainingSeconds ?? 0) > (draft.timeLimitSeconds ?? Number.MAX_SAFE_INTEGER)) issues.push('Kalan süre toplam süreyi aşamaz.');
+    if (parsed.invalidLines.length) issues.push('Sorular her blokta soru metni ve A|seçenek biçiminde olmalı. Doğru seçenek için B*|metin kullanın.');
+    if (!questions.length) issues.push('Reading practice needs at least one question.');
+    if (questions.some((question) => question.prompt.trim().length < 8)) issues.push('Every reading question needs a prompt.');
+    if (questions.some((question) => question.options.length !== readingPracticeOptionKeys.length || !readingPracticeOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push('Every reading question needs exactly five options.');
+    if (questions.some((question) => question.options.some((option) => !option.text.trim()))) issues.push('Every reading option needs text.');
+    if (questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every reading question needs a correct option.');
+    if (questions.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push('Reading option texts must be distinct.');
   }
   return issues;
 }
@@ -1060,5 +1098,3 @@ export function collectionLabel(collection: AdminMutableCollectionKey) {
 export function contentTypeLabel(catalog: ContentCatalog, contentType?: ContentType) {
   return contentType?.title ?? catalog.contentTypes[0]?.title ?? 'Content';
 }
-
-

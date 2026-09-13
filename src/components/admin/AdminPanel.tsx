@@ -44,7 +44,7 @@ import {
   type AdminWorkspaceState,
   defaultPageBuilderState,
 } from '@/lib/admin';
-import type { Visibility } from '@/lib/content';
+import type { ReadingPracticeQuestion, Visibility } from '@/lib/content';
 import { videoMediaProviders, type VideoMediaProvider } from '@/lib/video-media';
 
 type AdminPanelProps = {
@@ -465,6 +465,101 @@ function CatalogSelector({ label, options, value, onChange }: { label: string; o
   );
 }
 
+const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
+
+function countWordsFromText(value?: string) {
+  return (value ?? '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+function emptyReadingPracticeQuestion(): ReadingPracticeQuestion {
+  return {
+    prompt: '',
+    options: readingPracticeOptionKeys.map((key) => ({ key, text: '' })),
+  };
+}
+
+function normalizeReadingPracticeQuestionForEditor(question?: Partial<ReadingPracticeQuestion>): ReadingPracticeQuestion {
+  const options = readingPracticeOptionKeys.map((key) => {
+    const match = question?.options?.find((option) => option.key.toUpperCase() === key);
+    return { key, text: match?.text ?? '' };
+  });
+  const correctOptionKey = question?.correctOptionKey && (readingPracticeOptionKeys as readonly string[]).includes(question.correctOptionKey) ? question.correctOptionKey : undefined;
+  return {
+    prompt: question?.prompt ?? '',
+    options,
+    ...(correctOptionKey ? { correctOptionKey } : {}),
+  };
+}
+
+function ReadingPracticeQuestionsEditor({ value, onChange, isMobile }: { value: ReadingPracticeQuestion[]; onChange: (value: ReadingPracticeQuestion[]) => void; isMobile: boolean }) {
+  const questions = value.map((question) => normalizeReadingPracticeQuestionForEditor(question));
+  const updateQuestion = (index: number, nextQuestion: ReadingPracticeQuestion) => onChange(questions.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
+  const moveQuestion = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= questions.length) return;
+    const next = [...questions];
+    const [item] = next.splice(index, 1);
+    if (!item) return;
+    next.splice(targetIndex, 0, item);
+    onChange(next);
+  };
+
+  return (
+    <View style={styles.formGroup}>
+      <View style={styles.readingQuestionEditorHeader}>
+        <View style={styles.readingQuestionEditorTitleGroup}>
+          <Text style={styles.formLabel}>Sorular ve seçenekler</Text>
+          <Text style={styles.formHelper}>Her soru A, B, C, D, E olmak üzere 5 seçenekle yayınlanır. Doğru cevabı soldaki harften seçin.</Text>
+        </View>
+        <Button label="Soru ekle" size="sm" variant="secondary" onPress={() => onChange([...questions, emptyReadingPracticeQuestion()])} style={styles.addReadingQuestionButton} />
+      </View>
+
+      <View style={styles.readingQuestionList}>
+        {questions.length ? questions.map((question, index) => (
+          <View key={index} style={styles.readingQuestionCard}>
+            <View style={styles.readingQuestionHead}>
+              <Text style={styles.readingQuestionTitle}>Soru {index + 1}</Text>
+              <View style={styles.readingQuestionActions}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu yukarı taşı" disabled={index === 0} onPress={() => moveQuestion(index, -1)} style={({ pressed }) => [styles.readingQuestionAction, index === 0 ? styles.disabledAction : null, pressed ? styles.pressed : null]}>
+                  <Text style={styles.readingQuestionActionText}>Yukarı</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu aşağı taşı" disabled={index === questions.length - 1} onPress={() => moveQuestion(index, 1)} style={({ pressed }) => [styles.readingQuestionAction, index === questions.length - 1 ? styles.disabledAction : null, pressed ? styles.pressed : null]}>
+                  <Text style={styles.readingQuestionActionText}>Aşağı</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu sil" onPress={() => onChange(questions.filter((_, itemIndex) => itemIndex !== index))} style={({ pressed }) => [styles.readingQuestionAction, styles.readingQuestionDeleteAction, pressed ? styles.pressed : null]}>
+                  <Text style={[styles.readingQuestionActionText, styles.readingQuestionDeleteText]}>Sil</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Soru metni</Text>
+              <TextInput accessibilityLabel={`Soru ${index + 1} metni`} value={question.prompt} onChangeText={(prompt) => updateQuestion(index, { ...question, prompt })} placeholder="Soru metnini yazın" placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea, styles.readingQuestionPromptInput]} />
+            </View>
+
+            <View style={styles.readingOptionList}>
+              {question.options.map((option) => {
+                const selected = question.correctOptionKey === option.key;
+                return (
+                  <View key={option.key} style={[styles.readingOptionRow, isMobile ? styles.readingOptionRowMobile : null]}>
+                    <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => updateQuestion(index, { ...question, correctOptionKey: option.key })} style={({ pressed }) => [styles.readingOptionKey, selected ? styles.readingOptionKeyActive : null, pressed ? styles.pressed : null]}>
+                      <Text style={[styles.readingOptionKeyText, selected ? styles.readingOptionKeyTextActive : null]}>{option.key}</Text>
+                    </Pressable>
+                    <TextInput accessibilityLabel={`Soru ${index + 1} ${option.key} seçeneği`} value={option.text} onChangeText={(text) => updateQuestion(index, { ...question, options: question.options.map((item) => (item.key === option.key ? { ...item, text } : item)) })} placeholder={`${option.key} seçeneği`} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.readingOptionInput]} />
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )) : (
+          <View style={styles.readingQuestionEmptyState}>
+            <Text style={styles.formHelper}>Henüz soru eklenmedi. Yayınlamak için en az bir soru ve her soruda 5 seçenek gerekir.</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
 function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave, onPublish, onReview, onRestore, state, user, message, error }: { editor: EditorState; issues: string[]; isMobile: boolean; onChange: (draft: AdminEntityDraft) => void; onClose: () => void; onSave: () => void; onPublish: () => void; onReview: () => void; onRestore: (version: number) => void; state: AdminWorkspaceState; user: AuthUser; message: string; error: string }) {
   const [tab, setTab] = useState<'edit' | 'preview' | 'history'>('edit');
   const [historicalPreview, setHistoricalPreview] = useState<AdminSnapshot | null>(null);
@@ -474,6 +569,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   const draft = editor.draft;
   const supportsPremium = collectionSupportsPremium(editor.collection);
   const setField = <TKey extends keyof AdminEntityDraft>(key: TKey, value: AdminEntityDraft[TKey]) => onChange({ ...draft, [key]: value });
+  const readingWordCount = countWordsFromText(draft.passageText);
   const document = editor.row ? getAdminDocument(state, editor.collection, editor.row.id) : undefined;
   const preview = historicalPreview ?? previewAdminDraft(state, editor.collection, draft, editor.row?.id);
 
@@ -602,28 +698,14 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Süre sınırı (saniye)</Text>
                     <TextInput accessibilityLabel="Süre sınırı" value={String(draft.timeLimitSeconds ?? 0)} onChangeText={(value) => setField('timeLimitSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                    <Text style={styles.formHelper}>Öğrenci ekrana girdiğinde sayaç bu süreden başlar.</Text>
                   </View>
                   <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Kalan süre (saniye)</Text>
-                    <TextInput accessibilityLabel="Kalan süre" value={String(draft.timeRemainingSeconds ?? 0)} onChangeText={(value) => setField('timeRemainingSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Aktif soru numarası</Text>
-                    <TextInput accessibilityLabel="Aktif soru numarası" value={String((draft.currentQuestionIndex ?? 0) + 1)} onChangeText={(value) => setField('currentQuestionIndex', Math.max(0, (Number(value.replace(/[^0-9]/g, '')) || 1) - 1))} keyboardType="number-pad" style={styles.formInput} />
-                  </View>
-                </View>
-                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Cevaplanan soru sayısı</Text>
-                    <TextInput accessibilityLabel="Cevaplanan soru sayısı" value={String(draft.answeredCount ?? 0)} onChangeText={(value) => setField('answeredCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>İşaretli soru sayısı</Text>
-                    <TextInput accessibilityLabel="İşaretli soru sayısı" value={String(draft.markedCount ?? 0)} onChangeText={(value) => setField('markedCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Kelime sayısı</Text>
-                    <TextInput accessibilityLabel="Kelime sayısı" value={String(draft.wordCount ?? 0)} onChangeText={(value) => setField('wordCount', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                    <Text style={styles.formLabel}>Otomatik kelime sayısı</Text>
+                    <View style={styles.readingInfoBox}>
+                      <Text style={styles.readingInfoValue}>{readingWordCount}</Text>
+                      <Text style={styles.readingInfoLabel}>Passage metninden hesaplanır</Text>
+                    </View>
                   </View>
                 </View>
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
@@ -641,11 +723,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <TextInput accessibilityLabel="Passage metni" value={draft.passageText ?? ''} onChangeText={(value) => setField('passageText', value)} placeholder="Paragrafları boş satırla ayırın." placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                   <Text style={styles.formHelper}>Paragraflar öğrenci ekranındaki sol okuma kartında gösterilir.</Text>
                 </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Sorular ve seçenekler</Text>
-                  <TextInput accessibilityLabel="Reading soruları" value={draft.readingQuestionsText ?? ''} onChangeText={(value) => setField('readingQuestionsText', value)} placeholder={'Soru metni\nA|Seçenek A\nB*|Doğru seçenek\nC|Seçenek C\n---\nİkinci soru metni'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
-                  <Text style={styles.formHelper}>Her soru bloğunu --- ile ayırın. Doğru seçeneği yıldızla işaretleyin: B*|metin.</Text>
-                </View>
+                <ReadingPracticeQuestionsEditor value={draft.readingQuestions ?? []} onChange={(readingQuestions) => setField('readingQuestions', readingQuestions)} isMobile={isMobile} />
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Odak başlığı</Text>
@@ -1091,6 +1169,32 @@ const styles = StyleSheet.create({
   optionPillActive: { backgroundColor: studentTokens.navy, borderColor: studentTokens.navy },
   optionText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   optionTextActive: { color: '#ffffff' },
+  addReadingQuestionButton: { alignSelf: 'flex-start', minWidth: 110 },
+  readingInfoBox: { minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.tealSoft, paddingHorizontal: 13, paddingVertical: 8, justifyContent: 'center' },
+  readingInfoValue: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 17, lineHeight: 22, fontWeight: '700' },
+  readingInfoLabel: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 11, lineHeight: 16, fontWeight: '600', marginTop: 2 },
+  readingQuestionEditorHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  readingQuestionEditorTitleGroup: { flex: 1, minWidth: 220 },
+  readingQuestionList: { gap: 12 },
+  readingQuestionCard: { borderRadius: 14, borderWidth: 1, borderColor: studentTokens.lineSoft, backgroundColor: studentTokens.surface, padding: 12, gap: 12 },
+  readingQuestionHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
+  readingQuestionTitle: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  readingQuestionActions: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  readingQuestionAction: { minHeight: 32, borderRadius: 8, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  disabledAction: { opacity: 0.45 },
+  readingQuestionActionText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 11, lineHeight: 16, fontWeight: '700' },
+  readingQuestionDeleteAction: { borderColor: '#ffd0cb', backgroundColor: studentTokens.dangerSoft },
+  readingQuestionDeleteText: { color: studentTokens.danger },
+  readingQuestionPromptInput: { minHeight: 72 },
+  readingOptionList: { gap: 8 },
+  readingOptionRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+  readingOptionRowMobile: { flexDirection: 'column', alignItems: 'flex-start' },
+  readingOptionKey: { width: 42, minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.neutral, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  readingOptionKeyActive: { borderColor: studentTokens.teal, backgroundColor: studentTokens.teal },
+  readingOptionKeyText: { fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  readingOptionKeyTextActive: { color: '#ffffff' },
+  readingOptionInput: { minHeight: 48, paddingTop: 12, textAlignVertical: 'top' },
+  readingQuestionEmptyState: { minHeight: 70, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.lineSoft, backgroundColor: studentTokens.neutral, padding: 14, justifyContent: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(20, 22, 35, 0.5)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalOverlayMobile: { justifyContent: 'flex-end', padding: 0 },
   modalBackdrop: { ...StyleSheet.absoluteFill },
@@ -1144,4 +1248,3 @@ const styles = StyleSheet.create({
   confirmActions: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
   confirmButton: { minWidth: 132 },
 });
-

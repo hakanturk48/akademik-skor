@@ -1721,11 +1721,11 @@
       "subtitle": "Main Idea · Practice Set 3 · TOEFL iBT Reading",
       "questionType": "Main Idea",
       "timeLimitSeconds": 1200,
-      "timeRemainingSeconds": 1104,
-      "currentQuestionIndex": 3,
-      "answeredCount": 4,
+      "timeRemainingSeconds": 1200,
+      "currentQuestionIndex": 0,
+      "answeredCount": 0,
       "markedCount": 0,
-      "wordCount": 247,
+      "wordCount": 206,
       "sourceLabel": "Adapted from scientific American",
       "passageTitle": "The Science of Sleep: Why Rest Matters",
       "passageParagraphs": [
@@ -1753,6 +1753,10 @@
             {
               "key": "D",
               "text": "Students need less sleep than other adults."
+            },
+            {
+              "key": "E",
+              "text": "Sleep is useful only when scientists completely understand it."
             }
           ],
           "correctOptionKey": "B"
@@ -1775,6 +1779,10 @@
             {
               "key": "D",
               "text": "To list common causes of poor sleep."
+            },
+            {
+              "key": "E",
+              "text": "To show that sleep stages happen only once each night."
             }
           ],
           "correctOptionKey": "A"
@@ -1797,6 +1805,10 @@
             {
               "key": "D",
               "text": "It can make REM cycles shorter than usual."
+            },
+            {
+              "key": "E",
+              "text": "It can guarantee stronger physical recovery."
             }
           ],
           "correctOptionKey": "C"
@@ -1819,6 +1831,10 @@
             {
               "key": "D",
               "text": "Small lifestyle changes can significantly improve sleep quality."
+            },
+            {
+              "key": "E",
+              "text": "Sleep matters less than busy schedules for health."
             }
           ],
           "correctOptionKey": "B"
@@ -1841,6 +1857,10 @@
             {
               "key": "D",
               "text": "Researchers are still studying sleep."
+            },
+            {
+              "key": "E",
+              "text": "A dark room is the only factor that affects performance."
             }
           ],
           "correctOptionKey": "C",
@@ -1864,6 +1884,10 @@
             {
               "key": "D",
               "text": "To introduce a new scientific experiment."
+            },
+            {
+              "key": "E",
+              "text": "To suggest that professionals need less rest than students."
             }
           ],
           "correctOptionKey": "A"
@@ -1886,6 +1910,10 @@
             {
               "key": "D",
               "text": "Avoiding all physical recovery."
+            },
+            {
+              "key": "E",
+              "text": "Eating later at night to create more energy."
             }
           ],
           "correctOptionKey": "C"
@@ -1908,6 +1936,10 @@
             {
               "key": "D",
               "text": "Scientists have ended sleep research."
+            },
+            {
+              "key": "E",
+              "text": "Scientific research no longer studies sleep quality."
             }
           ],
           "correctOptionKey": "B"
@@ -1930,6 +1962,10 @@
             {
               "key": "D",
               "text": "Historical timeline and statistical appendix."
+            },
+            {
+              "key": "E",
+              "text": "Personal opinion followed by unrelated examples."
             }
           ],
           "correctOptionKey": "B"
@@ -1952,6 +1988,10 @@
             {
               "key": "D",
               "text": "REM sleep prevents learning."
+            },
+            {
+              "key": "E",
+              "text": "Sleep is useful only for physical recovery."
             }
           ],
           "correctOptionKey": "A"

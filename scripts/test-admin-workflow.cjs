@@ -243,6 +243,41 @@ test('publish blocks questions without valid options and mismatched taxonomy', (
   assert.ok(workflow.validatePublication(state, 'lessons', lesson).some((error) => /moduleId/.test(error)));
 });
 
+test('reading practice publishing requires five A-E options per question', () => {
+  const state = fresh();
+  const draft = {
+    ...service.initialAdminDraft('readingPracticeScreens', undefined, state.catalog),
+    title: 'Reading Workflow',
+    slug: 'reading-workflow',
+    passageTitle: 'A Passage About Learning',
+    passageText: 'Reading tests measure comprehension. Students choose the best answer from the passage.',
+    timeLimitSeconds: 600,
+    readingQuestions: [{
+      prompt: 'What is the main idea of this passage?',
+      options: [
+        { key: 'A', text: 'Reading tests measure comprehension.' },
+        { key: 'B', text: 'Students never read passages.' },
+        { key: 'C', text: 'Every answer is correct.' },
+        { key: 'D', text: 'The passage focuses on spelling only.' },
+        { key: 'E', text: 'The passage is about cooking.' },
+      ],
+      correctOptionKey: 'A',
+    }],
+  };
+  const directCandidate = structuredClone(state.catalog.readingPracticeScreens[0]);
+  directCandidate.questions[0].options = directCandidate.questions[0].options.slice(0, 4);
+  assert.ok(workflow.validatePublication(state, 'readingPracticeScreens', directCandidate).includes('Every reading question needs exactly five options.'));
+  const blankOption = structuredClone(draft);
+  blankOption.readingQuestions[0].options[4].text = '';
+  assert.throws(() => service.saveAdminContent(state, 'reading-practice', 'readingPracticeScreens', blankOption, actor, 'published'), /option needs text/);
+  const result = service.saveAdminContent(state, 'reading-practice', 'readingPracticeScreens', draft, actor, 'published');
+  const published = workflow.getAdminDocument(result, 'readingPracticeScreens', 'readingPracticeScreens-reading-workflow').published;
+  assert.deepEqual(published.questions[0].options.map((option) => option.key), ['A', 'B', 'C', 'D', 'E']);
+  assert.equal(published.currentQuestionIndex, 0);
+  assert.equal(published.answeredCount, 0);
+  assert.equal(published.wordCount, 12);
+  assert.deepEqual(workflow.validatePublication(result, 'readingPracticeScreens', published), []);
+});
 test('archive preserves history and refuses to break published references', () => {
   const published = save(fresh(), 'published');
   const archived = service.archiveAdminEntity(published, 'exams', doc(published).entityId, actor, 1);

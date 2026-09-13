@@ -23,7 +23,7 @@ const labels: Record<string, string> = {
   durationSeconds: 'Süre (saniye)', estimatedMinutes: 'Tahmini süre (dakika)', route: 'Sayfa adresi',
   mediaProvider: 'Video sağlayıcısı', mediaUrl: 'Video bağlantısı', thumbnailUrl: 'Thumbnail bağlantısı',
   previewDurationSeconds: 'Önizleme süresi (saniye)', chapters: 'Bölümler', transcript: 'Altyazı / transkript',
-  resources: 'Kaynaklar', resourcesText: 'Kaynaklar', subtitle: 'Alt başlık', questionType: 'Soru türü', timeLimitSeconds: 'Süre sınırı', timeRemainingSeconds: 'Kalan süre', currentQuestionIndex: 'Aktif soru', answeredCount: 'Cevaplanan soru sayısı', markedCount: 'İşaretli soru sayısı', wordCount: 'Kelime sayısı', sourceLabel: 'Kaynak etiketi', passageTitle: 'Passage başlığı', passageParagraphs: 'Passage paragrafları', passageText: 'Passage metni', readingQuestionsText: 'Reading soruları', supportFocusTitle: 'Odak başlığı', supportFocusText: 'Odak metni', supportProgress: 'Odak ilerlemesi', supportHint: 'Odak ipucu', reviewTitle: 'Tekrar başlığı', reviewTips: 'Tekrar ipuçları', reviewTipsText: 'Tekrar ipuçları', url: 'Bağlantı', sizeLabel: 'Boyut', premium: 'Premium',
+  resources: 'Kaynaklar', resourcesText: 'Kaynaklar', subtitle: 'Alt başlık', questionType: 'Soru türü', timeLimitSeconds: 'Süre sınırı', timeRemainingSeconds: 'Kalan süre', currentQuestionIndex: 'Aktif soru', answeredCount: 'Cevaplanan soru sayısı', markedCount: 'İşaretli soru sayısı', wordCount: 'Kelime sayısı', sourceLabel: 'Kaynak etiketi', passageTitle: 'Passage başlığı', passageParagraphs: 'Passage paragrafları', passageText: 'Passage metni', readingQuestionsText: 'Reading soruları', readingQuestions: 'Reading soruları', supportFocusTitle: 'Odak başlığı', supportFocusText: 'Odak metni', supportProgress: 'Odak ilerlemesi', supportHint: 'Odak ipucu', reviewTitle: 'Tekrar başlığı', reviewTips: 'Tekrar ipuçları', reviewTipsText: 'Tekrar ipuçları', url: 'Bağlantı', sizeLabel: 'Boyut', premium: 'Premium',
   isEnabled: 'Etkin', requiredPlan: 'Gerekli plan', allowedRoles: 'İzinli roller', iconKey: 'Simge', sort: 'Sıralama',
 };
 
@@ -59,8 +59,11 @@ const errors: Record<string, string> = {
   'Yüklenen video dosyası seçilmeli.': 'Yayınlamadan önce yüklenmiş bir video dosyası seçilmeli.',
   'Reading passage is required before publishing.': 'Yayınlamadan önce okuma metni eklenmeli.',
   'Reading practice needs at least one question.': 'Okuma pratiğinde en az bir soru olmalı.',
-  'Every reading question needs at least two options.': 'Her okuma sorusunda en az iki seçenek olmalı.',
+  'Every reading question needs a prompt.': 'Her okuma sorusunun metni olmalı.',
+  'Every reading question needs exactly five options.': 'Her okuma sorusunda tam 5 seçenek (A, B, C, D, E) olmalı.',
+  'Every reading option needs text.': 'Okuma sorularındaki seçenek metinleri boş olamaz.',
   'Every reading question needs a correct option.': 'Her okuma sorusunda doğru seçenek işaretlenmeli.',
+  'Reading option texts must be distinct.': 'Okuma sorusu seçenekleri birbirinden farklı olmalı.',
   'Admin access is required.': 'Yönetici yetkisi gerekli.',
   'This content changed. Reopen it before saving.': 'Bu içerik başka bir işlemde değiştirildi. Kaydetmeden önce yeniden açın.',
   'Content was not found.': 'İçerik bulunamadı.',

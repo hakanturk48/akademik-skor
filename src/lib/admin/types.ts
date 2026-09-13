@@ -1,5 +1,5 @@
 import type { AuthRole } from '@/lib/auth';
-import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, QuestionOption, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
+import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, QuestionOption, ReadingPracticeQuestion, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
 import type { VideoMediaProvider } from '@/lib/video-media';
 import type { NavigationGroup, NavigationItem } from '@/lib/navigation';
 
@@ -291,6 +291,7 @@ export type AdminEntityDraft = {
   passageTitle?: string;
   passageText?: string;
   readingQuestionsText?: string;
+  readingQuestions?: ReadingPracticeQuestion[];
   supportFocusTitle?: string;
   supportFocusText?: string;
   supportProgress?: number;
