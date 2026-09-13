@@ -248,7 +248,6 @@ function SkillFocusCard({ content }: { content: ReadingPracticeScreen }) {
       </View>
       <Text style={styles.supportMainText}>{content.supportFocusText}</Text>
       <Progress value={content.supportProgress} color={studentTokens.yellowDeep} style={styles.focusProgress} />
-      <Text style={styles.supportHint}>{content.supportHint}</Text>
     </Card>
   );
 }
@@ -414,8 +413,6 @@ const styles = StyleSheet.create({
   focusIcon: { width: 18, height: 18 },
   supportMainText: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   focusProgress: { marginTop: 2 },
-  supportHint: { fontFamily: fontFamily, color: studentTokens.text, fontSize: 9, lineHeight: 13, fontWeight: '600' },
   tipList: { gap: 8 },
   tipText: { fontFamily: fontFamily, color: '#4f5870', fontSize: 10, lineHeight: 15, fontWeight: '600' },
 });
-

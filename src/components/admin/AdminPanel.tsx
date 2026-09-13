@@ -738,10 +738,6 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <Text style={styles.formLabel}>Odak metni</Text>
                   <TextInput accessibilityLabel="Odak metni" value={draft.supportFocusText ?? ''} onChangeText={(value) => setField('supportFocusText', value)} placeholder="Main idea questions reward structure..." placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                 </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Odak ipucu</Text>
-                  <TextInput accessibilityLabel="Odak ipucu" value={draft.supportHint ?? ''} onChangeText={(value) => setField('supportHint', value)} placeholder="Practice Accuracy /100: 72 ..." placeholderTextColor={studentTokens.muted} style={styles.formInput} />
-                </View>
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Tekrar başlığı</Text>

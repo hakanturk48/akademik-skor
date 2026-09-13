@@ -256,7 +256,6 @@ function defaultReadingPracticeDraftFields(): Partial<AdminEntityDraft> {
     supportFocusTitle: 'READING FOCUS',
     supportFocusText: 'Main idea questions reward structure, not isolated details.',
     supportProgress: 72,
-    supportHint: 'Practice Accuracy /100: 72 · Target section score: 24/30',
     reviewTitle: 'NEXT REVIEW',
     reviewTipsText: defaultReadingReviewTipsText,
   };
@@ -364,7 +363,6 @@ function readingPracticeDraftFromScreen(screen?: Partial<ReadingPracticeScreen>,
     supportFocusTitle: screen?.supportFocusTitle ?? defaults.supportFocusTitle,
     supportFocusText: screen?.supportFocusText ?? defaults.supportFocusText,
     supportProgress: screen?.supportProgress ?? defaults.supportProgress,
-    supportHint: screen?.supportHint ?? defaults.supportHint,
     reviewTitle: screen?.reviewTitle ?? defaults.reviewTitle,
     reviewTipsText: serializeReviewTipsText(screen?.reviewTips) || defaults.reviewTipsText,
   };
@@ -399,7 +397,6 @@ function readingPracticeFieldsFromDraft(draft: Partial<AdminEntityDraft>, existi
     supportFocusTitle: draft.supportFocusTitle?.trim() || existing?.supportFocusTitle || String(defaults.supportFocusTitle),
     supportFocusText: draft.supportFocusText?.trim() || existing?.supportFocusText || String(defaults.supportFocusText),
     supportProgress: clampAdminNumber(draft.supportProgress ?? existing?.supportProgress ?? defaults.supportProgress, 0, 100),
-    supportHint: draft.supportHint?.trim() || existing?.supportHint || String(defaults.supportHint),
     reviewTitle: draft.reviewTitle?.trim() || existing?.reviewTitle || String(defaults.reviewTitle),
     reviewTips: parseReviewTipsText(draft.reviewTipsText ?? (serializeReviewTipsText(existing?.reviewTips) || String(defaults.reviewTipsText))),
   };

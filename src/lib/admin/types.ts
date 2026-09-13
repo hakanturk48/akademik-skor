@@ -295,7 +295,6 @@ export type AdminEntityDraft = {
   supportFocusTitle?: string;
   supportFocusText?: string;
   supportProgress?: number;
-  supportHint?: string;
   reviewTitle?: string;
   reviewTipsText?: string;
 };

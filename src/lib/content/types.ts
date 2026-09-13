@@ -242,7 +242,6 @@ export interface ReadingPracticeScreen extends BaseEntity {
   supportFocusTitle: string;
   supportFocusText: string;
   supportProgress: number;
-  supportHint: string;
   reviewTitle: string;
   reviewTips: string[];
 }
@@ -449,4 +448,3 @@ export interface ValidationIssue {
   entityId?: string;
   message: string;
 }
-
