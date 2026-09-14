@@ -291,16 +291,27 @@ test("listening hub publishing keeps only route metadata and no student progress
     listeningDifficultyId: "adaptive",
     listeningLengthId: "standard",
     listeningSessionMode: "practice",
+    mediaProvider: "youtube",
+    mediaUrl: "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+    durationSeconds: 900,
+    chaptersText: "00:00|Introduction\n03:00|Main point",
+    transcriptText: "00:00|Welcome to the listening practice.",
     estimatedMinutes: 20,
     listeningQuestionCount: 10,
     listeningActionLabel: "Start Focused Practice",
   };
+  assert.throws(() => service.saveAdminContent(state, "listening-hub", "listeningHubItems", { ...draft, mediaUrl: "" }, actor, "published"), /Listening media URL/);
   const result = service.saveAdminContent(state, "listening-hub", "listeningHubItems", draft, actor, "published");
   const published = workflow.getAdminDocument(result, "listeningHubItems", "listeningHubItems-listening-workflow").published;
   assert.equal(published.topicId, "topic-biology");
   assert.equal(published.taskTypeId, "task-academic-talk");
   assert.equal(published.subskillId, "sub-detail");
   assert.equal(published.questionCount, 10);
+  assert.equal(published.mediaProvider, "youtube");
+  assert.equal(published.mediaUrl, draft.mediaUrl);
+  assert.equal(published.durationSeconds, 900);
+  assert.equal(published.outline[0].title, "Introduction");
+  assert.equal(published.transcript[0].text, "Welcome to the listening practice.");
   assert.equal(published.correctCount, undefined);
   assert.equal(published.sessions, undefined);
   assert.equal(published.answers, undefined);

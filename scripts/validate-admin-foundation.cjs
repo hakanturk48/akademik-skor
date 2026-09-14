@@ -49,6 +49,7 @@ for (const title of [
 
 expect(files.service.includes("listening-hub") && files.service.includes("Listening Hub"), "Admin module missing: Listening Hub key/title.");
 expect(files.panel.includes("listeningHubItems"), "Admin panel must expose Listening Hub editor.");
+expect(files.panel.includes("Dinleme bağlantısı") && files.panel.includes("Dinleme parçası"), "Listening Hub editor must expose listening media fields.");
 
 for (const fn of ["saveAdminContent", "previewAdminDraft", "archiveAdminEntity", "reorderAdminEntity"]) {
   expect(files.service.includes(`function ${fn}`) || files.service.includes(`export function ${fn}`), `Admin CRUD function missing: ${fn}`);

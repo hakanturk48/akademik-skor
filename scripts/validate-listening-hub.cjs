@@ -58,6 +58,7 @@ const practiceRoute = read("src/app/practice/listening.tsx");
   "createListeningPracticeHref",
   "getListeningHubItems",
   "syncPublishedListeningHubItems",
+  "getListeningHubItemById",
 ].forEach((token) => {
   if (!hub.includes(token) && !service.includes(token) && !hubContent.includes(token)) fail("Missing hub/service behavior: " + token);
 });
@@ -65,6 +66,8 @@ const practiceRoute = read("src/app/practice/listening.tsx");
 if (!hub.includes("Topic-Based Listening")) fail("Listening page must render topic-based published entries.");
 if (!hubContent.includes("loadRemotePublishedWorkspaceState")) fail("Listening Hub must read the published Firebase workspace.");
 if (!hubContent.includes("published-workspace.v1")) fail("Listening Hub must use the shared published workspace cache.");
+if (!hubContent.includes("&hub=")) fail("Listening Hub cards must carry the published hub item id into practice.");
+if (!practice.includes("getVideoEmbedUrl") || !practice.includes("TRANSCRIPT PREVIEW") || !practice.includes("Listening source")) fail("Listening practice must render published media, outline, and transcript metadata.");
 if (hub.includes("ProgressRecommendationList")) fail("Listening Hub should not depend on student progress recommendations for published topic entries.");
 if (!/route: .\/listening./.test(registry)) fail("Navigation registry does not point Listening to /listening.");
 if (!/.\/practice\/listening./.test(registry)) fail("Navigation registry does not keep practice route active for Listening.");

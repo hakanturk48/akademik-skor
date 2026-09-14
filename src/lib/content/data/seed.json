@@ -812,9 +812,36 @@
       "difficultyId": "adaptive",
       "lengthId": "standard",
       "sessionMode": "practice",
+      "mediaProvider": "youtube",
+      "mediaUrl": "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+      "durationSeconds": 1200,
       "estimatedMinutes": 20,
       "questionCount": 10,
-      "actionLabel": "Start Focused Practice"
+      "actionLabel": "Start Focused Practice",
+      "outline": [
+        {
+          "startSeconds": 0,
+          "title": "Introduction"
+        },
+        {
+          "startSeconds": 180,
+          "title": "Main point"
+        },
+        {
+          "startSeconds": 480,
+          "title": "Supporting details"
+        }
+      ],
+      "transcript": [
+        {
+          "startSeconds": 0,
+          "text": "The lecture introduces the academic topic."
+        },
+        {
+          "startSeconds": 180,
+          "text": "Listen for the stated details and examples."
+        }
+      ]
     },
     {
       "id": "listening-hub-note-map-main-idea",
@@ -833,9 +860,36 @@
       "difficultyId": "medium",
       "lengthId": "quick",
       "sessionMode": "practice",
+      "mediaProvider": "youtube",
+      "mediaUrl": "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+      "durationSeconds": 720,
       "estimatedMinutes": 12,
       "questionCount": 8,
-      "actionLabel": "Start Practice"
+      "actionLabel": "Start Practice",
+      "outline": [
+        {
+          "startSeconds": 0,
+          "title": "Setup"
+        },
+        {
+          "startSeconds": 120,
+          "title": "Central idea"
+        },
+        {
+          "startSeconds": 360,
+          "title": "Note map"
+        }
+      ],
+      "transcript": [
+        {
+          "startSeconds": 0,
+          "text": "Use the opening to predict the lecture direction."
+        },
+        {
+          "startSeconds": 120,
+          "text": "The main idea connects all later details."
+        }
+      ]
     },
     {
       "id": "listening-hub-academic-talk-section",
@@ -854,9 +908,36 @@
       "difficultyId": "hard",
       "lengthId": "extended",
       "sessionMode": "exam",
+      "mediaProvider": "youtube",
+      "mediaUrl": "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+      "durationSeconds": 1800,
       "estimatedMinutes": 30,
       "questionCount": 17,
-      "actionLabel": "Start Exam Practice"
+      "actionLabel": "Start Exam Practice",
+      "outline": [
+        {
+          "startSeconds": 0,
+          "title": "Directions"
+        },
+        {
+          "startSeconds": 300,
+          "title": "Lecture body"
+        },
+        {
+          "startSeconds": 1200,
+          "title": "Final synthesis"
+        }
+      ],
+      "transcript": [
+        {
+          "startSeconds": 0,
+          "text": "This section follows exam pacing."
+        },
+        {
+          "startSeconds": 300,
+          "text": "Take concise notes while listening."
+        }
+      ]
     }
   ],
   "vocabularySets": [

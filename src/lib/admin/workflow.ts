@@ -188,6 +188,11 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       if (!["adaptive", "easy", "medium", "hard"].includes(item.difficultyId)) issues.push("Listening hub difficulty is invalid.");
       if (!["quick", "standard", "extended"].includes(item.lengthId)) issues.push("Listening hub length is invalid.");
       if (!["practice", "exam"].includes(item.sessionMode)) issues.push("Listening hub session mode is invalid.");
+      const mediaIssue = validateVideoMediaUrl(item.mediaProvider, item.mediaUrl);
+      if (mediaIssue) {
+        issues.push(mediaIssue === "Video bağlantısı gerekli." ? "Listening media URL is required before publishing." : item.mediaProvider === "youtube" ? "A valid YouTube listening URL is required before publishing." : item.mediaProvider === "vimeo" ? "A valid Vimeo listening URL is required before publishing." : "A valid listening media URL is required before publishing.");
+      }
+      if (!Number.isFinite(item.durationSeconds) || item.durationSeconds < 1) issues.push("Listening media duration is required.");
       if (!Number.isFinite(item.estimatedMinutes) || item.estimatedMinutes < 1) issues.push("Listening hub duration is required.");
       if (!Number.isFinite(item.questionCount) || item.questionCount < 1) issues.push("Listening hub question count is required.");
       if (!item.actionLabel.trim()) issues.push("Listening hub action label is required.");

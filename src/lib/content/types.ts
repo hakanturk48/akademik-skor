@@ -143,9 +143,14 @@ export interface ListeningHubItem extends BaseEntity {
   difficultyId: ListeningHubDifficultyId;
   lengthId: ListeningHubLengthId;
   sessionMode: ListeningHubSessionMode;
+  mediaProvider?: "youtube" | "vimeo";
+  mediaUrl?: string;
+  durationSeconds: number;
   estimatedMinutes: number;
   questionCount: number;
   actionLabel: string;
+  outline?: LessonChapter[];
+  transcript?: LessonTranscriptLine[];
 }
 
 export interface VocabularySet extends BaseEntity {

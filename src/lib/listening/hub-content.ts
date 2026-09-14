@@ -89,9 +89,11 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
   const taskTypeTitle = taskType?.title ?? "Academic Talk";
   const subskillTitle = subskill?.title ?? "Detail";
 
+  const href = createListeningPracticeHref(selection) + "&hub=" + encodeURIComponent(item.id);
+
   return {
     ...item,
-    href: createListeningPracticeHref(selection),
+    href,
     topicTitle,
     taskTypeTitle,
     subskillTitle,
@@ -109,4 +111,10 @@ export function getListeningHubItems(): ListeningHubDisplayItem[] {
   return [...items]
     .sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(second.updatedAt) - Date.parse(first.updatedAt) || first.title.localeCompare(second.title))
     .map((item) => describeListeningHubItem(catalog, item));
+}
+
+export function getListeningHubItemById(id?: string | null): ListeningHubDisplayItem | null {
+  const value = id?.trim();
+  if (!value) return null;
+  return getListeningHubItems().find((item) => item.id === value || item.slug === value) ?? null;
 }

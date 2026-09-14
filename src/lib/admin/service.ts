@@ -437,13 +437,18 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
     title: "Academic Talk - Detail Practice",
     slug: "academic-talk-detail-practice",
     description: "Topic-based listening route for focused practice.",
+    mediaProvider: "youtube",
+    mediaUrl: "",
+    durationSeconds: 1200,
+    estimatedMinutes: 20,
+    chaptersText: "00:00|Introduction\n03:00|Main point\n08:00|Examples",
+    transcriptText: "",
     listeningTopicId: topic?.id ?? "",
     listeningTaskTypeId: task?.id ?? "",
     listeningSubskillId: subskill?.id ?? "",
     listeningDifficultyId: "adaptive",
     listeningLengthId: "standard",
     listeningSessionMode: "practice",
-    estimatedMinutes: 20,
     listeningQuestionCount: 10,
     listeningActionLabel: "Start Focused Practice",
   };
@@ -451,13 +456,18 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
 
 function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<AdminEntityDraft> {
   return {
+    mediaProvider: item?.mediaProvider,
+    mediaUrl: item?.mediaUrl ?? "",
+    durationSeconds: item?.durationSeconds,
+    estimatedMinutes: item?.estimatedMinutes,
+    chaptersText: serializeVideoTimedText(item?.outline?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
+    transcriptText: serializeVideoTimedText(item?.transcript),
     listeningTopicId: item?.topicId,
     listeningTaskTypeId: item?.taskTypeId,
     listeningSubskillId: item?.subskillId,
     listeningDifficultyId: item?.difficultyId,
     listeningLengthId: item?.lengthId,
     listeningSessionMode: item?.sessionMode,
-    estimatedMinutes: item?.estimatedMinutes,
     listeningQuestionCount: item?.questionCount,
     listeningActionLabel: item?.actionLabel,
   };
@@ -469,6 +479,10 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   const taskTypeId = taskOptions.some((item) => item.id === draft.listeningTaskTypeId) ? String(draft.listeningTaskTypeId) : existing?.taskTypeId ?? String(defaults.listeningTaskTypeId ?? "");
   const subskillOptions = listeningSubskillOptions(catalog, taskTypeId);
   const topicOptions = listeningTopicOptions(catalog);
+  const provider = draft.mediaProvider === "vimeo" ? "vimeo" : draft.mediaProvider === "youtube" ? "youtube" : existing?.mediaProvider ?? "youtube";
+  const durationSeconds = clampAdminNumber(draft.durationSeconds ?? existing?.durationSeconds ?? defaults.durationSeconds, 1, 14400);
+  const outline = parseVideoTimedText(draft.chaptersText);
+  const transcript = parseVideoTimedText(draft.transcriptText);
   return {
     topicId: topicOptions.some((item) => item.id === draft.listeningTopicId) ? String(draft.listeningTopicId) : existing?.topicId ?? String(defaults.listeningTopicId ?? ""),
     taskTypeId,
@@ -476,9 +490,14 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
     difficultyId: adminListeningDifficultyOptions.includes(draft.listeningDifficultyId ?? "adaptive") ? draft.listeningDifficultyId ?? "adaptive" : existing?.difficultyId ?? "adaptive",
     lengthId: adminListeningLengthOptions.includes(draft.listeningLengthId ?? "standard") ? draft.listeningLengthId ?? "standard" : existing?.lengthId ?? "standard",
     sessionMode: adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice") ? draft.listeningSessionMode ?? "practice" : existing?.sessionMode ?? "practice",
-    estimatedMinutes: clampAdminNumber(draft.estimatedMinutes ?? existing?.estimatedMinutes ?? defaults.estimatedMinutes, 1, 240),
+    mediaProvider: provider,
+    mediaUrl: draft.mediaUrl?.trim() || existing?.mediaUrl || undefined,
+    durationSeconds,
+    estimatedMinutes: clampAdminNumber(draft.estimatedMinutes ?? existing?.estimatedMinutes ?? Math.ceil(durationSeconds / 60), 1, 240),
     questionCount: clampAdminNumber(draft.listeningQuestionCount ?? existing?.questionCount ?? defaults.listeningQuestionCount, 1, 100),
     actionLabel: draft.listeningActionLabel?.trim() || existing?.actionLabel || "Start Focused Practice",
+    outline: outline.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
+    transcript: transcript.lines,
   };
 }
 
@@ -1129,7 +1148,14 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if (!adminListeningLengthOptions.includes(draft.listeningLengthId ?? "standard")) issues.push("Listening hub length is invalid.");
     if (!adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice")) issues.push("Listening hub session mode is invalid.");
     if ((draft.estimatedMinutes ?? 0) < 1) issues.push("Listening hub duration is required.");
+    if ((draft.durationSeconds ?? 0) < 1) issues.push("Listening media duration is required.");
     if ((draft.listeningQuestionCount ?? 0) < 1) issues.push("Listening hub question count is required.");
+    if (draft.mediaUrl?.trim()) {
+      const mediaIssue = validateVideoMediaUrl(draft.mediaProvider, draft.mediaUrl);
+      if (mediaIssue) issues.push(mediaIssue);
+    }
+    if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push("Listening outline must use time|title lines.");
+    if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push("Listening transcript must use time|text lines.");
   }
   if (collection === 'readingPracticeScreens') {
     const paragraphs = parseReadingPassageText(draft.passageText);

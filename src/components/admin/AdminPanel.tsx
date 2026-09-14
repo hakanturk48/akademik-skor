@@ -696,8 +696,33 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
             {editor.collection === "listeningHubItems" ? (
               <View style={styles.videoSourceSection}>
                 <View>
+                  <Text style={styles.formLabel}>Dinleme parçası</Text>
+                  <Text style={styles.formHelper}>Şimdilik YouTube veya Vimeo bağlantısı kullanılır. Bilgisayardan ses dosyası yükleme, Storage/domain taşıma aşamasında açılacak.</Text>
+                </View>
+                <VideoProviderSelector value={(draft.mediaProvider ?? "youtube") as VideoMediaProvider} onChange={(mediaProvider) => setField("mediaProvider", mediaProvider)} />
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Dinleme bağlantısı</Text>
+                    <TextInput accessibilityLabel="Dinleme bağlantısı" value={draft.mediaUrl ?? ""} onChangeText={(value) => setField("mediaUrl", value)} placeholder="https://www.youtube.com/watch?v=..." placeholderTextColor={studentTokens.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Süre (saniye)</Text>
+                    <TextInput accessibilityLabel="Dinleme süresi" value={String(draft.durationSeconds ?? 1200)} onChangeText={(value) => { const durationSeconds = Number(value.replace(/[^0-9]/g, "")) || 0; onChange({ ...draft, durationSeconds, estimatedMinutes: durationSeconds ? Math.ceil(durationSeconds / 60) : 0 }); }} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Outline / zaman çizelgesi</Text>
+                  <TextInput accessibilityLabel="Listening outline" value={draft.chaptersText ?? ""} onChangeText={(value) => setField("chaptersText", value)} placeholder={'00:00|Introduction\n03:20|Main idea\n07:45|Examples'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: zaman|başlık. Öğrenci practice ekranındaki outline bölümünde gösterilir.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Transkript</Text>
+                  <TextInput accessibilityLabel="Listening transkript" value={draft.transcriptText ?? ""} onChangeText={(value) => setField("transcriptText", value)} placeholder={'00:00|Today we will discuss...\n00:18|The first point is...'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: zaman|metin. Practice modunda öğrenci tarafında referans olarak gösterilir.</Text>
+                </View>
+                <View>
                   <Text style={styles.formLabel}>Listening Hub içeriği</Text>
-                  <Text style={styles.formHelper}>Bu modül yalnızca konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci doğru-yanlış, mastery veya oturum geçmişi burada tutulmaz.</Text>
+                  <Text style={styles.formHelper}>Bu modül konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci doğru-yanlış, mastery veya oturum geçmişi burada tutulmaz.</Text>
                 </View>
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <CatalogSelector label="Konu" options={listeningTopicOptions} value={draft.listeningTopicId} onChange={(listeningTopicId) => setField("listeningTopicId", listeningTopicId)} />

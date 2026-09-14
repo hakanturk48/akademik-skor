@@ -57,6 +57,7 @@ const listeningSkill = bySlug("skills", "listening");
 const listeningDifficultyIds = new Set(["adaptive", "easy", "medium", "hard"]);
 const listeningLengthIds = new Set(["quick", "standard", "extended"]);
 const listeningSessionModes = new Set(["practice", "exam"]);
+const listeningMediaProviders = new Set(["youtube", "vimeo"]);
 catalog.listeningHubItems.forEach((item) => {
   expectRef("topics", item.topicId, item.id + ".topicId");
   expectRef("taskTypes", item.taskTypeId, item.id + ".taskTypeId");
@@ -69,6 +70,11 @@ catalog.listeningHubItems.forEach((item) => {
   assert.ok(listeningSessionModes.has(item.sessionMode), item.id + ".sessionMode invalid");
   assert.ok(item.estimatedMinutes > 0, item.id + ".estimatedMinutes must be positive");
   assert.ok(item.questionCount > 0, item.id + ".questionCount must be positive");
+  assert.ok(item.durationSeconds > 0, item.id + ".durationSeconds must be positive");
+  assert.ok(listeningMediaProviders.has(item.mediaProvider), item.id + ".mediaProvider invalid");
+  assert.ok(typeof item.mediaUrl === "string" && item.mediaUrl.startsWith("https://"), item.id + ".mediaUrl must be an https URL");
+  assert.ok(Array.isArray(item.outline), item.id + ".outline must be an array");
+  assert.ok(Array.isArray(item.transcript), item.id + ".transcript must be an array");
 });
 catalog.vocabularySets.forEach((item) => { expectRef('levels', item.targetLevelId, `${item.id}.targetLevelId`); item.wordIds.forEach((id) => expectRef('vocabularyWords', id, `${item.id}.wordIds`)); });
 catalog.vocabularyWords.forEach((item) => { expectRef('vocabularySets', item.setId, `${item.id}.setId`); expectRef('levels', item.levelId, `${item.id}.levelId`); item.tagIds.forEach((id) => expectRef('contentTags', id, `${item.id}.tagIds`)); });

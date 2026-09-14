@@ -1,17 +1,21 @@
-import { useMemo, useState } from 'react';
+import { createElement, useEffect, useMemo, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import {
   getListeningDifficultyById,
+  getListeningHubItemById,
   getListeningLengthById,
   getListeningSelectionFromParams,
   getListeningSubskillById,
   getListeningTaskTypeById,
+  syncPublishedListeningHubItems,
+  type ListeningHubDisplayItem,
   type ListeningSelection,
 } from '@/lib/listening';
+import { formatVideoTimestamp, getVideoEmbedUrl, videoProviderLabel } from '@/lib/video-media';
 
 const fontFamily = 'Quicksand';
 
@@ -42,7 +46,6 @@ const arrowSymbol = symbolName('chevron.right', 'chevron_right');
 const backSymbol = symbolName('arrow.left', 'arrow_back');
 const headphonesSymbol = symbolName('headphones', 'headphones');
 const playSymbol = symbolName('play.fill', 'play_arrow');
-const pauseSymbol = symbolName('pause.fill', 'pause');
 const clockSymbol = symbolName('clock', 'schedule');
 const documentSymbol = symbolName('doc.text', 'description');
 const checkSymbol = symbolName('checkmark', 'check');
@@ -58,15 +61,6 @@ const questionSymbol = symbolName('questionmark.circle', 'help');
 
 const waveformBars = [18, 29, 44, 54, 42, 62, 38, 58, 49, 68, 35, 76, 52, 64, 47, 72, 40, 58, 50, 80, 44, 66, 55, 70, 36, 58, 45, 78, 50, 64, 43, 61, 39, 55, 47, 74, 42, 60, 48, 67, 38, 53, 46, 63, 41, 58, 44, 72, 49, 66, 37, 54, 45, 60, 42, 57, 36, 51, 44, 62, 40, 56, 34, 48, 43, 59, 39, 52, 32, 46, 41, 55, 36, 50, 30, 43, 38, 51, 35, 47, 31, 45, 34, 49, 32, 44, 30, 40];
 
-const outlineItems: TimelineItem[] = [
-  { title: 'Introduction', time: '0:00 - 2:10', active: true },
-  { title: 'Campus Facilities', time: '2:10 - 8:45', done: true },
-  { title: 'Library Services', time: '8:45 - 15:30', done: true },
-  { title: 'Student Support', time: '15:30 - 20:30' },
-  { title: 'Health & Wellness', time: '20:30 - 24:35' },
-];
-
-const questionNumbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
 const answerOptions: AnswerOption[] = [
   { key: 'A', text: 'Visit the library front desk' },
@@ -75,33 +69,91 @@ const answerOptions: AnswerOption[] = [
   { key: 'D', text: 'Email the student center' },
 ];
 
-const statItems: MetricItem[] = [
-  { value: '24:35', label: 'Total Duration', color: '#8b5cf6', icon: headphonesSymbol },
-  { value: '10:28', label: 'Time Listened', color: studentTokens.orange, icon: volumeSymbol },
-  { value: '43%', label: 'Completed', color: studentTokens.teal, icon: checkSymbol },
-  { value: '12', label: 'Notes Taken', color: studentTokens.blue, icon: noteSymbol },
-];
-type ListeningSearchParams = Partial<Record<'task' | 'subskill' | 'difficulty' | 'length' | 'mode', string | string[]>>;
+type ListeningSearchParams = Partial<Record<'task' | 'subskill' | 'difficulty' | 'length' | 'mode' | 'hub', string | string[]>>;
+
+type TranscriptLine = { startSeconds: number; text: string };
 
 type ListeningPracticeContext = {
   selection: ListeningSelection;
+  hubItem: ListeningHubDisplayItem | null;
+  title: string;
   meta: string;
   subtitle: string;
   rules: string[];
+  mediaProvider?: ListeningHubDisplayItem['mediaProvider'];
+  mediaUrl?: string;
+  durationSeconds: number;
+  questionCount: number;
+  outline: TimelineItem[];
+  transcript: TranscriptLine[];
 };
+
+function firstParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function fallbackDurationForSelection(selection: ListeningSelection) {
+  if (selection.lengthId === 'quick') return 600;
+  if (selection.lengthId === 'extended') return 1800;
+  return 1200;
+}
+
+function makeFallbackOutline(durationSeconds: number): TimelineItem[] {
+  const stops = [
+    { title: 'Introduction', startSeconds: 0 },
+    { title: 'Main idea', startSeconds: Math.round(durationSeconds * 0.18) },
+    { title: 'Key details', startSeconds: Math.round(durationSeconds * 0.42) },
+    { title: 'Examples', startSeconds: Math.round(durationSeconds * 0.68) },
+    { title: 'Review', startSeconds: Math.round(durationSeconds * 0.86) },
+  ];
+  return stops.map((item, index) => {
+    const next = stops[index + 1]?.startSeconds ?? durationSeconds;
+    return {
+      title: item.title,
+      time: formatVideoTimestamp(item.startSeconds) + ' - ' + formatVideoTimestamp(Math.max(item.startSeconds, next)),
+      active: index === 0,
+      done: index > 0 && index < 3,
+    };
+  });
+}
+
+function makeOutlineFromHub(item: ListeningHubDisplayItem | null, durationSeconds: number): TimelineItem[] {
+  const outline = item?.outline ?? [];
+  if (!outline.length) return makeFallbackOutline(durationSeconds);
+  return outline.map((chapter, index) => {
+    const nextStart = outline[index + 1]?.startSeconds ?? durationSeconds;
+    return {
+      title: chapter.title,
+      time: formatVideoTimestamp(chapter.startSeconds) + ' - ' + formatVideoTimestamp(Math.max(chapter.startSeconds, nextStart)),
+      active: index === 0,
+      done: index > 0 && index < 3,
+    };
+  });
+}
 
 function resolveListeningPracticeContext(params: ListeningSearchParams): ListeningPracticeContext {
   const selection = getListeningSelectionFromParams(params);
+  const hubItem = getListeningHubItemById(firstParam(params.hub));
   const task = getListeningTaskTypeById(selection.taskTypeId);
   const subskill = getListeningSubskillById(selection.subskillId);
   const difficulty = getListeningDifficultyById(selection.difficultyId);
   const length = getListeningLengthById(selection.lengthId);
   const examMode = selection.sessionMode === 'exam';
+  const durationSeconds = Math.max(1, hubItem?.durationSeconds ?? fallbackDurationForSelection(selection));
+  const questionCount = Math.max(1, hubItem?.questionCount ?? 10);
 
   return {
     selection,
-    meta: `${task.title} - ${subskill.title} - ${length.title}`,
-    subtitle: `${difficulty.title} difficulty. ${examMode ? 'Exam mode keeps feedback and transcript limited until submission.' : 'Practice mode keeps replay, notes, and explanation available.'}`,
+    hubItem,
+    title: hubItem?.title ?? 'Listening Practice',
+    meta: hubItem?.meta ?? `${task.title} - ${subskill.title} - ${length.title}`,
+    subtitle: hubItem?.description ?? `${difficulty.title} difficulty. ${examMode ? 'Exam mode keeps feedback and transcript limited until submission.' : 'Practice mode keeps replay, notes, and explanation available.'}`,
+    mediaProvider: hubItem?.mediaProvider,
+    mediaUrl: hubItem?.mediaUrl,
+    durationSeconds,
+    questionCount,
+    outline: makeOutlineFromHub(hubItem, durationSeconds),
+    transcript: hubItem?.transcript ?? [],
     rules: examMode
       ? ['Feedback hidden until the end', 'Transcript restricted during questions', 'Timer follows section pacing']
       : ['Replay is available', 'Notes stay visible while answering', 'Explanation can appear after each response'],
@@ -120,7 +172,7 @@ function PageHeader({ compact, context }: { compact: boolean; context: Listening
 
       <View style={[styles.headerRow, compact ? styles.headerRowCompact : null]}>
         <View style={styles.titleCopy}>
-          <Text style={styles.pageTitle}>Listening Practice</Text>
+          <Text style={styles.pageTitle}>{context.title}</Text>
           <Text style={styles.pageMeta}>{context.meta}</Text>
           <Text style={styles.pageSubtitle}>{context.subtitle}</Text>
         </View>
@@ -155,19 +207,36 @@ function PlayerIconButton({ icon, label }: { icon: AppSymbolName; label: string 
     </Pressable>
   );
 }
-function AudioPlayer({ compact }: { compact: boolean }) {
+function AudioPlayer({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
+  const embedUrl = getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const playerTime = '00:00 / ' + formatVideoTimestamp(context.durationSeconds);
+  const sourceLabel = context.mediaUrl ? videoProviderLabel(context.mediaProvider) + ' listening source' : 'Listening source not attached yet';
+
   return (
     <Card style={[styles.playerCard, compact ? styles.playerCardCompact : null]} contentStyle={[styles.playerBody, compact ? styles.playerBodyCompact : null]}>
-      <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Pause audio" style={({ pressed }) => [styles.pauseCircle, pressed ? styles.pressed : null]}>
-          <SymbolView name={pauseSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
-        </Pressable>
-        <Waveform compact={compact} />
-      </View>
+      {embedUrl && Platform.OS === 'web' ? (
+        <View style={styles.embeddedPlayer}>
+          {createElement('iframe', {
+            src: embedUrl,
+            title: context.title,
+            allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+            allowFullScreen: true,
+            style: { border: 0, width: '100%', height: '100%', display: 'block' },
+          })}
+        </View>
+      ) : (
+        <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Play audio" style={({ pressed }) => [styles.pauseCircle, pressed ? styles.pressed : null]}>
+            <SymbolView name={playSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
+          </Pressable>
+          <Waveform compact={compact} />
+        </View>
+      )}
       <View style={styles.playerProgressRow}>
-        <Text style={styles.playerTime}>08:47 / 24:35</Text>
+        <Text style={styles.playerTime}>{playerTime}</Text>
         <View style={styles.playerTrack}><View style={styles.playerFill} /></View>
       </View>
+      <Text style={styles.playerSourceText}>{sourceLabel}</Text>
       <View style={[styles.playerControls, compact ? styles.playerControlsCompact : null]}>
         <PlayerIconButton icon={replaySymbol} label="Replay 10 seconds" />
         <PlayerIconButton icon={forwardSymbol} label="Forward 10 seconds" />
@@ -229,7 +298,8 @@ function NotesPanel() {
   );
 }
 
-function QuestionNavigator() {
+function QuestionNavigator({ total }: { total: number }) {
+  const questionNumbers = Array.from({ length: Math.min(Math.max(total, 1), 10) }, (_, index) => String(index + 1));
   return (
     <View style={styles.navigatorRow}>
       {questionNumbers.map((item, index) => {
@@ -241,6 +311,7 @@ function QuestionNavigator() {
           </View>
         );
       })}
+      {total > 10 ? <Text style={styles.navigatorOverflow}>+{total - 10}</Text> : null}
       <SymbolView name={arrowSymbol} tintColor="#7a8398" size={12} style={styles.navigatorArrow} />
     </View>
   );
@@ -263,7 +334,7 @@ function QuestionsPanel({ compact, context }: { compact: boolean; context: Liste
       <View style={styles.cardHeadRow}>
         <View>
           <Text style={styles.cardLabelOrange}>QUESTIONS</Text>
-          <Text style={styles.questionProgress}>Question 3 of 10</Text>
+          <Text style={styles.questionProgress}>Question 1 of {context.questionCount}</Text>
         </View>
         <View style={styles.timeLimitPill}>
           <SymbolView name={clockSymbol} tintColor={studentTokens.orange} size={13} style={styles.timeIcon} />
@@ -274,7 +345,7 @@ function QuestionsPanel({ compact, context }: { compact: boolean; context: Liste
         </View>
         {!compact ? <SymbolView name={moreSymbol} tintColor={studentTokens.text} size={16} style={styles.moreIcon} /> : null}
       </View>
-      <QuestionNavigator />
+      <QuestionNavigator total={context.questionCount} />
       <Text style={styles.questionText}>According to the lecture, what can students do to book group study rooms?</Text>
       <View style={styles.answerList}>
         {answerOptions.map((item) => <AnswerRow key={item.key} item={item} />)}
@@ -291,8 +362,9 @@ function QuestionsPanel({ compact, context }: { compact: boolean; context: Liste
   );
 }
 
-function OutlinePanel({ compact }: { compact: boolean }) {
+function OutlinePanel({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
   const [expanded, setExpanded] = useState(!compact);
+  const transcriptPreview = context.selection.sessionMode === 'exam' ? [] : context.transcript.slice(0, 3);
 
   return (
     <Card style={styles.sideCard} contentStyle={styles.sideBody}>
@@ -307,8 +379,8 @@ function OutlinePanel({ compact }: { compact: boolean }) {
       {expanded ? (
         <>
           <View style={styles.timelineList}>
-            {outlineItems.map((item) => (
-              <View key={item.title} style={[styles.timelineRow, item.active ? styles.timelineRowActive : null]}>
+            {context.outline.map((item) => (
+              <View key={item.title + item.time} style={[styles.timelineRow, item.active ? styles.timelineRowActive : null]}>
                 <View style={[styles.timelineMarker, item.done ? styles.timelineDone : null, item.active ? styles.timelineActive : null]}>
                   {item.done ? <SymbolView name={checkSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : item.active ? <SymbolView name={playSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : null}
                 </View>
@@ -319,7 +391,15 @@ function OutlinePanel({ compact }: { compact: boolean }) {
               </View>
             ))}
           </View>
-          <Button label="View Full Transcript" size="sm" variant="secondary" left={<SymbolView name={documentSymbol} tintColor={studentTokens.blue} size={14} style={styles.buttonIcon} />} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.buttonIcon} />} style={styles.fullWidthButton} />
+          {transcriptPreview.length ? (
+            <View style={styles.transcriptPreview}>
+              <Text style={styles.cardLabelOrange}>TRANSCRIPT PREVIEW</Text>
+              {transcriptPreview.map((line) => (
+                <Text key={String(line.startSeconds) + line.text} style={styles.transcriptLine}>{formatVideoTimestamp(line.startSeconds)} - {line.text}</Text>
+              ))}
+            </View>
+          ) : null}
+          <Button label={context.transcript.length ? 'View Transcript' : 'Transcript Not Added'} size="sm" variant="secondary" left={<SymbolView name={documentSymbol} tintColor={studentTokens.blue} size={14} style={styles.buttonIcon} />} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.buttonIcon} />} style={styles.fullWidthButton} disabled={!context.transcript.length} />
         </>
       ) : (
         <Text style={styles.collapsedOutlineText}>Outline is collapsed on mobile. Open it when you need topic timing or transcript access.</Text>
@@ -327,6 +407,7 @@ function OutlinePanel({ compact }: { compact: boolean }) {
     </Card>
   );
 }
+
 function StatBox({ item }: { item: MetricItem }) {
   return (
     <View style={styles.statBox}>
@@ -341,7 +422,14 @@ function StatBox({ item }: { item: MetricItem }) {
   );
 }
 
-function StatsPanel() {
+function StatsPanel({ context }: { context: ListeningPracticeContext }) {
+  const statItems: MetricItem[] = [
+    { value: formatVideoTimestamp(context.durationSeconds), label: 'Total Duration', color: '#8b5cf6', icon: headphonesSymbol },
+    { value: String(context.questionCount), label: 'Questions', color: studentTokens.orange, icon: questionSymbol },
+    { value: String(context.transcript.length), label: 'Transcript Lines', color: studentTokens.teal, icon: documentSymbol },
+    { value: videoProviderLabel(context.mediaProvider), label: 'Source', color: studentTokens.blue, icon: volumeSymbol },
+  ];
+
   return (
     <Card style={styles.sideCard} contentStyle={styles.sideBody}>
       <Text style={styles.cardLabelOrange}>LECTURE STATS</Text>
@@ -413,12 +501,26 @@ function MobilePanelToggle({ value, onChange }: { value: 'notes' | 'questions'; 
 }
 export function ListeningPractice() {
   const params = useLocalSearchParams<ListeningSearchParams>();
-  const context = useMemo(() => resolveListeningPracticeContext(params), [params]);
+  const [hubVersion, setHubVersion] = useState(0);
+  const context = useMemo(() => {
+    void hubVersion;
+    return resolveListeningPracticeContext(params);
+  }, [params, hubVersion]);
   const { width } = useWindowDimensions();
   const isWide = width >= 1120;
   const isTablet = width >= 760;
   const isCompact = width < 620;
   const [mobilePanel, setMobilePanel] = useState<'notes' | 'questions'>('notes');
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedListeningHubItems()
+      .then((changed) => {
+        if (active && changed) setHubVersion((value) => value + 1);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   return (
     <View testID="listening-practice-screen" style={styles.screen}>
@@ -426,7 +528,7 @@ export function ListeningPractice() {
       <ModeBanner context={context} />
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.mainColumn}>
-          <AudioPlayer compact={isCompact} />
+          <AudioPlayer compact={isCompact} context={context} />
           {isCompact ? (
             <View style={styles.mobilePracticeStack}>
               <MobilePanelToggle value={mobilePanel} onChange={setMobilePanel} />
@@ -440,8 +542,8 @@ export function ListeningPractice() {
           )}
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
-          <OutlinePanel compact={isCompact} />
-          <StatsPanel />
+          <OutlinePanel compact={isCompact} context={context} />
+          <StatsPanel context={context} />
           <StudyTipPanel />
         </View>
       </View>
@@ -486,6 +588,8 @@ const styles = StyleSheet.create({
   playerTrack: { flex: 1, minWidth: 90, height: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
   playerFill: { width: '43%', height: '100%', borderRadius: 999, backgroundColor: studentTokens.yellow },
   playerControls: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  embeddedPlayer: { width: '100%', aspectRatio: 16 / 9, borderRadius: 10, overflow: 'hidden', backgroundColor: '#08142e' },
+  playerSourceText: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 9, lineHeight: 13, fontWeight: '600' },
   controlIcon: { width: 19, height: 19, flexShrink: 0 },
   controlDivider: { width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.16)' },
   speedText: { fontFamily: fontFamily, color: '#ffffff', fontSize: 12, lineHeight: 15, fontWeight: '700' },
@@ -531,6 +635,7 @@ const styles = StyleSheet.create({
   navigatorText: { fontFamily: fontFamily, color: '#5f6980', fontSize: 9, lineHeight: 12, fontWeight: '700' },
   navigatorTextActive: { color: '#ffffff' },
   navigatorArrow: { width: 12, height: 12 },
+  navigatorOverflow: { fontFamily: fontFamily, color: '#5f6980', fontSize: 9, lineHeight: 12, fontWeight: '700' },
   questionText: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 11, lineHeight: 16, fontWeight: '700' },
   answerList: { gap: 8 },
   answerRow: { minHeight: 39, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.surface, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 9, paddingVertical: 8 },
@@ -562,6 +667,8 @@ const styles = StyleSheet.create({
   timelineTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 9, lineHeight: 13, fontWeight: '700' },
   timelineTime: { fontFamily: fontFamily, color: '#6e778b', fontSize: 8, lineHeight: 11, fontWeight: '600', marginTop: 1 },
   fullWidthButton: { width: '100%', minHeight: 33, borderRadius: 7 },
+  transcriptPreview: { borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: '#fbfcff', padding: 10, gap: 6 },
+  transcriptLine: { fontFamily: fontFamily, color: '#4f5870', fontSize: 9, lineHeight: 14, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   statBox: { flexGrow: 1, flexBasis: 132, minHeight: 64, borderRadius: 9, borderWidth: 1, borderColor: '#eef1f6', backgroundColor: studentTokens.surface, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 },
   statIconBox: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

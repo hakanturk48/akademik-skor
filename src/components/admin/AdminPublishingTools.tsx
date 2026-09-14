@@ -133,16 +133,22 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
     const topic = catalog.topics.find((entry) => entry.id === item.topicId)?.title ?? "Konu seçilmedi";
     const taskType = catalog.taskTypes.find((entry) => entry.id === item.taskTypeId)?.title ?? "Soru türü seçilmedi";
     const subskill = catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
+    const embedUrl = getVideoEmbedUrl(item.mediaProvider, item.mediaUrl);
     content = <Card title={item.title} right={<Badge label={base.isPremium ? "Premium" : "Ücretsiz"} tone={base.isPremium ? "yellow" : "teal"} />}>
       <Text style={styles.meta}>Listening Hub · {adminLabel(item.sessionMode)} · {adminLabel(item.difficultyId)} · {adminLabel(item.lengthId)}</Text>
       <Text style={styles.body}>{base.description ?? ""}</Text>
+      {embedUrl && Platform.OS === "web" ? (
+        <View style={styles.mediaPreview}>
+          {createElement("iframe", { src: embedUrl, title: item.title, allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowFullScreen: true, style: { border: 0, width: "100%", height: "100%", display: "block" } })}
+        </View>
+      ) : <Text style={styles.meta}>{item.mediaUrl ? `${videoProviderLabel(item.mediaProvider)} kaynağı kaydedildi. Öğrenci practice ekranında açılır.` : "Dinleme bağlantısı eklenmedi. Taslak kaydedilebilir ancak yayınlanamaz."}</Text>}
       <View style={styles.option}>
         <Text style={styles.heading}>Practice rotası</Text>
         <Text style={styles.body}>Konu: {topic}</Text>
         <Text style={styles.body}>Soru türü: {taskType}</Text>
         <Text style={styles.body}>Alt beceri: {subskill}</Text>
       </View>
-      <Text style={styles.meta}>{item.questionCount} soru · {item.estimatedMinutes} dk · Buton: {item.actionLabel}</Text>
+      <Text style={styles.meta}>{item.questionCount} soru · {item.estimatedMinutes} dk · {formatVideoTimestamp(item.durationSeconds)} medya · {item.outline?.length ?? 0} outline · {item.transcript?.length ?? 0} transkript satırı · Buton: {item.actionLabel}</Text>
     </Card>;
   } else if (collection === "vocabularyWords") {
     const word = snapshot as VocabularyWord;
