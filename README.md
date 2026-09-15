@@ -83,7 +83,7 @@ GitHub Pages statik frontend yayınlar. Firebase yapılandırıldığında kulla
 3. Authentication > Settings > Authorized domains bölümünde `localhost` ve `hakanturk48.github.io` alan adlarını izinli bırakın/ekleyin.
 4. Firestore Database oluşturun ve Rules sekmesine `firestore.rules` içeriğini yayınlayın.
 5. Firebase Web App config değerlerini `.env.local` içine `.env.example` şablonuyla ekleyin.
-6. GitHub repository > Settings > Secrets and variables > Actions bölümünde şu repository secrets değerlerini oluşturun: `EXPO_PUBLIC_FIREBASE_API_KEY`, `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`, `EXPO_PUBLIC_FIREBASE_PROJECT_ID`, `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `EXPO_PUBLIC_FIREBASE_APP_ID`.
+6. GitHub repository > Settings > Secrets and variables > Actions bölümünde şu repository secrets değerlerini oluşturun: `EXPO_PUBLIC_FIREBASE_API_KEY`, `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`, `EXPO_PUBLIC_FIREBASE_PROJECT_ID`, `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`, `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `EXPO_PUBLIC_FIREBASE_APP_ID`.
 7. İlk admin kullanıcı hesabını normal kayıtla oluşturduktan sonra Firebase Console > Firestore içinde ilgili `profiles/{uid}` belgesindeki `role` alanını `admin` yapın.
 
 Firebase CLI kullanıyorsanız Firestore kurallarını tek komutla yayınlayabilirsiniz:

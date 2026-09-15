@@ -85,6 +85,11 @@ export type VideoLesson = {
   status: VideoStatus;
   mediaProvider?: 'youtube' | 'vimeo' | 'upload';
   mediaUrl?: string;
+  mediaStoragePath?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaUploadedAt?: string;
   tags: string[];
   sortOrder: number;
   recommendedScore: number;
@@ -808,6 +813,11 @@ type StoredAdminVideoLesson = {
   durationSeconds: number;
   mediaProvider?: 'youtube' | 'vimeo' | 'upload';
   mediaUrl?: string;
+  mediaStoragePath?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaUploadedAt?: string;
   thumbnailUrl?: string;
   previewDurationSeconds?: number;
   chapters?: { startSeconds: number; title: string }[];
@@ -922,6 +932,11 @@ function readPublishedAdminVideoLessons(): VideoLesson[] {
           status: lesson.status,
           mediaProvider: lesson.mediaProvider,
           mediaUrl: lesson.mediaUrl,
+          mediaStoragePath: lesson.mediaStoragePath,
+          mediaFileName: lesson.mediaFileName,
+          mediaMimeType: lesson.mediaMimeType,
+          mediaSizeBytes: lesson.mediaSizeBytes,
+          mediaUploadedAt: lesson.mediaUploadedAt,
           tags: lesson.taxonomy.tagIds.map((id) => catalog.contentTags?.find((item) => item.id === id)?.title ?? id),
           sortOrder: lesson.sortOrder || index + 1,
           recommendedScore: 0,

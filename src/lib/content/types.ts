@@ -116,14 +116,21 @@ export interface LessonResource {
   premium?: boolean;
 }
 
+export type ContentMediaProvider = 'youtube' | 'vimeo' | 'upload';
+
 export interface Lesson extends BaseEntity {
   courseId: string;
   moduleId: string;
   taxonomy: TaxonomyRef;
   durationSeconds: number;
   estimatedMinutes: number;
-  mediaProvider?: 'youtube' | 'vimeo' | 'upload';
+  mediaProvider?: ContentMediaProvider;
   mediaUrl?: string;
+  mediaStoragePath?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaUploadedAt?: string;
   thumbnailUrl?: string;
   previewDurationSeconds?: number;
   chapters?: LessonChapter[];
@@ -143,8 +150,13 @@ export interface ListeningHubItem extends BaseEntity {
   difficultyId: ListeningHubDifficultyId;
   lengthId: ListeningHubLengthId;
   sessionMode: ListeningHubSessionMode;
-  mediaProvider?: "youtube" | "vimeo";
+  mediaProvider?: ContentMediaProvider;
   mediaUrl?: string;
+  mediaStoragePath?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaUploadedAt?: string;
   durationSeconds: number;
   estimatedMinutes: number;
   questionCount: number;

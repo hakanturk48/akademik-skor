@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath(userId) {
+      return /databases/(default)/documents/profiles/$(userId);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && firestore.exists(profilePath(request.auth.uid))
+        && firestore.get(profilePath(request.auth.uid)).data.role == 'admin';
+    }
+
+    function allowedMediaType(kind) {
+      return (kind == 'video-lesson' && request.resource.contentType.matches('video/.*'))
+        || (kind == 'listening' && (request.resource.contentType.matches('audio/.*') || request.resource.contentType.matches('video/.*')))
+        || (kind == 'thumbnail' && request.resource.contentType.matches('image/.*'));
+    }
+
+    function allowedMediaSize(kind) {
+      return (kind == 'video-lesson' && request.resource.size < 500 * 1024 * 1024)
+        || (kind == 'listening' && request.resource.size < 250 * 1024 * 1024)
+        || (kind == 'thumbnail' && request.resource.size < 8 * 1024 * 1024);
+    }
+
+    match /admin-media/{userId}/{kind}/{month}/{fileName} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.auth.uid == userId
+        && kind in ['video-lesson', 'listening', 'thumbnail']
+        && allowedMediaType(kind)
+        && allowedMediaSize(kind);
+      allow update, delete: if isAdmin() && request.auth.uid == userId;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

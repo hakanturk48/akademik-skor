@@ -1,11 +1,13 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY?.trim(),
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim(),
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID?.trim(),
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim(),
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID?.trim(),
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID?.trim(),
 };
@@ -18,6 +20,8 @@ export const isFirebaseConfigured = Boolean(
     && firebaseConfig.appId,
 );
 
+export const isFirebaseStorageConfigured = Boolean(isFirebaseConfigured && firebaseConfig.storageBucket);
+
 function initializeFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseConfigured) return null;
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -26,3 +30,4 @@ function initializeFirebaseApp(): FirebaseApp | null {
 export const firebaseApp = initializeFirebaseApp();
 export const firebaseAuth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
 export const firebaseDb: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
+export const firebaseStorage: FirebaseStorage | null = firebaseApp && firebaseConfig.storageBucket ? getStorage(firebaseApp) : null;

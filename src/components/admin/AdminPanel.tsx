@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { createElement, useEffect, useId, useMemo, useState } from 'react';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Modal as NativeModal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
@@ -49,6 +49,7 @@ import {
 } from '@/lib/admin';
 import type { ReadingPracticeQuestion, Visibility } from '@/lib/content';
 import { videoMediaProviders, type VideoMediaProvider } from '@/lib/video-media';
+import { saveMediaUpload, type MediaUploadKind, type SavedMediaUpload } from '@/lib/video-upload';
 
 type AdminPanelProps = {
   user: AuthUser;
@@ -427,10 +428,10 @@ function OptionSelector<T extends string>({ label, options, value, onChange }: {
   );
 }
 
-function VideoProviderSelector({ value, onChange }: { value: VideoMediaProvider; onChange: (value: VideoMediaProvider) => void }) {
+function VideoProviderSelector({ label = 'Medya sağlayıcısı', value, onChange }: { label?: string; value: VideoMediaProvider; onChange: (value: VideoMediaProvider) => void }) {
   return (
     <View style={styles.formGroup}>
-      <Text style={styles.formLabel}>Video sağlayıcısı</Text>
+      <Text style={styles.formLabel}>{label}</Text>
       <View style={styles.optionWrap}>
         {videoMediaProviders.map((provider) => {
           const selected = provider.value === value;
@@ -440,6 +441,86 @@ function VideoProviderSelector({ value, onChange }: { value: VideoMediaProvider;
             </Pressable>
           );
         })}
+      </View>
+    </View>
+  );
+}
+
+function formatUploadBytes(bytes?: number) {
+  if (!bytes) return '';
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+function mediaLooksAudio(file: File) {
+  return file.type.startsWith('audio/') || /\.(mp3|m4a|aac|wav|ogg|opus)$/i.test(file.name);
+}
+
+function readMediaDurationSeconds(file: File) {
+  if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return Promise.resolve<number | null>(null);
+  return new Promise<number | null>((resolve) => {
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(mediaLooksAudio(file) ? 'audio' : 'video');
+    const finish = (value: number | null) => {
+      URL.revokeObjectURL(url);
+      resolve(value);
+    };
+    media.preload = 'metadata';
+    media.onloadedmetadata = () => finish(Number.isFinite(media.duration) ? Math.ceil(media.duration) : null);
+    media.onerror = () => finish(null);
+    media.src = url;
+  });
+}
+
+function uploadedMediaLabel(fileName?: string, mimeType?: string, sizeBytes?: number, uploadedAt?: string) {
+  if (!fileName) return 'Henüz dosya yüklenmedi.';
+  const parts = [fileName, mimeType, formatUploadBytes(sizeBytes)].filter(Boolean);
+  const date = uploadedAt ? new Date(uploadedAt) : null;
+  if (date && !Number.isNaN(date.getTime())) parts.push(date.toLocaleString('tr-TR'));
+  return parts.join(' · ');
+}
+
+function MediaUploadField({ kind, accept, label, helper, contentId, fileName, mimeType, sizeBytes, uploadedAt, onUploaded }: { kind: MediaUploadKind; accept: string; label: string; helper: string; contentId?: string; fileName?: string; mimeType?: string; sizeBytes?: number; uploadedAt?: string; onUploaded: (upload: SavedMediaUpload, durationSeconds: number | null) => void }) {
+  const inputId = `admin-media-upload-${useId().replace(/:/g, "-")}`;
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+  const canPickFile = typeof document !== 'undefined';
+
+  const handleFileChange = async (event: { target?: EventTarget | null }) => {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+    setUploadError('');
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const durationSeconds = await readMediaDurationSeconds(file);
+      const upload = await saveMediaUpload(file, { kind, contentId, onProgress: setUploadProgress });
+      onUploaded(upload, durationSeconds);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Dosya yüklenemedi.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (input) input.value = '';
+    }
+  };
+
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>{label}</Text>
+      <View style={styles.uploadBox}>
+        {canPickFile ? createElement('input', { id: inputId, type: 'file', accept, style: { display: 'none' }, onChange: handleFileChange }) : null}
+        <View style={styles.uploadActions}>
+          <Button label={uploading ? `Yükleniyor ${Math.max(1, uploadProgress)}%` : 'Dosya seç ve yükle'} size="sm" variant="secondary" disabled={!canPickFile || uploading} onPress={() => (document.getElementById(inputId) as HTMLInputElement | null)?.click()} style={styles.uploadButton} />
+          <Text style={styles.uploadMeta}>{uploadedMediaLabel(fileName, mimeType, sizeBytes, uploadedAt)}</Text>
+        </View>
+        {uploading ? <View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill, { width: `${Math.max(2, uploadProgress)}%` }]} /></View> : null}
+        {uploadError ? <Text accessibilityRole="alert" style={styles.formIssueText}>{uploadError}</Text> : null}
+        <Text style={styles.formHelper}>{helper}</Text>
       </View>
     </View>
   );
@@ -573,6 +654,35 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
   const draft = editor.draft;
   const supportsPremium = collectionSupportsPremium(editor.collection);
   const setField = <TKey extends keyof AdminEntityDraft>(key: TKey, value: AdminEntityDraft[TKey]) => onChange({ ...draft, [key]: value });
+  const setMediaProvider = (mediaProvider: VideoMediaProvider) => {
+    const next: AdminEntityDraft = { ...draft, mediaProvider };
+    if (mediaProvider !== draft.mediaProvider) {
+      next.mediaUrl = '';
+      next.mediaStoragePath = undefined;
+      next.mediaFileName = undefined;
+      next.mediaMimeType = undefined;
+      next.mediaSizeBytes = undefined;
+      next.mediaUploadedAt = undefined;
+    }
+    onChange(next);
+  };
+  const handleUploadedMedia = (upload: SavedMediaUpload, durationSeconds: number | null) => {
+    const next: AdminEntityDraft = {
+      ...draft,
+      mediaProvider: 'upload',
+      mediaUrl: upload.downloadUrl,
+      mediaStoragePath: upload.storagePath,
+      mediaFileName: upload.name,
+      mediaMimeType: upload.mimeType,
+      mediaSizeBytes: upload.sizeBytes,
+      mediaUploadedAt: upload.uploadedAt,
+    };
+    if (durationSeconds && durationSeconds > 0) {
+      next.durationSeconds = durationSeconds;
+      next.estimatedMinutes = Math.ceil(durationSeconds / 60);
+    }
+    onChange(next);
+  };
   const readingWordCount = countWordsFromText(draft.passageText);
   const document = editor.row ? getAdminDocument(state, editor.collection, editor.row.id) : undefined;
   const preview = historicalPreview ?? previewAdminDraft(state, editor.collection, draft, editor.row?.id);
@@ -638,9 +748,9 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               <View style={styles.videoSourceSection}>
                 <View>
                   <Text style={styles.formLabel}>Video kaynağı</Text>
-                  <Text style={styles.formHelper}>Şimdilik YouTube veya Vimeo bağlantısı kullanılır. Bilgisayardan dosya yükleme, Storage/domain taşıma aşamasında yeniden açılacak.</Text>
+                  <Text style={styles.formHelper}>YouTube/Vimeo bağlantısı kullanabilir veya dosyayı Firebase Storage sistemine yükleyebilirsiniz.</Text>
                 </View>
-                <VideoProviderSelector value={draft.mediaProvider ?? 'youtube'} onChange={(mediaProvider) => setField('mediaProvider', mediaProvider)} />
+                <VideoProviderSelector label="Video sağlayıcısı" value={draft.mediaProvider ?? 'youtube'} onChange={setMediaProvider} />
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <CatalogSelector label="Kurs" options={state.catalog.courses} value={draft.courseId} onChange={(courseId) => {
                     const nextModule = state.catalog.modules.find((module) => module.courseId === courseId);
@@ -650,10 +760,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                 </View>
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   {draft.mediaProvider === 'upload' ? (
-                    <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>Video dosyası</Text>
-                      <Text style={styles.formHelper}>Bu kayıt eski bir dosya yükleme kaydı. Şimdilik canlı kurulumda dosya yükleme kapalı; YouTube veya Vimeo seçip bağlantı girin.</Text>
-                    </View>
+                    <MediaUploadField kind="video-lesson" accept="video/*" label="Video dosyası" helper="MP4, WebM, MOV veya M4V yükleyebilirsiniz. Üst sınır 500 MB. Süre okunursa otomatik doldurulur." contentId={editor.row?.id ?? draft.slug} fileName={draft.mediaFileName} mimeType={draft.mediaMimeType} sizeBytes={draft.mediaSizeBytes} uploadedAt={draft.mediaUploadedAt} onUploaded={handleUploadedMedia} />
                   ) : (
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>Video bağlantısı</Text>
@@ -697,14 +804,18 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
               <View style={styles.videoSourceSection}>
                 <View>
                   <Text style={styles.formLabel}>Dinleme parçası</Text>
-                  <Text style={styles.formHelper}>Şimdilik YouTube veya Vimeo bağlantısı kullanılır. Bilgisayardan ses dosyası yükleme, Storage/domain taşıma aşamasında açılacak.</Text>
+                  <Text style={styles.formHelper}>YouTube/Vimeo bağlantısı kullanabilir veya MP3/video dosyasını Firebase Storage sistemine yükleyebilirsiniz.</Text>
                 </View>
-                <VideoProviderSelector value={(draft.mediaProvider ?? "youtube") as VideoMediaProvider} onChange={(mediaProvider) => setField("mediaProvider", mediaProvider)} />
+                <VideoProviderSelector label="Dinleme kaynağı" value={(draft.mediaProvider ?? "youtube") as VideoMediaProvider} onChange={setMediaProvider} />
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Dinleme bağlantısı</Text>
-                    <TextInput accessibilityLabel="Dinleme bağlantısı" value={draft.mediaUrl ?? ""} onChangeText={(value) => setField("mediaUrl", value)} placeholder="https://www.youtube.com/watch?v=..." placeholderTextColor={studentTokens.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.formInput} />
-                  </View>
+                  {draft.mediaProvider === "upload" ? (
+                    <MediaUploadField kind="listening" accept="audio/*,video/*" label="Dinleme dosyası" helper="MP3, M4A, WAV, OGG ya da MP4/WebM video yükleyebilirsiniz. Üst sınır 250 MB. Süre okunursa otomatik doldurulur." contentId={editor.row?.id ?? draft.slug} fileName={draft.mediaFileName} mimeType={draft.mediaMimeType} sizeBytes={draft.mediaSizeBytes} uploadedAt={draft.mediaUploadedAt} onUploaded={handleUploadedMedia} />
+                  ) : (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>Dinleme bağlantısı</Text>
+                      <TextInput accessibilityLabel="Dinleme bağlantısı" value={draft.mediaUrl ?? ""} onChangeText={(value) => setField("mediaUrl", value)} placeholder="https://www.youtube.com/watch?v=..." placeholderTextColor={studentTokens.muted} autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.formInput} />
+                    </View>
+                  )}
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Süre (saniye)</Text>
                     <TextInput accessibilityLabel="Dinleme süresi" value={String(draft.durationSeconds ?? 1200)} onChangeText={(value) => { const durationSeconds = Number(value.replace(/[^0-9]/g, "")) || 0; onChange({ ...draft, durationSeconds, estimatedMinutes: durationSeconds ? Math.ceil(durationSeconds / 60) : 0 }); }} keyboardType="number-pad" style={styles.formInput} />
@@ -1235,6 +1346,12 @@ const styles = StyleSheet.create({
 
   formGroup: { gap: 7, minWidth: 0, flexGrow: 1, flexShrink: 1 },
   videoSourceSection: { gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: '#f7fbfc' },
+  uploadBox: { gap: 10, borderRadius: 12, borderWidth: 1, borderColor: studentTokens.line, backgroundColor: studentTokens.surface, padding: 12 },
+  uploadActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  uploadButton: { minWidth: 156 },
+  uploadMeta: { flex: 1, minWidth: 180, fontFamily: studentFontFamily, color: studentTokens.text, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  uploadProgressTrack: { height: 6, borderRadius: 999, backgroundColor: '#e8edf5', overflow: 'hidden' },
+  uploadProgressFill: { height: '100%', borderRadius: 999, backgroundColor: studentTokens.teal },
   formHelper: { fontFamily: studentFontFamily, color: studentTokens.muted, fontSize: 12, lineHeight: 18, fontWeight: '500', marginTop: 3 },
   formLabel: { fontFamily: studentFontFamily, color: studentTokens.ink, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -58,17 +58,18 @@ const noop = () => {};
 
 export function AdminContentPreview({ snapshot, collection, state, user }: { snapshot: AdminSnapshot; collection: AdminMutableCollectionKey; state: AdminWorkspaceState; user: AuthUser }) {
   const catalog = state.catalog;
-  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+  const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    if (collection !== 'lessons' || (snapshot as Lesson).mediaProvider !== 'upload') return () => {};
-    void getVideoUploadUrl((snapshot as Lesson).mediaUrl).then((url) => {
-      if (active) setUploadedVideoUrl(url);
+    const media = snapshot as Lesson | ListeningHubItem;
+    if ((collection !== 'lessons' && collection !== 'listeningHubItems') || media.mediaProvider !== 'upload' || !media.mediaUrl) return () => {};
+    void getVideoUploadUrl(media.mediaUrl).then((url) => {
+      if (active) setUploadedMediaUrl(url);
       else revokeVideoUploadUrl(url);
-    }).catch(() => {});
+    }).catch(() => { if (active) setUploadedMediaUrl(null); });
     return () => {
       active = false;
-      setUploadedVideoUrl((url) => {
+      setUploadedMediaUrl((url) => {
         revokeVideoUploadUrl(url);
         return null;
       });
@@ -108,9 +109,9 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
         <View style={styles.mediaPreview}>
           {createElement('iframe', { src: embedUrl, title: lesson.title, allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share', allowFullScreen: true, style: { border: 0, width: '100%', height: '100%', display: 'block' } })}
         </View>
-      ) : uploadedVideoUrl && Platform.OS === 'web' ? (
+      ) : uploadedMediaUrl && Platform.OS === 'web' ? (
         <View style={styles.mediaPreview}>
-          {createElement('video', { src: uploadedVideoUrl, controls: true, playsInline: true, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#111827' } })}
+          {createElement('video', { src: uploadedMediaUrl, controls: true, playsInline: true, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#111827' } })}
         </View>
       ) : <Text style={styles.meta}>{lesson.mediaUrl ? `${videoProviderLabel(lesson.mediaProvider)} kaynağı kaydedildi. Öğrenci önizlemesi web ortamında açılır.` : 'Video bağlantısı eklenmedi. Taslak kaydedilebilir ancak yayınlanamaz.'}</Text>}
       <Text style={styles.body}>{base.description}</Text>
@@ -134,12 +135,17 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
     const taskType = catalog.taskTypes.find((entry) => entry.id === item.taskTypeId)?.title ?? "Soru türü seçilmedi";
     const subskill = catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
     const embedUrl = getVideoEmbedUrl(item.mediaProvider, item.mediaUrl);
+    const uploadedMediaIsAudio = item.mediaMimeType?.toLowerCase().startsWith("audio/") || /\.(mp3|m4a|aac|wav|ogg|opus)$/i.test(item.mediaUrl?.split("?")[0] ?? "");
     content = <Card title={item.title} right={<Badge label={base.isPremium ? "Premium" : "Ücretsiz"} tone={base.isPremium ? "yellow" : "teal"} />}>
       <Text style={styles.meta}>Listening Hub · {adminLabel(item.sessionMode)} · {adminLabel(item.difficultyId)} · {adminLabel(item.lengthId)}</Text>
       <Text style={styles.body}>{base.description ?? ""}</Text>
       {embedUrl && Platform.OS === "web" ? (
         <View style={styles.mediaPreview}>
           {createElement("iframe", { src: embedUrl, title: item.title, allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowFullScreen: true, style: { border: 0, width: "100%", height: "100%", display: "block" } })}
+        </View>
+      ) : uploadedMediaUrl && Platform.OS === "web" ? (
+        <View style={uploadedMediaIsAudio ? styles.audioPreview : styles.mediaPreview}>
+          {uploadedMediaIsAudio ? createElement("audio", { src: uploadedMediaUrl, controls: true, style: { width: "100%", display: "block" } }) : createElement("video", { src: uploadedMediaUrl, controls: true, playsInline: true, style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#111827" } })}
         </View>
       ) : <Text style={styles.meta}>{item.mediaUrl ? `${videoProviderLabel(item.mediaProvider)} kaynağı kaydedildi. Öğrenci practice ekranında açılır.` : "Dinleme bağlantısı eklenmedi. Taslak kaydedilebilir ancak yayınlanamaz."}</Text>}
       <View style={styles.option}>
@@ -191,4 +197,5 @@ const styles = StyleSheet.create({
   option: { borderWidth: 1, borderColor: studentTokens.line, borderRadius: 8, padding: 12, marginTop: 8 },
   video: { width: '100%', maxWidth: 440, alignSelf: 'center', gap: 14 },
   mediaPreview: { width: '100%', aspectRatio: 16 / 9, overflow: 'hidden', borderRadius: 10, backgroundColor: '#000000' },
+  audioPreview: { width: '100%', minHeight: 58, borderRadius: 10, backgroundColor: '#111827', justifyContent: 'center', padding: 10 },
 });

@@ -31,7 +31,7 @@ assert.match(media.validateVideoMediaUrl('youtube', 'https://example.com/video')
 assert.equal(media.validateVideoMediaUrl('youtube', 'https://youtu.be/dQw4w9WgXcQ'), null);
 assert.equal(media.validateVideoMediaUrl('upload', 'asset:browser-upload'), null);
 assert.equal(media.validateVideoMediaUrl('upload', 'https://example.com/video'), null);
-assert.deepEqual(media.videoMediaProviders.map((provider) => provider.value), ['youtube', 'vimeo']);
+assert.deepEqual(media.videoMediaProviders.map((provider) => provider.value), ['youtube', 'vimeo', 'upload']);
 assert.deepEqual(media.parseVideoTimedText('00:00|Giriş\n01:20|Ana fikir'), {
   lines: [{ startSeconds: 0, text: 'Giriş' }, { startSeconds: 80, text: 'Ana fikir' }],
   invalidLines: [],

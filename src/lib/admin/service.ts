@@ -458,6 +458,11 @@ function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<Ad
   return {
     mediaProvider: item?.mediaProvider,
     mediaUrl: item?.mediaUrl ?? "",
+    mediaStoragePath: item?.mediaStoragePath,
+    mediaFileName: item?.mediaFileName,
+    mediaMimeType: item?.mediaMimeType,
+    mediaSizeBytes: item?.mediaSizeBytes,
+    mediaUploadedAt: item?.mediaUploadedAt,
     durationSeconds: item?.durationSeconds,
     estimatedMinutes: item?.estimatedMinutes,
     chaptersText: serializeVideoTimedText(item?.outline?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
@@ -479,7 +484,7 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   const taskTypeId = taskOptions.some((item) => item.id === draft.listeningTaskTypeId) ? String(draft.listeningTaskTypeId) : existing?.taskTypeId ?? String(defaults.listeningTaskTypeId ?? "");
   const subskillOptions = listeningSubskillOptions(catalog, taskTypeId);
   const topicOptions = listeningTopicOptions(catalog);
-  const provider = draft.mediaProvider === "vimeo" ? "vimeo" : draft.mediaProvider === "youtube" ? "youtube" : existing?.mediaProvider ?? "youtube";
+  const provider = draft.mediaProvider === "upload" ? "upload" : draft.mediaProvider === "vimeo" ? "vimeo" : draft.mediaProvider === "youtube" ? "youtube" : existing?.mediaProvider ?? "youtube";
   const durationSeconds = clampAdminNumber(draft.durationSeconds ?? existing?.durationSeconds ?? defaults.durationSeconds, 1, 14400);
   const outline = parseVideoTimedText(draft.chaptersText);
   const transcript = parseVideoTimedText(draft.transcriptText);
@@ -492,6 +497,11 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
     sessionMode: adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice") ? draft.listeningSessionMode ?? "practice" : existing?.sessionMode ?? "practice",
     mediaProvider: provider,
     mediaUrl: draft.mediaUrl?.trim() || existing?.mediaUrl || undefined,
+    mediaStoragePath: provider === "upload" ? draft.mediaStoragePath?.trim() || existing?.mediaStoragePath || undefined : undefined,
+    mediaFileName: provider === "upload" ? draft.mediaFileName?.trim() || existing?.mediaFileName || undefined : undefined,
+    mediaMimeType: provider === "upload" ? draft.mediaMimeType?.trim() || existing?.mediaMimeType || undefined : undefined,
+    mediaSizeBytes: provider === "upload" ? draft.mediaSizeBytes ?? existing?.mediaSizeBytes : undefined,
+    mediaUploadedAt: provider === "upload" ? draft.mediaUploadedAt ?? existing?.mediaUploadedAt : undefined,
     durationSeconds,
     estimatedMinutes: clampAdminNumber(draft.estimatedMinutes ?? existing?.estimatedMinutes ?? Math.ceil(durationSeconds / 60), 1, 240),
     questionCount: clampAdminNumber(draft.listeningQuestionCount ?? existing?.questionCount ?? defaults.listeningQuestionCount, 1, 100),
@@ -744,6 +754,11 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
         estimatedMinutes: draft.estimatedMinutes ?? 15,
         mediaProvider: draft.mediaProvider,
         mediaUrl: draft.mediaUrl?.trim() || undefined,
+        mediaStoragePath: draft.mediaProvider === 'upload' ? draft.mediaStoragePath?.trim() || undefined : undefined,
+        mediaFileName: draft.mediaProvider === 'upload' ? draft.mediaFileName?.trim() || undefined : undefined,
+        mediaMimeType: draft.mediaProvider === 'upload' ? draft.mediaMimeType?.trim() || undefined : undefined,
+        mediaSizeBytes: draft.mediaProvider === 'upload' ? draft.mediaSizeBytes : undefined,
+        mediaUploadedAt: draft.mediaProvider === 'upload' ? draft.mediaUploadedAt : undefined,
         thumbnailUrl: draft.thumbnailUrl?.trim() || undefined,
         previewDurationSeconds: draft.previewDurationSeconds ?? 0,
         chapters: chapters.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
@@ -841,11 +856,16 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
   }
 
   if (collection === 'lessons' && 'durationSeconds' in next) {
-    const lesson = next as BaseEntity & { durationSeconds: number; estimatedMinutes: number; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[] };
+    const lesson = next as BaseEntity & { durationSeconds: number; estimatedMinutes: number; mediaProvider?: VideoMediaProvider; mediaUrl?: string; mediaStoragePath?: string; mediaFileName?: string; mediaMimeType?: string; mediaSizeBytes?: number; mediaUploadedAt?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[] };
     lesson.durationSeconds = typeof draft.durationSeconds === 'number' && draft.durationSeconds >= 0 ? draft.durationSeconds : lesson.durationSeconds;
     lesson.estimatedMinutes = typeof draft.estimatedMinutes === 'number' && draft.estimatedMinutes >= 0 ? draft.estimatedMinutes : Math.ceil(lesson.durationSeconds / 60);
     lesson.mediaUrl = draft.mediaUrl?.trim() || undefined;
     lesson.mediaProvider = lesson.mediaUrl ? draft.mediaProvider : undefined;
+    lesson.mediaStoragePath = lesson.mediaProvider === 'upload' ? draft.mediaStoragePath?.trim() || undefined : undefined;
+    lesson.mediaFileName = lesson.mediaProvider === 'upload' ? draft.mediaFileName?.trim() || undefined : undefined;
+    lesson.mediaMimeType = lesson.mediaProvider === 'upload' ? draft.mediaMimeType?.trim() || undefined : undefined;
+    lesson.mediaSizeBytes = lesson.mediaProvider === 'upload' ? draft.mediaSizeBytes : undefined;
+    lesson.mediaUploadedAt = lesson.mediaProvider === 'upload' ? draft.mediaUploadedAt : undefined;
     lesson.courseId = draft.courseId || lesson.courseId;
     lesson.moduleId = draft.moduleId || lesson.moduleId;
     lesson.thumbnailUrl = draft.thumbnailUrl?.trim() || undefined;
@@ -1076,7 +1096,7 @@ export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashb
 
 export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: AdminEntityRow, catalog?: ContentCatalog): AdminEntityDraft {
   if (row) {
-    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & Partial<ListeningHubItem> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
+    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & Partial<ListeningHubItem> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; mediaStoragePath?: string; mediaFileName?: string; mediaMimeType?: string; mediaSizeBytes?: number; mediaUploadedAt?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
     return {
       title: row.title,
       slug: row.slug,
@@ -1090,6 +1110,11 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
       ...(collection === 'lessons' ? {
         mediaProvider: raw.mediaProvider as VideoMediaProvider | undefined,
         mediaUrl: raw.mediaUrl ?? '',
+        mediaStoragePath: raw.mediaStoragePath,
+        mediaFileName: raw.mediaFileName,
+        mediaMimeType: raw.mediaMimeType,
+        mediaSizeBytes: raw.mediaSizeBytes,
+        mediaUploadedAt: raw.mediaUploadedAt,
         courseId: raw.courseId,
         moduleId: raw.moduleId,
         thumbnailUrl: raw.thumbnailUrl ?? '',

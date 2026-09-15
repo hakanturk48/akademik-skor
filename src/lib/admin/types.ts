@@ -273,6 +273,11 @@ export type AdminEntityDraft = {
   explanation?: string;
   mediaProvider?: VideoMediaProvider;
   mediaUrl?: string;
+  mediaStoragePath?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
+  mediaSizeBytes?: number;
+  mediaUploadedAt?: string;
   courseId?: string;
   moduleId?: string;
   thumbnailUrl?: string;

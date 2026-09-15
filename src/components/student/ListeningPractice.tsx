@@ -1,7 +1,7 @@
 import { createElement, useEffect, useMemo, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import {
@@ -16,6 +16,7 @@ import {
   type ListeningSelection,
 } from '@/lib/listening';
 import { formatVideoTimestamp, getVideoEmbedUrl, videoProviderLabel } from '@/lib/video-media';
+import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
 
 const fontFamily = 'Quicksand';
 
@@ -82,6 +83,8 @@ type ListeningPracticeContext = {
   rules: string[];
   mediaProvider?: ListeningHubDisplayItem['mediaProvider'];
   mediaUrl?: string;
+  mediaFileName?: string;
+  mediaMimeType?: string;
   durationSeconds: number;
   questionCount: number;
   outline: TimelineItem[];
@@ -150,6 +153,8 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
     subtitle: hubItem?.description ?? `${difficulty.title} difficulty. ${examMode ? 'Exam mode keeps feedback and transcript limited until submission.' : 'Practice mode keeps replay, notes, and explanation available.'}`,
     mediaProvider: hubItem?.mediaProvider,
     mediaUrl: hubItem?.mediaUrl,
+    mediaFileName: hubItem?.mediaFileName,
+    mediaMimeType: hubItem?.mediaMimeType,
     durationSeconds,
     questionCount,
     outline: makeOutlineFromHub(hubItem, durationSeconds),
@@ -207,10 +212,39 @@ function PlayerIconButton({ icon, label }: { icon: AppSymbolName; label: string 
     </Pressable>
   );
 }
+function mediaLooksAudioSource(mimeType?: string, mediaUrl?: string) {
+  const type = mimeType?.toLowerCase() ?? '';
+  const url = mediaUrl?.split('?')[0]?.toLowerCase() ?? '';
+  if (type.startsWith('audio/')) return true;
+  if (type.startsWith('video/')) return false;
+  return /\.(mp3|m4a|aac|wav|ogg|opus)$/.test(url);
+}
+
 function AudioPlayer({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
-  const embedUrl = getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
+  const embedUrl = context.mediaProvider === 'upload' ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const uploadedMediaIsAudio = mediaLooksAudioSource(context.mediaMimeType, context.mediaUrl);
+  const uploadedMediaAvailable = Boolean(context.mediaProvider === 'upload' && uploadedMediaUrl);
   const playerTime = '00:00 / ' + formatVideoTimestamp(context.durationSeconds);
-  const sourceLabel = context.mediaUrl ? videoProviderLabel(context.mediaProvider) + ' listening source' : 'Listening source not attached yet';
+  const sourceLabel = context.mediaUrl ? context.mediaProvider === 'upload' ? (context.mediaFileName ? 'Yüklenen dosya: ' + context.mediaFileName : 'Yüklenen dinleme dosyası') : videoProviderLabel(context.mediaProvider) + ' listening source' : 'Listening source not attached yet';
+
+  useEffect(() => {
+    let active = true;
+    if (context.mediaProvider !== 'upload' || !context.mediaUrl) return () => {};
+    void getVideoUploadUrl(context.mediaUrl)
+      .then((url) => {
+        if (active) setUploadedMediaUrl(url);
+        else revokeVideoUploadUrl(url);
+      })
+      .catch(() => { if (active) setUploadedMediaUrl(null); });
+    return () => {
+      active = false;
+      setUploadedMediaUrl((url) => {
+        revokeVideoUploadUrl(url);
+        return null;
+      });
+    };
+  }, [context.mediaProvider, context.mediaUrl]);
 
   return (
     <Card style={[styles.playerCard, compact ? styles.playerCardCompact : null]} contentStyle={[styles.playerBody, compact ? styles.playerBodyCompact : null]}>
@@ -223,6 +257,18 @@ function AudioPlayer({ compact, context }: { compact: boolean; context: Listenin
             allowFullScreen: true,
             style: { border: 0, width: '100%', height: '100%', display: 'block' },
           })}
+        </View>
+      ) : uploadedMediaAvailable && Platform.OS === 'web' ? (
+        <View style={uploadedMediaIsAudio ? styles.uploadedAudioWrap : styles.embeddedPlayer}>
+          {uploadedMediaIsAudio ? createElement('audio', { src: uploadedMediaUrl, controls: true, style: { width: '100%', display: 'block' } }) : createElement('video', { src: uploadedMediaUrl, controls: true, playsInline: true, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#08142e' } })}
+        </View>
+      ) : uploadedMediaAvailable ? (
+        <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open listening media" onPress={() => uploadedMediaUrl ? Linking.openURL(uploadedMediaUrl) : undefined} style={({ pressed }) => [styles.externalMediaButton, pressed ? styles.pressed : null]}>
+            <SymbolView name={playSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
+            <Text style={styles.externalMediaText}>Dosyayı aç</Text>
+          </Pressable>
+          <Waveform compact={compact} />
         </View>
       ) : (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
@@ -253,7 +299,6 @@ function AudioPlayer({ compact, context }: { compact: boolean; context: Listenin
     </Card>
   );
 }
-
 function NotesPanel() {
   return (
     <Card style={styles.practiceCard} contentStyle={styles.notesBody}>
@@ -589,6 +634,9 @@ const styles = StyleSheet.create({
   playerFill: { width: '43%', height: '100%', borderRadius: 999, backgroundColor: studentTokens.yellow },
   playerControls: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 14 },
   embeddedPlayer: { width: '100%', aspectRatio: 16 / 9, borderRadius: 10, overflow: 'hidden', backgroundColor: '#08142e' },
+  uploadedAudioWrap: { width: '100%', minHeight: 74, borderRadius: 10, backgroundColor: '#08142e', justifyContent: 'center', padding: 12 },
+  externalMediaButton: { minWidth: 128, minHeight: 52, borderRadius: 14, backgroundColor: '#f15f21', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 14, flexShrink: 0 },
+  externalMediaText: { fontFamily: fontFamily, color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '700' },
   playerSourceText: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 9, lineHeight: 13, fontWeight: '600' },
   controlIcon: { width: 19, height: 19, flexShrink: 0 },
   controlDivider: { width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.16)' },

@@ -6,6 +6,7 @@ export type VideoTimedLine = { startSeconds: number; text: string };
 export const videoMediaProviders: { value: VideoMediaProvider; label: string }[] = [
   { value: 'youtube', label: 'YouTube' },
   { value: 'vimeo', label: 'Vimeo' },
+  { value: 'upload', label: 'Dosya yükle' },
 ];
 
 function extractYouTubeId(value: string) {
@@ -34,7 +35,7 @@ export function validateVideoMediaUrl(provider: VideoMediaProvider | undefined, 
   const value = mediaUrl?.trim() ?? '';
   if (!value) return 'Video bağlantısı gerekli.';
   if (!provider) return 'Video sağlayıcısı seçilmeli.';
-  if (provider === 'upload') return isVideoAssetUrl(value) || isRemoteVideoUrl(value) ? null : 'Yüklenen video dosyası seçilmeli.';
+  if (provider === 'upload') return isVideoAssetUrl(value) || isRemoteVideoUrl(value) ? null : 'Yüklenen medya dosyası seçilmeli.';
   if (!/^https:\/\//i.test(value)) return 'Video bağlantısı https:// ile başlamalı.';
   if (!getVideoEmbedUrl(provider, value)) return provider === 'youtube' ? 'Geçerli bir YouTube video bağlantısı girin.' : 'Geçerli bir Vimeo video bağlantısı girin.';
   return null;
@@ -80,6 +81,6 @@ export function serializeVideoTimedText(lines?: VideoTimedLine[]) {
 }
 
 export function videoProviderLabel(provider?: VideoMediaProvider) {
-  if (provider === 'upload') return 'Yüklenen video';
+  if (provider === 'upload') return 'Yüklenen dosya';
   return videoMediaProviders.find((item) => item.value === provider)?.label ?? 'Video kaynağı';
 }

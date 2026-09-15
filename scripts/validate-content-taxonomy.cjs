@@ -57,7 +57,7 @@ const listeningSkill = bySlug("skills", "listening");
 const listeningDifficultyIds = new Set(["adaptive", "easy", "medium", "hard"]);
 const listeningLengthIds = new Set(["quick", "standard", "extended"]);
 const listeningSessionModes = new Set(["practice", "exam"]);
-const listeningMediaProviders = new Set(["youtube", "vimeo"]);
+const listeningMediaProviders = new Set(["youtube", "vimeo", "upload"]);
 catalog.listeningHubItems.forEach((item) => {
   expectRef("topics", item.topicId, item.id + ".topicId");
   expectRef("taskTypes", item.taskTypeId, item.id + ".taskTypeId");
