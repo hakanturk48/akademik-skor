@@ -112,28 +112,10 @@ function fallbackDurationForSelection(selection: ListeningSelection) {
   return 1200;
 }
 
-function makeFallbackOutline(durationSeconds: number): TimelineItem[] {
-  const stops = [
-    { title: 'Introduction', startSeconds: 0 },
-    { title: 'Main idea', startSeconds: Math.round(durationSeconds * 0.18) },
-    { title: 'Key details', startSeconds: Math.round(durationSeconds * 0.42) },
-    { title: 'Examples', startSeconds: Math.round(durationSeconds * 0.68) },
-    { title: 'Review', startSeconds: Math.round(durationSeconds * 0.86) },
-  ];
-  return stops.map((item, index) => {
-    const next = stops[index + 1]?.startSeconds ?? durationSeconds;
-    return {
-      title: item.title,
-      time: formatVideoTimestamp(item.startSeconds) + ' - ' + formatVideoTimestamp(Math.max(item.startSeconds, next)),
-      active: index === 0,
-      done: index > 0 && index < 3,
-    };
-  });
-}
 
 function makeOutlineFromHub(item: ListeningHubDisplayItem | null, durationSeconds: number): TimelineItem[] {
   const outline = item?.outline ?? [];
-  if (!outline.length) return makeFallbackOutline(durationSeconds);
+  if (!outline.length) return [];
   return outline.map((chapter, index) => {
     const nextStart = outline[index + 1]?.startSeconds ?? durationSeconds;
     return {
@@ -457,19 +439,26 @@ function OutlinePanel({ compact, context }: { compact: boolean; context: Listeni
       </View>
       {expanded ? (
         <>
-          <View style={styles.timelineList}>
-            {context.outline.map((item) => (
-              <View key={item.title + item.time} style={[styles.timelineRow, item.active ? styles.timelineRowActive : null]}>
-                <View style={[styles.timelineMarker, item.done ? styles.timelineDone : null, item.active ? styles.timelineActive : null]}>
-                  {item.done ? <SymbolView name={checkSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : item.active ? <SymbolView name={playSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : null}
+          {context.outline.length ? (
+            <View style={styles.timelineList}>
+              {context.outline.map((item) => (
+                <View key={item.title + item.time} style={[styles.timelineRow, item.active ? styles.timelineRowActive : null]}>
+                  <View style={[styles.timelineMarker, item.done ? styles.timelineDone : null, item.active ? styles.timelineActive : null]}>
+                    {item.done ? <SymbolView name={checkSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : item.active ? <SymbolView name={playSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : null}
+                  </View>
+                  <View style={styles.timelineCopy}>
+                    <Text style={styles.timelineTitle}>{item.title}</Text>
+                    <Text style={styles.timelineTime}>{item.time}</Text>
+                  </View>
                 </View>
-                <View style={styles.timelineCopy}>
-                  <Text style={styles.timelineTitle}>{item.title}</Text>
-                  <Text style={styles.timelineTime}>{item.time}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.outlineEmptyState}>
+              <SymbolView name={documentSymbol} tintColor="#8a94a8" size={16} style={styles.buttonIcon} />
+              <Text style={styles.outlineEmptyText}>Outline Not Added</Text>
+            </View>
+          )}
           {transcriptPreview.length ? (
             <View style={styles.transcriptPreview}>
               <Text style={styles.cardLabelOrange}>TRANSCRIPT PREVIEW</Text>
@@ -679,7 +668,7 @@ const styles = StyleSheet.create({
   speedLabel: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 7, lineHeight: 9, fontWeight: '700', marginLeft: -10, marginTop: 16 },
   volumeTrack: { width: 132, maxWidth: '24%', height: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.24)', overflow: 'hidden' },
   volumeFill: { width: '48%', height: '100%', backgroundColor: studentTokens.yellow, borderRadius: 999 },
-  fullscreenIcon: { width: 19, height: 19, marginLeft: 'auto' },
+  fullscreenIcon: { width: 19, height: 19, alignSelf: "center" },
   practiceGrid: { gap: 10 },
   practiceGridWide: { flexDirection: 'row', alignItems: 'stretch' },
   practiceCard: { padding: 0, borderRadius: 11, borderColor: '#e5eaf2', flex: 1, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
@@ -788,6 +777,8 @@ const styles = StyleSheet.create({
   outlineHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   outlineToggle: { minHeight: 34, borderRadius: 8, borderWidth: 1, borderColor: '#dce3ee', backgroundColor: studentTokens.surface, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   outlineToggleText: { fontFamily: fontFamily, color: studentTokens.navy, fontSize: 11, lineHeight: 15, fontWeight: '700' },
+  outlineEmptyState: { minHeight: 40, borderRadius: 8, borderWidth: 1, borderColor: "#e5eaf2", backgroundColor: "#fbfcff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 10 },
+  outlineEmptyText: { fontFamily: fontFamily, color: "#8a94a8", fontSize: 10, lineHeight: 14, fontWeight: "700" },
   collapsedOutlineText: { fontFamily: fontFamily, color: studentTokens.text, fontSize: 11, lineHeight: 17, fontWeight: '500' },
   modeBanner: { padding: 0, borderRadius: 11, borderColor: '#c7e8e3', backgroundColor: '#f1fbf8', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
   modeBannerExam: { borderColor: '#f3dfa3', backgroundColor: '#fffaf0' },
