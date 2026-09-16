@@ -13,6 +13,12 @@ const subskillIds: ListeningSubskillId[] = ["main-idea", "purpose", "detail", "i
 const difficultyIds: ListeningDifficultyId[] = ["adaptive", "easy", "medium", "hard"];
 const lengthIds: ListeningLengthId[] = ["quick", "standard", "extended"];
 const sessionModes: ListeningSessionMode[] = ["practice", "exam"];
+const toeflListeningSectionSeconds = 29 * 60;
+const toeflListeningSectionItems = 47;
+
+function listeningQuestionPracticeMinutes(questionCount: number) {
+  return Math.max(1, Math.ceil(Math.max(1, questionCount) * toeflListeningSectionSeconds / toeflListeningSectionItems / 60));
+}
 
 export type ListeningHubDisplayItem = ListeningHubItem & {
   href: string;
@@ -89,6 +95,7 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
   const taskTypeTitle = taskType?.title ?? "Academic Talk";
   const subskillTitle = subskill?.title ?? "Detail";
   const questionCount = item.questions?.length || item.questionCount;
+  const practiceMinutes = listeningQuestionPracticeMinutes(questionCount);
 
   const href = createListeningPracticeHref(selection) + "&hub=" + encodeURIComponent(item.id);
 
@@ -99,7 +106,7 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
     taskTypeTitle,
     subskillTitle,
     questionCount,
-    meta: [topicTitle, taskTypeTitle, subskillTitle, String(questionCount) + " questions", String(item.estimatedMinutes) + " min"].join(" - "),
+    meta: [topicTitle, taskTypeTitle, subskillTitle, String(questionCount) + " questions", String(practiceMinutes) + " min practice"].join(" - "),
   };
 }
 

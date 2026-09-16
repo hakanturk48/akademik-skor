@@ -8,7 +8,7 @@ import type {
 } from './types';
 
 const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
-const listeningHubOptionKeys = ['A', 'B', 'C', 'D'];
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D', 'E'];
 
 export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'published', 'archived'];
 export const workflowCollections: AdminMutableCollectionKey[] = [
@@ -201,7 +201,7 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       if (!questions.length) issues.push("Listening hub needs at least one question.");
       if (questions.length && item.questionCount !== questions.length) issues.push("Listening hub question count must match added questions.");
       if (questions.some((question) => question.prompt.trim().length < 8)) issues.push("Every listening question needs a prompt.");
-      if (questions.some((question) => question.options.length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push("Every listening question needs exactly four options.");
+      if (questions.some((question) => question.options.length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push("Every listening question needs exactly five options.");
       if (questions.some((question) => question.options.some((option) => !option.text.trim()))) issues.push("Every listening option needs text.");
       if (questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push("Every listening question needs a correct option.");
       if (questions.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push("Listening option texts must be distinct.");

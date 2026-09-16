@@ -79,7 +79,7 @@ const errors: Record<string, string> = {
   "Listening hub needs at least one question.": "Listening parçası için en az bir soru eklenmeli.",
   "Listening hub question count must match added questions.": "Soru sayısı eklenen listening sorularıyla eşleşmeli.",
   "Every listening question needs a prompt.": "Her listening sorusunun metni olmalı.",
-  "Every listening question needs exactly four options.": "Her listening sorusunda tam 4 seçenek (A, B, C, D) olmalı.",
+  "Every listening question needs exactly five options.": "Her listening sorusunda tam 5 seçenek (A, B, C, D, E) olmalı.",
   "Every listening option needs text.": "Listening sorularındaki seçenek metinleri boş olamaz.",
   "Every listening question needs a correct option.": "Her listening sorusunda doğru seçenek işaretlenmeli.",
   "Listening option texts must be distinct.": "Listening sorusu seçenekleri birbirinden farklı olmalı.",

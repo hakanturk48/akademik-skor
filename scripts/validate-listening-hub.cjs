@@ -78,10 +78,12 @@ if (!practiceRoute.includes("ListeningPractice")) fail("Existing /practice/liste
 [
   "useLocalSearchParams",
   "ModeBanner",
+  "LectureResourcesPanel",
   "MobilePanelToggle",
   "OutlinePanel compact",
   "Practice mode",
   "Exam mode",
+  "getToeflListeningQuestionLimitSeconds",
 ].forEach((token) => {
   if (!practice.includes(token)) fail("Missing practice responsive/mode token: " + token);
 });

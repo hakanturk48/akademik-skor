@@ -551,7 +551,7 @@ function CatalogSelector({ label, options, value, onChange }: { label: string; o
 }
 
 const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
-const listeningHubOptionKeys = ['A', 'B', 'C', 'D'];
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D', 'E'];
 
 function countWordsFromText(value?: string) {
   return (value ?? '').trim().split(/\s+/).filter(Boolean).length;
@@ -685,7 +685,7 @@ function ListeningHubQuestionsEditor({ value, onChange, isMobile }: { value: Lis
       <View style={styles.readingQuestionEditorHeader}>
         <View style={styles.readingQuestionEditorTitleGroup}>
           <Text style={styles.formLabel}>Listening soruları</Text>
-          <Text style={styles.formHelper}>Her soru A, B, C, D olmak üzere 4 seçenekle yayınlanır. Doğru cevabı soldaki harften seçin.</Text>
+          <Text style={styles.formHelper}>Her soru A, B, C, D, E olmak üzere 5 seçenekle yayınlanır. Doğru cevabı soldaki harften seçin.</Text>
         </View>
         <Button label="Soru ekle" size="sm" variant="secondary" onPress={() => onChange([...questions, emptyListeningHubQuestion()])} style={styles.addReadingQuestionButton} />
       </View>
@@ -734,7 +734,7 @@ function ListeningHubQuestionsEditor({ value, onChange, isMobile }: { value: Lis
           </View>
         )) : (
           <View style={styles.readingQuestionEmptyState}>
-            <Text style={styles.formHelper}>Henüz soru eklenmedi. Yayınlamak için en az bir soru ve her soruda 4 seçenek gerekir.</Text>
+            <Text style={styles.formHelper}>Henüz soru eklenmedi. Yayınlamak için en az bir soru ve her soruda 5 seçenek gerekir.</Text>
           </View>
         )}
       </View>
@@ -933,6 +933,11 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <Text style={styles.formLabel}>Transkript</Text>
                   <TextInput accessibilityLabel="Listening transkript" value={draft.transcriptText ?? ""} onChangeText={(value) => setField("transcriptText", value)} placeholder={'00:00|Today we will discuss...\n00:18|The first point is...'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                   <Text style={styles.formHelper}>Her satır: zaman|metin. Practice modunda öğrenci tarafında referans olarak gösterilir.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Ders kaynakları</Text>
+                  <TextInput accessibilityLabel="Listening ders kaynakları" value={draft.resourcesText ?? ""} onChangeText={(value) => setField("resourcesText", value)} placeholder={'Lecture outline|PDF|1 page|https://example.com/file.pdf\nVocabulary list|Worksheet|premium'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: başlık|tür|boyut|url|premium. Öğrenci ekranındaki Ders Kaynakları butonunda listelenir.</Text>
                 </View>
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Not başlangıcı</Text>

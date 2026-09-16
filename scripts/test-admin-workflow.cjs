@@ -296,12 +296,16 @@ test("listening hub publishing keeps only route metadata and no student progress
     durationSeconds: 900,
     chaptersText: "00:00|Introduction\n03:00|Main point",
     transcriptText: "00:00|Welcome to the listening practice.",
+    resourcesText: "Lecture outline|PDF|1 page|https://example.com/listening-outline.pdf",
     estimatedMinutes: 20,
     previewDurationSeconds: 180,
     listeningQuestionCount: 1,
     listeningActionLabel: "Start Focused Practice",
   };
   assert.throws(() => service.saveAdminContent(state, "listening-hub", "listeningHubItems", { ...draft, mediaUrl: "" }, actor, "published"), /Listening media URL/);
+  const fourOptionDraft = structuredClone(draft);
+  fourOptionDraft.listeningQuestions[0].options = fourOptionDraft.listeningQuestions[0].options.slice(0, 4);
+  assert.throws(() => service.saveAdminContent(state, "listening-hub", "listeningHubItems", fourOptionDraft, actor, "published"), /five options/);
   const result = service.saveAdminContent(state, "listening-hub", "listeningHubItems", draft, actor, "published");
   const published = workflow.getAdminDocument(result, "listeningHubItems", "listeningHubItems-listening-workflow").published;
   assert.equal(published.topicId, "topic-biology");
@@ -310,11 +314,14 @@ test("listening hub publishing keeps only route metadata and no student progress
   assert.equal(published.questionCount, 1);
   assert.equal(published.previewDurationSeconds, 180);
   assert.equal(published.questions.length, 1);
+  assert.deepEqual(published.questions[0].options.map((option) => option.key), ["A", "B", "C", "D", "E"]);
   assert.equal(published.mediaProvider, "youtube");
   assert.equal(published.mediaUrl, draft.mediaUrl);
   assert.equal(published.durationSeconds, 900);
   assert.equal(published.outline[0].title, "Introduction");
   assert.equal(published.transcript[0].text, "Welcome to the listening practice.");
+  assert.equal(published.resources[0].title, "Lecture outline");
+  assert.equal(published.resources[0].url, "https://example.com/listening-outline.pdf");
   assert.equal(published.correctCount, undefined);
   assert.equal(published.sessions, undefined);
   assert.equal(published.answers, undefined);

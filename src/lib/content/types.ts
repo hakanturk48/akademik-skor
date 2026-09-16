@@ -176,6 +176,7 @@ export interface ListeningHubItem extends BaseEntity {
   questions?: ListeningHubQuestion[];
   noteSeed?: string;
   studyTip?: string;
+  resources?: LessonResource[];
   actionLabel: string;
   outline?: LessonChapter[];
   transcript?: LessonTranscriptLine[];

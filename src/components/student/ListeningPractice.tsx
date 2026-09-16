@@ -5,7 +5,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWin
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
-import type { ListeningHubQuestion } from '@/lib/content';
+import type { LessonResource, ListeningHubQuestion } from '@/lib/content';
 import { getEntitlementAccess } from '@/lib/permissions';
 import {
   getListeningDifficultyById,
@@ -95,6 +95,7 @@ const fallbackListeningQuestion: ListeningHubQuestion = {
     { key: 'B', text: 'Use the online booking system' },
     { key: 'C', text: 'Call the IT help desk' },
     { key: 'D', text: 'Email the student center' },
+    { key: 'E', text: 'Ask the course instructor in person' },
   ],
   correctOptionKey: 'B',
   explanation: 'The booking system is the action mentioned for reserving group study rooms.',
@@ -120,6 +121,7 @@ type ListeningPracticeContext = {
   previewDurationSeconds: number;
   questionCount: number;
   questions: ListeningHubQuestion[];
+  resources: LessonResource[];
   noteSeed: string;
   studyTip: string;
   outline: TimelineItem[];
@@ -144,6 +146,13 @@ function clampSeconds(value: number, min: number, max: number) {
 function getEffectivePlaybackDuration(context: ListeningPracticeContext, fullAccess: boolean) {
   const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
   return Math.max(1, previewSeconds || context.durationSeconds);
+}
+
+const toeflListeningSectionSeconds = 29 * 60;
+const toeflListeningSectionItems = 47;
+
+function getToeflListeningQuestionLimitSeconds(questionCount: number) {
+  return Math.max(1, Math.ceil(Math.max(1, questionCount) * toeflListeningSectionSeconds / toeflListeningSectionItems));
 }
 
 type ListeningNoteState = {
@@ -254,6 +263,7 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
     previewDurationSeconds,
     questionCount,
     questions,
+    resources: hubItem?.resources ?? [],
     noteSeed: hubItem?.noteSeed ?? "",
     studyTip: hubItem?.studyTip ?? "",
     outline: makeOutlineFromHub(hubItem, durationSeconds),
@@ -264,7 +274,7 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
   };
 }
 
-function PageHeader({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
+function PageHeader({ compact, context, resourcesOpen, onToggleResources }: { compact: boolean; context: ListeningPracticeContext; resourcesOpen: boolean; onToggleResources: () => void }) {
   const router = useRouter();
 
   return (
@@ -281,11 +291,60 @@ function PageHeader({ compact, context }: { compact: boolean; context: Listening
           <Text style={styles.pageSubtitle}>{context.subtitle}</Text>
         </View>
         <View style={[styles.headerActions, compact ? styles.headerActionsCompact : null]}>
-          <Button label="Lecture Resources" size="sm" variant="secondary" left={<SymbolView name={documentSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} style={[styles.headerButton, compact ? styles.headerButtonCompact : null]} />
+          <Button label={resourcesOpen ? "Hide Resources" : "Lecture Resources"} size="sm" variant="secondary" left={<SymbolView name={documentSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={onToggleResources} style={[styles.headerButton, compact ? styles.headerButtonCompact : null]} />
           <Button label="Mark as Complete" size="sm" variant="soft" left={<SymbolView name={checkSymbol} tintColor={studentTokens.teal} size={14} style={styles.buttonIcon} />} style={[styles.headerButton, compact ? styles.headerButtonCompact : null]} />
         </View>
       </View>
     </View>
+  );
+}
+
+function listeningResourceMeta(resource: LessonResource, locked: boolean) {
+  const details = [resource.type, resource.sizeLabel, locked ? "Premium" : resource.url ? "Ready" : "No link"].filter(Boolean);
+  return details.join(" - ");
+}
+
+function openListeningResource(resource: LessonResource, fullAccess: boolean) {
+  if (resource.premium && !fullAccess) return;
+  if (resource.url) void Linking.openURL(resource.url);
+}
+
+function ListeningResourceRow({ resource, fullAccess }: { resource: LessonResource; fullAccess: boolean }) {
+  const locked = Boolean(resource.premium && !fullAccess);
+  const canOpen = Boolean(resource.url && !locked);
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled: !canOpen }} disabled={!canOpen} onPress={() => openListeningResource(resource, fullAccess)} style={({ pressed }) => [styles.resourceRow, locked ? styles.resourceRowLocked : null, pressed ? styles.pressed : null]}>
+      <View style={styles.resourceIconBox}>
+        <SymbolView name={documentSymbol} tintColor={locked ? studentTokens.muted : studentTokens.orange} size={17} style={styles.resourceIcon} />
+      </View>
+      <View style={styles.resourceCopy}>
+        <Text style={styles.resourceTitle}>{resource.title}</Text>
+        <Text style={styles.resourceMeta}>{listeningResourceMeta(resource, locked)}</Text>
+      </View>
+      <View style={[styles.resourceAction, canOpen ? styles.resourceActionActive : null]}>
+        <Text style={[styles.resourceActionText, canOpen ? styles.resourceActionTextActive : null]}>{locked ? "Premium" : canOpen ? "Open" : "Added"}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function LectureResourcesPanel({ context, fullAccess }: { context: ListeningPracticeContext; fullAccess: boolean }) {
+  return (
+    <Card style={styles.resourcesCard} contentStyle={styles.resourcesBody}>
+      <View style={styles.resourcesHeader}>
+        <Text style={styles.cardLabelOrange}>LECTURE RESOURCES</Text>
+        <Text style={styles.resourceCount}>{context.resources.length} files</Text>
+      </View>
+      {context.resources.length ? (
+        <View style={styles.resourcesList}>
+          {context.resources.map((resource) => <ListeningResourceRow key={resource.title + "-" + resource.type} resource={resource} fullAccess={fullAccess} />)}
+        </View>
+      ) : (
+        <View style={styles.resourcesEmpty}>
+          <Text style={styles.resourcesEmptyText}>No lecture resources have been attached yet.</Text>
+        </View>
+      )}
+    </Card>
   );
 }
 
@@ -777,6 +836,7 @@ function MobilePanelToggle({ value, onChange }: { value: 'notes' | 'questions'; 
 export function ListeningPractice({ user }: { user: AuthUser }) {
   const params = useLocalSearchParams<ListeningSearchParams>();
   const [hubVersion, setHubVersion] = useState(0);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
   const context = useMemo(() => {
     void hubVersion;
     return resolveListeningPracticeContext(params);
@@ -799,10 +859,25 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
   const defaultPlayback = useMemo<PlaybackSnapshot>(() => ({ currentSeconds: 0, durationSeconds: effectivePlaybackDuration }), [effectivePlaybackDuration]);
   const [storedPlayback, setStoredPlayback] = useState<PlaybackState>(() => ({ ...defaultPlayback, sourceKey: playbackKey }));
   const playback: PlaybackSnapshot = storedPlayback.sourceKey === playbackKey ? storedPlayback : defaultPlayback;
-  const remainingQuestionSeconds = Math.max(0, playback.durationSeconds - playback.currentSeconds);
+  const questionLimitSeconds = useMemo(() => getToeflListeningQuestionLimitSeconds(Math.max(1, context.questions.length || context.questionCount)), [context.questionCount, context.questions.length]);
+  const questionTimerKey = [playbackKey, String(questionLimitSeconds)].join("|");
+  const [questionTimer, setQuestionTimer] = useState(() => ({ key: questionTimerKey, elapsedSeconds: 0 }));
+  const effectiveQuestionTimer = questionTimer.key === questionTimerKey ? questionTimer : { key: questionTimerKey, elapsedSeconds: 0 };
+  const remainingQuestionSeconds = Math.max(0, questionLimitSeconds - effectiveQuestionTimer.elapsedSeconds);
   const handlePlaybackChange = useCallback((value: PlaybackSnapshot) => {
     setStoredPlayback({ ...value, sourceKey: playbackKey });
   }, [playbackKey]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setQuestionTimer((current) => {
+        const base = current.key === questionTimerKey ? current : { key: questionTimerKey, elapsedSeconds: 0 };
+        if (base.elapsedSeconds >= questionLimitSeconds) return base;
+        return { key: questionTimerKey, elapsedSeconds: Math.min(questionLimitSeconds, base.elapsedSeconds + 1) };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [questionLimitSeconds, questionTimerKey]);
 
   useEffect(() => {
     let active = true;
@@ -816,7 +891,8 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
 
   return (
     <View testID="listening-practice-screen" style={styles.screen}>
-      <PageHeader compact={isCompact} context={context} />
+      <PageHeader compact={isCompact} context={context} resourcesOpen={resourcesOpen} onToggleResources={() => setResourcesOpen((value) => !value)} />
+      {resourcesOpen ? <LectureResourcesPanel context={context} fullAccess={fullAccess} /> : null}
       <ModeBanner context={context} />
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.mainColumn}>
@@ -953,6 +1029,24 @@ const styles = StyleSheet.create({
   actionButtonCompact: { flex: 1, minWidth: 132 },
   buttonIcon: { width: 14, height: 14 },
   sideCard: { padding: 0, borderRadius: 11, borderColor: '#e5eaf2', shadowOpacity: 0.05, shadowRadius: 13, shadowOffset: { width: 0, height: 7 } },
+  resourcesCard: { padding: 0, borderRadius: 11, borderColor: '#e5eaf2', backgroundColor: '#fbfcff', shadowOpacity: 0.05, shadowRadius: 13, shadowOffset: { width: 0, height: 7 } },
+  resourcesBody: { padding: 13, gap: 10 },
+  resourcesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  resourceCount: { fontFamily: fontFamily, color: studentTokens.muted, fontSize: 9, lineHeight: 12, fontWeight: '700' },
+  resourcesList: { gap: 8 },
+  resourceRow: { minHeight: 56, borderRadius: 9, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.surface, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  resourceRowLocked: { opacity: 0.68 },
+  resourceIconBox: { width: 34, height: 34, borderRadius: 12, backgroundColor: studentTokens.orangeSoft, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  resourceIcon: { width: 17, height: 17 },
+  resourceCopy: { flex: 1, minWidth: 0 },
+  resourceTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 10, lineHeight: 14, fontWeight: '700' },
+  resourceMeta: { fontFamily: fontFamily, color: studentTokens.text, fontSize: 9, lineHeight: 13, fontWeight: '600', marginTop: 1 },
+  resourceAction: { minHeight: 28, borderRadius: 8, borderWidth: 1, borderColor: '#dce3ee', backgroundColor: studentTokens.neutral, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  resourceActionActive: { borderColor: '#c7e8e3', backgroundColor: studentTokens.tealSoft },
+  resourceActionText: { fontFamily: fontFamily, color: studentTokens.text, fontSize: 9, lineHeight: 12, fontWeight: '700' },
+  resourceActionTextActive: { color: studentTokens.teal },
+  resourcesEmpty: { minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.surface, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  resourcesEmptyText: { fontFamily: fontFamily, color: studentTokens.muted, fontSize: 10, lineHeight: 14, fontWeight: '700' },
   sideBody: { padding: 13, gap: 11 },
   timelineList: { gap: 6 },
   timelineRow: { minHeight: 37, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 },

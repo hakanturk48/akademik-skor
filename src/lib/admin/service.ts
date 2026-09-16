@@ -244,7 +244,7 @@ function normalizeReadingPracticeQuestions(questions?: ReadingPracticeQuestionDr
   return (questions ?? []).map((question) => normalizeReadingPracticeQuestion(question));
 }
 
-const listeningHubOptionKeys = ['A', 'B', 'C', 'D'] as const;
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D', 'E'] as const;
 
 type ListeningHubQuestionDraft = ListeningHubQuestion;
 
@@ -256,6 +256,7 @@ const defaultListeningHubQuestions: ListeningHubQuestionDraft[] = [
       { key: 'B', text: 'To explain a specific point using examples from the lecture.' },
       { key: 'C', text: 'To compare two unrelated events from different courses.' },
       { key: 'D', text: 'To list administrative rules for a campus office.' },
+      { key: 'E', text: 'To describe an unrelated personal opinion.' },
     ],
     correctOptionKey: 'B',
     explanation: 'The correct answer should summarize the whole listening passage, not one isolated detail.',
@@ -289,11 +290,12 @@ function normalizeListeningHubQuestions(questions?: Partial<ListeningHubQuestion
 }
 
 function validateListeningHubQuestions(questions?: Partial<ListeningHubQuestionDraft>[]) {
+  const rawQuestions = questions ?? [];
   const normalized = normalizeListeningHubQuestions(questions);
   const issues: string[] = [];
   if (!normalized.length) issues.push('Listening hub needs at least one question.');
   if (normalized.some((question) => question.prompt.trim().length < 8)) issues.push('Every listening question needs a prompt.');
-  if (normalized.some((question) => question.options.length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push('Every listening question needs exactly four options.');
+  if (rawQuestions.some((question) => (question.options ?? []).length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => String(question.options?.[index]?.key ?? '').toUpperCase() === key))) issues.push('Every listening question needs exactly five options.');
   if (normalized.some((question) => question.options.some((option) => !option.text.trim()))) issues.push('Every listening option needs text.');
   if (normalized.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every listening question needs a correct option.');
   if (normalized.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push('Listening option texts must be distinct.');
@@ -501,6 +503,7 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
     previewDurationSeconds: 0,
     chaptersText: "00:00|Introduction\n03:00|Main point\n08:00|Examples",
     transcriptText: "",
+    resourcesText: "",
     listeningNoteSeed: "Main idea:\n- \nSupporting details:\n- \nExamples:\n- ",
     listeningStudyTip: "Listen for signpost phrases and write short symbols instead of full sentences.",
     listeningTopicId: topic?.id ?? "",
@@ -529,6 +532,7 @@ function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<Ad
     previewDurationSeconds: item?.previewDurationSeconds ?? 0,
     chaptersText: serializeVideoTimedText(item?.outline?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
     transcriptText: serializeVideoTimedText(item?.transcript),
+    resourcesText: serializeLessonResourcesText(item?.resources),
     listeningNoteSeed: item?.noteSeed ?? "",
     listeningStudyTip: item?.studyTip ?? "",
     listeningTopicId: item?.topicId,
@@ -553,6 +557,7 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   const durationSeconds = clampAdminNumber(draft.durationSeconds ?? existing?.durationSeconds ?? defaults.durationSeconds, 1, 14400);
   const outline = parseVideoTimedText(draft.chaptersText);
   const transcript = parseVideoTimedText(draft.transcriptText);
+  const resources = parseLessonResourcesText(draft.resourcesText);
   const questions = normalizeListeningHubQuestions(draft.listeningQuestions ?? existing?.questions ?? (defaults.listeningQuestions as ListeningHubQuestion[] | undefined));
   const previewDurationSeconds = clampAdminNumber(draft.previewDurationSeconds ?? existing?.previewDurationSeconds ?? defaults.previewDurationSeconds, 0, durationSeconds);
   const noteSeed = draft.listeningNoteSeed?.trim() || existing?.noteSeed || String(defaults.listeningNoteSeed ?? "");
@@ -578,6 +583,7 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
     questions,
     noteSeed,
     studyTip,
+    resources: resources.resources,
     actionLabel: draft.listeningActionLabel?.trim() || existing?.actionLabel || "Start Focused Practice",
     outline: outline.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
     transcript: transcript.lines,
@@ -1256,6 +1262,7 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     }
     if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push("Listening outline must use time|title lines.");
     if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push("Listening transcript must use time|text lines.");
+    if (draft.resourcesText && parseLessonResourcesText(draft.resourcesText).invalidLines.length) issues.push('Kaynaklar her satırda başlık|tür|boyut|url|premium biçiminde olmalı.');
   }
   if (collection === 'readingPracticeScreens') {
     const paragraphs = parseReadingPassageText(draft.passageText);
