@@ -47,7 +47,7 @@ import {
   type AdminWorkspaceState,
   defaultPageBuilderState,
 } from '@/lib/admin';
-import type { ReadingPracticeQuestion, Visibility } from '@/lib/content';
+import type { ListeningHubQuestion, ReadingPracticeQuestion, Visibility } from '@/lib/content';
 import { videoMediaProviders, type VideoMediaProvider } from '@/lib/video-media';
 import { saveMediaUpload, type MediaUploadKind, type SavedMediaUpload } from '@/lib/video-upload';
 
@@ -551,6 +551,7 @@ function CatalogSelector({ label, options, value, onChange }: { label: string; o
 }
 
 const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D'];
 
 function countWordsFromText(value?: string) {
   return (value ?? '').trim().split(/\s+/).filter(Boolean).length;
@@ -573,6 +574,27 @@ function normalizeReadingPracticeQuestionForEditor(question?: Partial<ReadingPra
     prompt: question?.prompt ?? '',
     options,
     ...(correctOptionKey ? { correctOptionKey } : {}),
+  };
+}
+
+function emptyListeningHubQuestion(): ListeningHubQuestion {
+  return {
+    prompt: '',
+    options: listeningHubOptionKeys.map((key) => ({ key, text: '' })),
+  };
+}
+
+function normalizeListeningHubQuestionForEditor(question?: Partial<ListeningHubQuestion>): ListeningHubQuestion {
+  const options = listeningHubOptionKeys.map((key) => {
+    const match = question?.options?.find((option) => (option.key ?? '').toUpperCase() === key);
+    return { key, text: match?.text ?? '' };
+  });
+  const correctOptionKey = question?.correctOptionKey && (listeningHubOptionKeys as readonly string[]).includes(question.correctOptionKey) ? question.correctOptionKey : undefined;
+  return {
+    prompt: question?.prompt ?? '',
+    options,
+    ...(correctOptionKey ? { correctOptionKey } : {}),
+    ...(question?.explanation ? { explanation: question.explanation } : {}),
   };
 }
 
@@ -645,6 +667,81 @@ function ReadingPracticeQuestionsEditor({ value, onChange, isMobile }: { value: 
     </View>
   );
 }
+function ListeningHubQuestionsEditor({ value, onChange, isMobile }: { value: ListeningHubQuestion[]; onChange: (value: ListeningHubQuestion[]) => void; isMobile: boolean }) {
+  const questions = value.map((question) => normalizeListeningHubQuestionForEditor(question));
+  const updateQuestion = (index: number, nextQuestion: ListeningHubQuestion) => onChange(questions.map((question, itemIndex) => (itemIndex === index ? nextQuestion : question)));
+  const moveQuestion = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= questions.length) return;
+    const next = [...questions];
+    const [item] = next.splice(index, 1);
+    if (!item) return;
+    next.splice(targetIndex, 0, item);
+    onChange(next);
+  };
+
+  return (
+    <View style={styles.formGroup}>
+      <View style={styles.readingQuestionEditorHeader}>
+        <View style={styles.readingQuestionEditorTitleGroup}>
+          <Text style={styles.formLabel}>Listening soruları</Text>
+          <Text style={styles.formHelper}>Her soru A, B, C, D olmak üzere 4 seçenekle yayınlanır. Doğru cevabı soldaki harften seçin.</Text>
+        </View>
+        <Button label="Soru ekle" size="sm" variant="secondary" onPress={() => onChange([...questions, emptyListeningHubQuestion()])} style={styles.addReadingQuestionButton} />
+      </View>
+
+      <View style={styles.readingQuestionList}>
+        {questions.length ? questions.map((question, index) => (
+          <View key={index} style={styles.readingQuestionCard}>
+            <View style={styles.readingQuestionHead}>
+              <Text style={styles.readingQuestionTitle}>Soru {index + 1}</Text>
+              <View style={styles.readingQuestionActions}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu yukarı taşı" disabled={index === 0} onPress={() => moveQuestion(index, -1)} style={({ pressed }) => [styles.readingQuestionAction, index === 0 ? styles.disabledAction : null, pressed ? styles.pressed : null]}>
+                  <Text style={styles.readingQuestionActionText}>Yukarı</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu aşağı taşı" disabled={index === questions.length - 1} onPress={() => moveQuestion(index, 1)} style={({ pressed }) => [styles.readingQuestionAction, index === questions.length - 1 ? styles.disabledAction : null, pressed ? styles.pressed : null]}>
+                  <Text style={styles.readingQuestionActionText}>Aşağı</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Soruyu sil" onPress={() => onChange(questions.filter((_, itemIndex) => itemIndex !== index))} style={({ pressed }) => [styles.readingQuestionAction, styles.readingQuestionDeleteAction, pressed ? styles.pressed : null]}>
+                  <Text style={[styles.readingQuestionActionText, styles.readingQuestionDeleteText]}>Sil</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Soru metni</Text>
+              <TextInput accessibilityLabel={`Listening soru ${index + 1} metni`} value={question.prompt} onChangeText={(prompt) => updateQuestion(index, { ...question, prompt })} placeholder="Soru metnini yazın" placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea, styles.readingQuestionPromptInput]} />
+            </View>
+
+            <View style={styles.readingOptionList}>
+              {question.options.map((option) => {
+                const selected = question.correctOptionKey === option.key;
+                return (
+                  <View key={option.key} style={[styles.readingOptionRow, isMobile ? styles.readingOptionRowMobile : null]}>
+                    <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => updateQuestion(index, { ...question, correctOptionKey: option.key })} style={({ pressed }) => [styles.readingOptionKey, selected ? styles.readingOptionKeyActive : null, pressed ? styles.pressed : null]}>
+                      <Text style={[styles.readingOptionKeyText, selected ? styles.readingOptionKeyTextActive : null]}>{option.key}</Text>
+                    </Pressable>
+                    <TextInput accessibilityLabel={`Listening soru ${index + 1} ${option.key} seçeneği`} value={option.text} onChangeText={(text) => updateQuestion(index, { ...question, options: question.options.map((item) => (item.key === option.key ? { ...item, text } : item)) })} placeholder={`${option.key} seçeneği`} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.readingOptionInput]} />
+                  </View>
+                );
+              })}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Cevap açıklaması</Text>
+              <TextInput accessibilityLabel={`Listening soru ${index + 1} cevap açıklaması`} value={question.explanation ?? ''} onChangeText={(explanation) => updateQuestion(index, { ...question, explanation })} placeholder="Doğru cevabın kısa açıklaması" placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+            </View>
+          </View>
+        )) : (
+          <View style={styles.readingQuestionEmptyState}>
+            <Text style={styles.formHelper}>Henüz soru eklenmedi. Yayınlamak için en az bir soru ve her soruda 4 seçenek gerekir.</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave, onPublish, onReview, onRestore, state, user, message, error }: { editor: EditorState; issues: string[]; isMobile: boolean; onChange: (draft: AdminEntityDraft) => void; onClose: () => void; onSave: () => void; onPublish: () => void; onReview: () => void; onRestore: (version: number) => void; state: AdminWorkspaceState; user: AuthUser; message: string; error: string }) {
   const [tab, setTab] = useState<'edit' | 'preview' | 'history'>('edit');
   const [historicalPreview, setHistoricalPreview] = useState<AdminSnapshot | null>(null);
@@ -684,6 +781,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
     onChange(next);
   };
   const readingWordCount = countWordsFromText(draft.passageText);
+  const listeningQuestionCount = draft.listeningQuestions?.length ?? draft.listeningQuestionCount ?? 0;
   const document = editor.row ? getAdminDocument(state, editor.collection, editor.row.id) : undefined;
   const preview = historicalPreview ?? previewAdminDraft(state, editor.collection, draft, editor.row?.id);
 
@@ -820,6 +918,11 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                     <Text style={styles.formLabel}>Süre (saniye)</Text>
                     <TextInput accessibilityLabel="Dinleme süresi" value={String(draft.durationSeconds ?? 1200)} onChangeText={(value) => { const durationSeconds = Number(value.replace(/[^0-9]/g, "")) || 0; onChange({ ...draft, durationSeconds, estimatedMinutes: durationSeconds ? Math.ceil(durationSeconds / 60) : 0 }); }} keyboardType="number-pad" style={styles.formInput} />
                   </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Ücretsiz önizleme süresi (saniye)</Text>
+                    <TextInput accessibilityLabel="Listening ücretsiz önizleme süresi" value={String(draft.previewDurationSeconds ?? 0)} onChangeText={(value) => setField("previewDurationSeconds", Number(value.replace(/[^0-9]/g, "")) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                    <Text style={styles.formHelper}>Premium içerikte ücretsiz kullanıcıların dinleyebileceği başlangıç süresi. Ücretsiz içerikte 0 kalabilir.</Text>
+                  </View>
                 </View>
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Outline / zaman çizelgesi</Text>
@@ -854,9 +957,13 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   </View>
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Soru sayısı</Text>
-                    <TextInput accessibilityLabel="Soru sayısı" value={String(draft.listeningQuestionCount ?? 10)} onChangeText={(value) => setField("listeningQuestionCount", Number(value.replace(/[^0-9]/g, "")) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                    <View style={styles.readingInfoBox}>
+                      <Text style={styles.readingInfoValue}>{listeningQuestionCount}</Text>
+                      <Text style={styles.readingInfoLabel}>Aşağıdaki soru kartlarından otomatik hesaplanır</Text>
+                    </View>
                   </View>
                 </View>
+                <ListeningHubQuestionsEditor value={draft.listeningQuestions ?? []} onChange={(listeningQuestions) => onChange({ ...draft, listeningQuestions, listeningQuestionCount: listeningQuestions.length })} isMobile={isMobile} />
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Buton etiketi</Text>
                   <TextInput accessibilityLabel="Buton etiketi" value={draft.listeningActionLabel ?? "Start Focused Practice"} onChangeText={(value) => setField("listeningActionLabel", value)} placeholder="Start Focused Practice" placeholderTextColor={studentTokens.muted} style={styles.formInput} />

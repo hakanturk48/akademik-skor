@@ -1,5 +1,5 @@
 import type { AuthRole } from '@/lib/auth';
-import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, ListeningHubItem, QuestionOption, ReadingPracticeQuestion, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
+import type { BaseEntity, CatalogCollectionName, ContentCatalog, EntityStatus, ListeningHubItem, ListeningHubQuestion, QuestionOption, ReadingPracticeQuestion, TaxonomyRef, ValidationIssue, Visibility } from '@/lib/content';
 import type { VideoMediaProvider } from '@/lib/video-media';
 import type { NavigationGroup, NavigationItem } from '@/lib/navigation';
 
@@ -312,6 +312,7 @@ export type AdminEntityDraft = {
   listeningLengthId?: ListeningHubItem["lengthId"];
   listeningSessionMode?: ListeningHubItem["sessionMode"];
   listeningQuestionCount?: number;
+  listeningQuestions?: ListeningHubQuestion[];
   listeningActionLabel?: string;
 };
 

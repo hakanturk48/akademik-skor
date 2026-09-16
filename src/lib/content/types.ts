@@ -143,6 +143,18 @@ export type ListeningHubDifficultyId = "adaptive" | "easy" | "medium" | "hard";
 export type ListeningHubLengthId = "quick" | "standard" | "extended";
 export type ListeningHubSessionMode = "practice" | "exam";
 
+export interface ListeningHubQuestionOption {
+  key: string;
+  text: string;
+}
+
+export interface ListeningHubQuestion {
+  prompt: string;
+  options: ListeningHubQuestionOption[];
+  correctOptionKey?: string;
+  explanation?: string;
+}
+
 export interface ListeningHubItem extends BaseEntity {
   topicId: string;
   taskTypeId: string;
@@ -159,7 +171,9 @@ export interface ListeningHubItem extends BaseEntity {
   mediaUploadedAt?: string;
   durationSeconds: number;
   estimatedMinutes: number;
+  previewDurationSeconds?: number;
   questionCount: number;
+  questions?: ListeningHubQuestion[];
   actionLabel: string;
   outline?: LessonChapter[];
   transcript?: LessonTranscriptLine[];

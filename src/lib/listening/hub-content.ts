@@ -88,6 +88,7 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
   const topicTitle = topic?.title ?? "General Topic";
   const taskTypeTitle = taskType?.title ?? "Academic Talk";
   const subskillTitle = subskill?.title ?? "Detail";
+  const questionCount = item.questions?.length || item.questionCount;
 
   const href = createListeningPracticeHref(selection) + "&hub=" + encodeURIComponent(item.id);
 
@@ -97,7 +98,8 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
     topicTitle,
     taskTypeTitle,
     subskillTitle,
-    meta: [topicTitle, taskTypeTitle, subskillTitle, String(item.questionCount) + " questions", String(item.estimatedMinutes) + " min"].join(" - "),
+    questionCount,
+    meta: [topicTitle, taskTypeTitle, subskillTitle, String(questionCount) + " questions", String(item.estimatedMinutes) + " min"].join(" - "),
   };
 }
 

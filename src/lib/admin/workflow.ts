@@ -8,6 +8,7 @@ import type {
 } from './types';
 
 const readingPracticeOptionKeys = ['A', 'B', 'C', 'D', 'E'];
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D'];
 
 export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'published', 'archived'];
 export const workflowCollections: AdminMutableCollectionKey[] = [
@@ -194,7 +195,16 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       }
       if (!Number.isFinite(item.durationSeconds) || item.durationSeconds < 1) issues.push("Listening media duration is required.");
       if (!Number.isFinite(item.estimatedMinutes) || item.estimatedMinutes < 1) issues.push("Listening hub duration is required.");
+      if ((item.previewDurationSeconds ?? 0) < 0 || (item.previewDurationSeconds ?? 0) > item.durationSeconds) issues.push("Listening preview duration cannot exceed media duration.");
+      const questions = item.questions ?? [];
       if (!Number.isFinite(item.questionCount) || item.questionCount < 1) issues.push("Listening hub question count is required.");
+      if (!questions.length) issues.push("Listening hub needs at least one question.");
+      if (questions.length && item.questionCount !== questions.length) issues.push("Listening hub question count must match added questions.");
+      if (questions.some((question) => question.prompt.trim().length < 8)) issues.push("Every listening question needs a prompt.");
+      if (questions.some((question) => question.options.length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push("Every listening question needs exactly four options.");
+      if (questions.some((question) => question.options.some((option) => !option.text.trim()))) issues.push("Every listening option needs text.");
+      if (questions.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push("Every listening question needs a correct option.");
+      if (questions.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push("Listening option texts must be distinct.");
       if (!item.actionLabel.trim()) issues.push("Listening hub action label is required.");
     }
     if (collection === "readingPracticeScreens") {

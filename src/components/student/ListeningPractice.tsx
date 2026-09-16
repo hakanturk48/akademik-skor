@@ -4,6 +4,9 @@ import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
+import type { AuthUser } from '@/lib/auth';
+import type { ListeningHubQuestion } from '@/lib/content';
+import { getEntitlementAccess } from '@/lib/permissions';
 import {
   getListeningDifficultyById,
   getListeningHubItemById,
@@ -63,12 +66,17 @@ const questionSymbol = symbolName('questionmark.circle', 'help');
 const waveformBars = [18, 29, 44, 54, 42, 62, 38, 58, 49, 68, 35, 76, 52, 64, 47, 72, 40, 58, 50, 80, 44, 66, 55, 70, 36, 58, 45, 78, 50, 64, 43, 61, 39, 55, 47, 74, 42, 60, 48, 67, 38, 53, 46, 63, 41, 58, 44, 72, 49, 66, 37, 54, 45, 60, 42, 57, 36, 51, 44, 62, 40, 56, 34, 48, 43, 59, 39, 52, 32, 46, 41, 55, 36, 50, 30, 43, 38, 51, 35, 47, 31, 45, 34, 49, 32, 44, 30, 40];
 
 
-const answerOptions: AnswerOption[] = [
-  { key: 'A', text: 'Visit the library front desk' },
-  { key: 'B', text: 'Use the online booking system', selected: true },
-  { key: 'C', text: 'Call the IT help desk' },
-  { key: 'D', text: 'Email the student center' },
-];
+const fallbackListeningQuestion: ListeningHubQuestion = {
+  prompt: 'According to the lecture, what can students do to book group study rooms?',
+  options: [
+    { key: 'A', text: 'Visit the library front desk' },
+    { key: 'B', text: 'Use the online booking system' },
+    { key: 'C', text: 'Call the IT help desk' },
+    { key: 'D', text: 'Email the student center' },
+  ],
+  correctOptionKey: 'B',
+  explanation: 'The booking system is the action mentioned for reserving group study rooms.',
+};
 
 type ListeningSearchParams = Partial<Record<'task' | 'subskill' | 'difficulty' | 'length' | 'mode' | 'hub', string | string[]>>;
 
@@ -85,8 +93,11 @@ type ListeningPracticeContext = {
   mediaUrl?: string;
   mediaFileName?: string;
   mediaMimeType?: string;
+  isPremium: boolean;
   durationSeconds: number;
+  previewDurationSeconds: number;
   questionCount: number;
+  questions: ListeningHubQuestion[];
   outline: TimelineItem[];
   transcript: TranscriptLine[];
 };
@@ -143,7 +154,9 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
   const length = getListeningLengthById(selection.lengthId);
   const examMode = selection.sessionMode === 'exam';
   const durationSeconds = Math.max(1, hubItem?.durationSeconds ?? fallbackDurationForSelection(selection));
-  const questionCount = Math.max(1, hubItem?.questionCount ?? 10);
+  const questions = hubItem?.questions?.length ? hubItem.questions : [fallbackListeningQuestion];
+  const questionCount = Math.max(1, questions.length || hubItem?.questionCount || 10);
+  const previewDurationSeconds = Math.max(0, Math.min(hubItem?.previewDurationSeconds ?? 0, durationSeconds));
 
   return {
     selection,
@@ -155,8 +168,11 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
     mediaUrl: hubItem?.mediaUrl,
     mediaFileName: hubItem?.mediaFileName,
     mediaMimeType: hubItem?.mediaMimeType,
+    isPremium: Boolean(hubItem?.isPremium),
     durationSeconds,
+    previewDurationSeconds,
     questionCount,
+    questions,
     outline: makeOutlineFromHub(hubItem, durationSeconds),
     transcript: hubItem?.transcript ?? [],
     rules: examMode
@@ -220,13 +236,28 @@ function mediaLooksAudioSource(mimeType?: string, mediaUrl?: string) {
   return /\.(mp3|m4a|aac|wav|ogg|opus)$/.test(url);
 }
 
-function AudioPlayer({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
+function addListeningPreviewEnd(embedUrl: string | null, provider: ListeningPracticeContext['mediaProvider'], previewSeconds: number) {
+  if (!embedUrl || provider !== 'youtube' || previewSeconds <= 0) return embedUrl;
+  const separator = embedUrl.includes('?') ? '&' : '?';
+  return embedUrl + separator + 'end=' + Math.max(1, Math.floor(previewSeconds));
+}
+
+function AudioPlayer({ compact, context, fullAccess }: { compact: boolean; context: ListeningPracticeContext; fullAccess: boolean }) {
   const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
-  const embedUrl = context.mediaProvider === 'upload' ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
+  const canPlayMedia = !context.isPremium || fullAccess || previewSeconds > 0;
+  const rawEmbedUrl = context.mediaProvider === 'upload' ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const embedUrl = canPlayMedia ? addListeningPreviewEnd(rawEmbedUrl, context.mediaProvider, previewSeconds) : null;
   const uploadedMediaIsAudio = mediaLooksAudioSource(context.mediaMimeType, context.mediaUrl);
-  const uploadedMediaAvailable = Boolean(context.mediaProvider === 'upload' && uploadedMediaUrl);
-  const playerTime = '00:00 / ' + formatVideoTimestamp(context.durationSeconds);
-  const sourceLabel = context.mediaUrl ? context.mediaProvider === 'upload' ? (context.mediaFileName ? 'Yüklenen dosya: ' + context.mediaFileName : 'Yüklenen dinleme dosyası') : videoProviderLabel(context.mediaProvider) + ' listening source' : 'Listening source not attached yet';
+  const uploadedMediaAvailable = Boolean(context.mediaProvider === 'upload' && uploadedMediaUrl && canPlayMedia);
+  const playerTime = '00:00 / ' + formatVideoTimestamp(previewSeconds || context.durationSeconds);
+  const previewLabel = context.isPremium && !fullAccess ? previewSeconds > 0 ? ' · Ücretsiz önizleme: ' + formatVideoTimestamp(previewSeconds) : ' · Premium içerik kilitli' : '';
+  const sourceLabel = context.mediaUrl ? (context.mediaProvider === 'upload' ? (context.mediaFileName ? 'Yüklenen dosya: ' + context.mediaFileName : 'Yüklenen dinleme dosyası') : videoProviderLabel(context.mediaProvider) + ' listening source') + previewLabel : 'Listening source not attached yet' + previewLabel;
+  const enforcePreviewLimit = (event: { currentTarget?: { currentTime: number; pause?: () => void } }) => {
+    if (previewSeconds <= 0 || !event.currentTarget || event.currentTarget.currentTime <= previewSeconds) return;
+    event.currentTarget.currentTime = previewSeconds;
+    event.currentTarget.pause?.();
+  };
 
   useEffect(() => {
     let active = true;
@@ -260,7 +291,7 @@ function AudioPlayer({ compact, context }: { compact: boolean; context: Listenin
         </View>
       ) : uploadedMediaAvailable && Platform.OS === 'web' ? (
         <View style={uploadedMediaIsAudio ? styles.uploadedAudioWrap : styles.embeddedPlayer}>
-          {uploadedMediaIsAudio ? createElement('audio', { src: uploadedMediaUrl, controls: true, style: { width: '100%', display: 'block' } }) : createElement('video', { src: uploadedMediaUrl, controls: true, playsInline: true, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#08142e' } })}
+          {uploadedMediaIsAudio ? createElement('audio', { src: uploadedMediaUrl, controls: true, onTimeUpdate: enforcePreviewLimit, style: { width: '100%', display: 'block' } }) : createElement('video', { src: uploadedMediaUrl, controls: true, playsInline: true, onTimeUpdate: enforcePreviewLimit, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#08142e' } })}
         </View>
       ) : uploadedMediaAvailable ? (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
@@ -374,12 +405,15 @@ function AnswerRow({ item }: { item: AnswerOption }) {
 }
 
 function QuestionsPanel({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
+  const currentQuestion = context.questions[0] ?? fallbackListeningQuestion;
+  const questionTotal = Math.max(1, context.questions.length || context.questionCount);
+  const explanation = currentQuestion.explanation?.trim();
   return (
     <Card style={styles.practiceCard} contentStyle={styles.questionBody}>
       <View style={styles.cardHeadRow}>
         <View>
           <Text style={styles.cardLabelOrange}>QUESTIONS</Text>
-          <Text style={styles.questionProgress}>Question 1 of {context.questionCount}</Text>
+          <Text style={styles.questionProgress}>Question 1 of {questionTotal}</Text>
         </View>
         <View style={styles.timeLimitPill}>
           <SymbolView name={clockSymbol} tintColor={studentTokens.orange} size={13} style={styles.timeIcon} />
@@ -390,13 +424,13 @@ function QuestionsPanel({ compact, context }: { compact: boolean; context: Liste
         </View>
         {!compact ? <SymbolView name={moreSymbol} tintColor={studentTokens.text} size={16} style={styles.moreIcon} /> : null}
       </View>
-      <QuestionNavigator total={context.questionCount} />
-      <Text style={styles.questionText}>According to the lecture, what can students do to book group study rooms?</Text>
+      <QuestionNavigator total={questionTotal} />
+      <Text style={styles.questionText}>{currentQuestion.prompt}</Text>
       <View style={styles.answerList}>
-        {answerOptions.map((item) => <AnswerRow key={item.key} item={item} />)}
+        {currentQuestion.options.map((item) => <AnswerRow key={item.key} item={{ ...item, selected: item.key === currentQuestion.correctOptionKey }} />)}
       </View>
       <View style={[styles.modeNotice, context.selection.sessionMode === 'exam' ? styles.modeNoticeExam : null]}>
-        <Text style={styles.modeNoticeText}>{context.selection.sessionMode === 'exam' ? 'Exam mode: feedback and transcript stay hidden until submission.' : 'Practice mode: explanation can appear after your answer.'}</Text>
+        <Text style={styles.modeNoticeText}>{context.selection.sessionMode === 'exam' ? 'Exam mode: feedback and transcript stay hidden until submission.' : explanation || 'Practice mode: explanation can appear after your answer.'}</Text>
       </View>
       <View style={[styles.questionActions, compact ? styles.questionActionsCompact : null]}>
         <Button label="Back" size="sm" variant="secondary" style={[styles.backButton, compact ? styles.actionButtonCompact : null]} />
@@ -470,7 +504,7 @@ function StatBox({ item }: { item: MetricItem }) {
 function StatsPanel({ context }: { context: ListeningPracticeContext }) {
   const statItems: MetricItem[] = [
     { value: formatVideoTimestamp(context.durationSeconds), label: 'Total Duration', color: '#8b5cf6', icon: headphonesSymbol },
-    { value: String(context.questionCount), label: 'Questions', color: studentTokens.orange, icon: questionSymbol },
+    { value: String(Math.max(1, context.questions.length || context.questionCount)), label: 'Questions', color: studentTokens.orange, icon: questionSymbol },
     { value: String(context.transcript.length), label: 'Transcript Lines', color: studentTokens.teal, icon: documentSymbol },
     { value: videoProviderLabel(context.mediaProvider), label: 'Source', color: studentTokens.blue, icon: volumeSymbol },
   ];
@@ -544,7 +578,7 @@ function MobilePanelToggle({ value, onChange }: { value: 'notes' | 'questions'; 
     </View>
   );
 }
-export function ListeningPractice() {
+export function ListeningPractice({ user }: { user: AuthUser }) {
   const params = useLocalSearchParams<ListeningSearchParams>();
   const [hubVersion, setHubVersion] = useState(0);
   const context = useMemo(() => {
@@ -556,6 +590,7 @@ export function ListeningPractice() {
   const isTablet = width >= 760;
   const isCompact = width < 620;
   const [mobilePanel, setMobilePanel] = useState<'notes' | 'questions'>('notes');
+  const fullAccess = !context.isPremium || getEntitlementAccess(user, 'video-full-access').allowed;
 
   useEffect(() => {
     let active = true;
@@ -573,7 +608,7 @@ export function ListeningPractice() {
       <ModeBanner context={context} />
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.mainColumn}>
-          <AudioPlayer compact={isCompact} context={context} />
+          <AudioPlayer compact={isCompact} context={context} fullAccess={fullAccess} />
           {isCompact ? (
             <View style={styles.mobilePracticeStack}>
               <MobilePanelToggle value={mobilePanel} onChange={setMobilePanel} />

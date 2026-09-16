@@ -297,7 +297,8 @@ test("listening hub publishing keeps only route metadata and no student progress
     chaptersText: "00:00|Introduction\n03:00|Main point",
     transcriptText: "00:00|Welcome to the listening practice.",
     estimatedMinutes: 20,
-    listeningQuestionCount: 10,
+    previewDurationSeconds: 180,
+    listeningQuestionCount: 1,
     listeningActionLabel: "Start Focused Practice",
   };
   assert.throws(() => service.saveAdminContent(state, "listening-hub", "listeningHubItems", { ...draft, mediaUrl: "" }, actor, "published"), /Listening media URL/);
@@ -306,7 +307,9 @@ test("listening hub publishing keeps only route metadata and no student progress
   assert.equal(published.topicId, "topic-biology");
   assert.equal(published.taskTypeId, "task-academic-talk");
   assert.equal(published.subskillId, "sub-detail");
-  assert.equal(published.questionCount, 10);
+  assert.equal(published.questionCount, 1);
+  assert.equal(published.previewDurationSeconds, 180);
+  assert.equal(published.questions.length, 1);
   assert.equal(published.mediaProvider, "youtube");
   assert.equal(published.mediaUrl, draft.mediaUrl);
   assert.equal(published.durationSeconds, 900);

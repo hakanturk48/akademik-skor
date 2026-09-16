@@ -136,6 +136,10 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
     const subskill = catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
     const embedUrl = getVideoEmbedUrl(item.mediaProvider, item.mediaUrl);
     const uploadedMediaIsAudio = item.mediaMimeType?.toLowerCase().startsWith("audio/") || /\.(mp3|m4a|aac|wav|ogg|opus)$/i.test(item.mediaUrl?.split("?")[0] ?? "");
+    const questions = item.questions ?? [];
+    const activeQuestion = questions[0];
+    const questionCount = questions.length || item.questionCount;
+    const previewLabel = item.previewDurationSeconds ? ` · Ücretsiz önizleme: ${formatVideoTimestamp(item.previewDurationSeconds)}` : "";
     content = <Card title={item.title} right={<Badge label={base.isPremium ? "Premium" : "Ücretsiz"} tone={base.isPremium ? "yellow" : "teal"} />}>
       <Text style={styles.meta}>Listening Hub · {adminLabel(item.sessionMode)} · {adminLabel(item.difficultyId)} · {adminLabel(item.lengthId)}</Text>
       <Text style={styles.body}>{base.description ?? ""}</Text>
@@ -154,7 +158,12 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
         <Text style={styles.body}>Soru türü: {taskType}</Text>
         <Text style={styles.body}>Alt beceri: {subskill}</Text>
       </View>
-      <Text style={styles.meta}>{item.questionCount} soru · {item.estimatedMinutes} dk · {formatVideoTimestamp(item.durationSeconds)} medya · {item.outline?.length ?? 0} outline · {item.transcript?.length ?? 0} transkript satırı · Buton: {item.actionLabel}</Text>
+      {activeQuestion ? <View style={styles.option}>
+        <Text style={styles.heading}>{activeQuestion.prompt}</Text>
+        {activeQuestion.options.map((option) => <Text key={option.key} style={styles.body}>{option.key}. {option.text}{option.key === activeQuestion.correctOptionKey ? ' ✓' : ''}</Text>)}
+        {activeQuestion.explanation ? <Text style={styles.meta}>{activeQuestion.explanation}</Text> : null}
+      </View> : <Text style={styles.meta}>Henüz listening sorusu eklenmemiş.</Text>}
+      <Text style={styles.meta}>{questionCount} soru · {item.estimatedMinutes} dk · {formatVideoTimestamp(item.durationSeconds)} medya{previewLabel} · {item.outline?.length ?? 0} outline · {item.transcript?.length ?? 0} transkript satırı · Buton: {item.actionLabel}</Text>
     </Card>;
   } else if (collection === "vocabularyWords") {
     const word = snapshot as VocabularyWord;

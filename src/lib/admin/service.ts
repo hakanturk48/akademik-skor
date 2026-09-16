@@ -17,6 +17,7 @@ import type {
   Question,
   LessonResource,
   ListeningHubItem,
+  ListeningHubQuestion,
   ReadingPracticeScreen,
 } from '@/lib/content';
 import type { NavigationGroup, NavigationIconKey, NavigationItem, NavigationSeed } from '@/lib/navigation';
@@ -243,6 +244,62 @@ function normalizeReadingPracticeQuestions(questions?: ReadingPracticeQuestionDr
   return (questions ?? []).map((question) => normalizeReadingPracticeQuestion(question));
 }
 
+const listeningHubOptionKeys = ['A', 'B', 'C', 'D'] as const;
+
+type ListeningHubQuestionDraft = ListeningHubQuestion;
+
+const defaultListeningHubQuestions: ListeningHubQuestionDraft[] = [
+  {
+    prompt: 'What is the main purpose of the listening passage?',
+    options: [
+      { key: 'A', text: 'To introduce a general topic without supporting details.' },
+      { key: 'B', text: 'To explain a specific point using examples from the lecture.' },
+      { key: 'C', text: 'To compare two unrelated events from different courses.' },
+      { key: 'D', text: 'To list administrative rules for a campus office.' },
+    ],
+    correctOptionKey: 'B',
+    explanation: 'The correct answer should summarize the whole listening passage, not one isolated detail.',
+  },
+];
+
+function isListeningHubOptionKey(value: string): value is typeof listeningHubOptionKeys[number] {
+  return (listeningHubOptionKeys as readonly string[]).includes(value);
+}
+
+function normalizeListeningHubQuestion(question?: Partial<ListeningHubQuestionDraft>): ListeningHubQuestionDraft {
+  const rawOptions = question?.options ?? [];
+  const options = listeningHubOptionKeys.map((key) => {
+    const match = rawOptions.find((option) => (option.key ?? '').toUpperCase() === key);
+    return { key, text: match?.text?.trim() ?? '' };
+  });
+  const rawCorrect = question?.correctOptionKey?.toUpperCase() ?? '';
+  const correctOptionKey = isListeningHubOptionKey(rawCorrect) ? rawCorrect : undefined;
+  const explanation = question?.explanation?.trim();
+
+  return {
+    prompt: question?.prompt?.trim() ?? '',
+    options,
+    ...(correctOptionKey ? { correctOptionKey } : {}),
+    ...(explanation ? { explanation } : {}),
+  };
+}
+
+function normalizeListeningHubQuestions(questions?: Partial<ListeningHubQuestionDraft>[]) {
+  return (questions ?? []).map((question) => normalizeListeningHubQuestion(question));
+}
+
+function validateListeningHubQuestions(questions?: Partial<ListeningHubQuestionDraft>[]) {
+  const normalized = normalizeListeningHubQuestions(questions);
+  const issues: string[] = [];
+  if (!normalized.length) issues.push('Listening hub needs at least one question.');
+  if (normalized.some((question) => question.prompt.trim().length < 8)) issues.push('Every listening question needs a prompt.');
+  if (normalized.some((question) => question.options.length !== listeningHubOptionKeys.length || !listeningHubOptionKeys.every((key, index) => question.options[index]?.key === key))) issues.push('Every listening question needs exactly four options.');
+  if (normalized.some((question) => question.options.some((option) => !option.text.trim()))) issues.push('Every listening option needs text.');
+  if (normalized.some((question) => !question.correctOptionKey || !question.options.some((option) => option.key === question.correctOptionKey))) issues.push('Every listening question needs a correct option.');
+  if (normalized.some((question) => new Set(question.options.map((option) => option.text.trim().toLocaleLowerCase()).filter(Boolean)).size !== question.options.filter((option) => option.text.trim()).length)) issues.push('Listening option texts must be distinct.');
+  return issues;
+}
+
 function defaultReadingPracticeDraftFields(): Partial<AdminEntityDraft> {
   return {
     title: 'Reading Practice',
@@ -441,6 +498,7 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
     mediaUrl: "",
     durationSeconds: 1200,
     estimatedMinutes: 20,
+    previewDurationSeconds: 0,
     chaptersText: "00:00|Introduction\n03:00|Main point\n08:00|Examples",
     transcriptText: "",
     listeningTopicId: topic?.id ?? "",
@@ -449,7 +507,8 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
     listeningDifficultyId: "adaptive",
     listeningLengthId: "standard",
     listeningSessionMode: "practice",
-    listeningQuestionCount: 10,
+    listeningQuestionCount: defaultListeningHubQuestions.length,
+    listeningQuestions: normalizeListeningHubQuestions(defaultListeningHubQuestions),
     listeningActionLabel: "Start Focused Practice",
   };
 }
@@ -465,6 +524,7 @@ function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<Ad
     mediaUploadedAt: item?.mediaUploadedAt,
     durationSeconds: item?.durationSeconds,
     estimatedMinutes: item?.estimatedMinutes,
+    previewDurationSeconds: item?.previewDurationSeconds ?? 0,
     chaptersText: serializeVideoTimedText(item?.outline?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
     transcriptText: serializeVideoTimedText(item?.transcript),
     listeningTopicId: item?.topicId,
@@ -473,7 +533,8 @@ function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<Ad
     listeningDifficultyId: item?.difficultyId,
     listeningLengthId: item?.lengthId,
     listeningSessionMode: item?.sessionMode,
-    listeningQuestionCount: item?.questionCount,
+    listeningQuestionCount: item?.questions?.length ?? item?.questionCount,
+    listeningQuestions: normalizeListeningHubQuestions(item?.questions),
     listeningActionLabel: item?.actionLabel,
   };
 }
@@ -488,6 +549,8 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   const durationSeconds = clampAdminNumber(draft.durationSeconds ?? existing?.durationSeconds ?? defaults.durationSeconds, 1, 14400);
   const outline = parseVideoTimedText(draft.chaptersText);
   const transcript = parseVideoTimedText(draft.transcriptText);
+  const questions = normalizeListeningHubQuestions(draft.listeningQuestions ?? existing?.questions ?? (defaults.listeningQuestions as ListeningHubQuestion[] | undefined));
+  const previewDurationSeconds = clampAdminNumber(draft.previewDurationSeconds ?? existing?.previewDurationSeconds ?? defaults.previewDurationSeconds, 0, durationSeconds);
   return {
     topicId: topicOptions.some((item) => item.id === draft.listeningTopicId) ? String(draft.listeningTopicId) : existing?.topicId ?? String(defaults.listeningTopicId ?? ""),
     taskTypeId,
@@ -504,7 +567,9 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
     mediaUploadedAt: provider === "upload" ? draft.mediaUploadedAt ?? existing?.mediaUploadedAt : undefined,
     durationSeconds,
     estimatedMinutes: clampAdminNumber(draft.estimatedMinutes ?? existing?.estimatedMinutes ?? Math.ceil(durationSeconds / 60), 1, 240),
-    questionCount: clampAdminNumber(draft.listeningQuestionCount ?? existing?.questionCount ?? defaults.listeningQuestionCount, 1, 100),
+    previewDurationSeconds,
+    questionCount: questions.length,
+    questions,
     actionLabel: draft.listeningActionLabel?.trim() || existing?.actionLabel || "Start Focused Practice",
     outline: outline.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
     transcript: transcript.lines,
@@ -1017,7 +1082,8 @@ function relationSummary(state: AdminWorkspaceState, collection: AdminCollection
     const item = entity as BaseEntity & Partial<ListeningHubItem>;
     const topic = state.catalog.topics.find((entry) => entry.id === item.topicId)?.title ?? "Konu seçilmedi";
     const subskill = state.catalog.subskills.find((entry) => entry.id === item.subskillId)?.title ?? "Alt beceri seçilmedi";
-    return `Listening hub route · ${topic} · ${subskill} · ${item.questionCount ?? 0} soru`;
+    const questionCount = item.questions?.length ?? item.questionCount ?? 0;
+    return `Listening hub route · ${topic} · ${subskill} · ${questionCount} soru`;
   }
 
   if ('taxonomy' in entity) {
@@ -1174,7 +1240,8 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if (!adminListeningSessionModeOptions.includes(draft.listeningSessionMode ?? "practice")) issues.push("Listening hub session mode is invalid.");
     if ((draft.estimatedMinutes ?? 0) < 1) issues.push("Listening hub duration is required.");
     if ((draft.durationSeconds ?? 0) < 1) issues.push("Listening media duration is required.");
-    if ((draft.listeningQuestionCount ?? 0) < 1) issues.push("Listening hub question count is required.");
+    if ((draft.previewDurationSeconds ?? 0) < 0 || (draft.previewDurationSeconds ?? 0) > (draft.durationSeconds ?? Number.MAX_SAFE_INTEGER)) issues.push("Listening preview duration cannot exceed media duration.");
+    issues.push(...validateListeningHubQuestions(draft.listeningQuestions));
     if (draft.mediaUrl?.trim()) {
       const mediaIssue = validateVideoMediaUrl(draft.mediaProvider, draft.mediaUrl);
       if (mediaIssue) issues.push(mediaIssue);
