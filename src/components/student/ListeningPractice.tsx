@@ -1,7 +1,7 @@
-import { createElement, useEffect, useMemo, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type DimensionValue } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
@@ -35,6 +35,8 @@ type MetricItem = {
 type TimelineItem = {
   title: string;
   time: string;
+  startSeconds: number;
+  endSeconds: number;
   done?: boolean;
   active?: boolean;
 };
@@ -43,6 +45,26 @@ type AnswerOption = {
   key: string;
   text: string;
   selected?: boolean;
+};
+
+type PlaybackSnapshot = {
+  currentSeconds: number;
+  durationSeconds: number;
+};
+
+type PlaybackState = PlaybackSnapshot & {
+  sourceKey: string;
+};
+
+type MediaElementHandle = {
+  currentTime: number;
+  duration?: number;
+  volume?: number;
+  paused?: boolean;
+  play?: () => Promise<void> | void;
+  pause?: () => void;
+  requestFullscreen?: () => Promise<void> | void;
+  webkitRequestFullscreen?: () => Promise<void> | void;
 };
 
 const symbolName = (ios: string, web: string): AppSymbolName => ({ ios: ios as SFSymbol, android: web as AndroidSymbol, web: web as AndroidSymbol });
@@ -107,9 +129,19 @@ function firstParam(value?: string | string[]) {
 }
 
 function fallbackDurationForSelection(selection: ListeningSelection) {
-  if (selection.lengthId === 'quick') return 600;
-  if (selection.lengthId === 'extended') return 1800;
+  if (selection.lengthId === "quick") return 600;
+  if (selection.lengthId === "extended") return 1800;
   return 1200;
+}
+
+function clampSeconds(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+function getEffectivePlaybackDuration(context: ListeningPracticeContext, fullAccess: boolean) {
+  const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
+  return Math.max(1, previewSeconds || context.durationSeconds);
 }
 
 
@@ -120,9 +152,11 @@ function makeOutlineFromHub(item: ListeningHubDisplayItem | null, durationSecond
     const nextStart = outline[index + 1]?.startSeconds ?? durationSeconds;
     return {
       title: chapter.title,
-      time: formatVideoTimestamp(chapter.startSeconds) + ' - ' + formatVideoTimestamp(Math.max(chapter.startSeconds, nextStart)),
+      startSeconds: chapter.startSeconds,
+      endSeconds: Math.max(chapter.startSeconds, nextStart),
+      time: formatVideoTimestamp(chapter.startSeconds) + " - " + formatVideoTimestamp(Math.max(chapter.startSeconds, nextStart)),
       active: index === 0,
-      done: index > 0 && index < 3,
+      done: false,
     };
   });
 }
@@ -203,9 +237,9 @@ function Waveform({ compact }: { compact: boolean }) {
   );
 }
 
-function PlayerIconButton({ icon, label }: { icon: AppSymbolName; label: string }) {
+function PlayerIconButton({ icon, label, onPress, disabled }: { icon: AppSymbolName; label: string; onPress?: () => void; disabled?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.controlButton, pressed ? styles.pressed : null]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.controlButton, disabled ? styles.controlButtonDisabled : null, pressed ? styles.pressed : null]}>
       <SymbolView name={icon} tintColor="#d8e3ff" size={19} style={styles.controlIcon} />
     </Pressable>
   );
@@ -224,26 +258,62 @@ function addListeningPreviewEnd(embedUrl: string | null, provider: ListeningPrac
   return embedUrl + separator + 'end=' + Math.max(1, Math.floor(previewSeconds));
 }
 
-function AudioPlayer({ compact, context, fullAccess }: { compact: boolean; context: ListeningPracticeContext; fullAccess: boolean }) {
+function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange }: { compact: boolean; context: ListeningPracticeContext; fullAccess: boolean; playback: PlaybackSnapshot; onPlaybackChange: (value: PlaybackSnapshot) => void }) {
+  const mediaElementId = useMemo(() => {
+    const seed = context.mediaUrl || context.title;
+    return "listening-media-" + seed.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80);
+  }, [context.mediaUrl, context.title]);
+  const getMediaElement = () => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return null;
+    return document.getElementById(mediaElementId) as MediaElementHandle | null;
+  };
   const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
   const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
   const canPlayMedia = !context.isPremium || fullAccess || previewSeconds > 0;
-  const rawEmbedUrl = context.mediaProvider === 'upload' ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
+  const rawEmbedUrl = context.mediaProvider === "upload" ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
   const embedUrl = canPlayMedia ? addListeningPreviewEnd(rawEmbedUrl, context.mediaProvider, previewSeconds) : null;
   const uploadedMediaIsAudio = mediaLooksAudioSource(context.mediaMimeType, context.mediaUrl);
-  const uploadedMediaAvailable = Boolean(context.mediaProvider === 'upload' && uploadedMediaUrl && canPlayMedia);
-  const playerTime = '00:00 / ' + formatVideoTimestamp(previewSeconds || context.durationSeconds);
-  const previewLabel = context.isPremium && !fullAccess ? previewSeconds > 0 ? ' · Ücretsiz önizleme: ' + formatVideoTimestamp(previewSeconds) : ' · Premium içerik kilitli' : '';
-  const sourceLabel = context.mediaUrl ? (context.mediaProvider === 'upload' ? (context.mediaFileName ? 'Yüklenen dosya: ' + context.mediaFileName : 'Yüklenen dinleme dosyası') : videoProviderLabel(context.mediaProvider) + ' listening source') + previewLabel : 'Listening source not attached yet' + previewLabel;
-  const enforcePreviewLimit = (event: { currentTarget?: { currentTime: number; pause?: () => void } }) => {
-    if (previewSeconds <= 0 || !event.currentTarget || event.currentTarget.currentTime <= previewSeconds) return;
-    event.currentTarget.currentTime = previewSeconds;
-    event.currentTarget.pause?.();
+  const uploadedMediaAvailable = Boolean(context.mediaProvider === "upload" && uploadedMediaUrl && canPlayMedia);
+  const controlsAvailable = Boolean(uploadedMediaAvailable && Platform.OS === "web");
+  const effectiveDuration = Math.max(1, previewSeconds || playback.durationSeconds || context.durationSeconds);
+  const safeCurrent = clampSeconds(playback.currentSeconds, 0, effectiveDuration);
+  const progressPercent = clampSeconds((safeCurrent / effectiveDuration) * 100, 0, 100);
+  const progressWidth = `${progressPercent}%` as DimensionValue;
+  const playerTime = formatVideoTimestamp(safeCurrent) + " / " + formatVideoTimestamp(effectiveDuration);
+  const previewLabel = context.isPremium && !fullAccess ? previewSeconds > 0 ? " · Ücretsiz önizleme: " + formatVideoTimestamp(previewSeconds) : " · Premium içerik kilitli" : "";
+  const sourceLabel = context.mediaUrl ? (context.mediaProvider === "upload" ? (context.mediaFileName ? "Yüklenen dosya: " + context.mediaFileName : "Yüklenen dinleme dosyası") : videoProviderLabel(context.mediaProvider) + " listening source") + previewLabel : "Listening source not attached yet" + previewLabel;
+  const updatePlaybackFromMedia = (event: { currentTarget?: MediaElementHandle }) => {
+    const media = event.currentTarget;
+    if (!media) return;
+    const rawDuration = Number(media.duration);
+    const mediaDuration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : context.durationSeconds;
+    const durationSeconds = previewSeconds > 0 ? Math.min(previewSeconds, mediaDuration) : mediaDuration;
+    let currentSeconds = clampSeconds(Number(media.currentTime) || 0, 0, durationSeconds);
+    if (previewSeconds > 0 && media.currentTime > durationSeconds) {
+      media.currentTime = durationSeconds;
+      media.pause?.();
+      currentSeconds = durationSeconds;
+    }
+    onPlaybackChange({ currentSeconds, durationSeconds });
   };
+  const seekBy = (deltaSeconds: number) => {
+    const media = getMediaElement();
+    if (!media || !controlsAvailable) return;
+    const durationSeconds = effectiveDuration;
+    const currentSeconds = clampSeconds((Number(media.currentTime) || safeCurrent) + deltaSeconds, 0, durationSeconds);
+    media.currentTime = currentSeconds;
+    onPlaybackChange({ currentSeconds, durationSeconds });
+  };
+  const requestFullscreen = () => {
+    const media = getMediaElement();
+    const request = media?.requestFullscreen ?? media?.webkitRequestFullscreen;
+    if (request) void request.call(media);
+  };
+
 
   useEffect(() => {
     let active = true;
-    if (context.mediaProvider !== 'upload' || !context.mediaUrl) return () => {};
+    if (context.mediaProvider !== "upload" || !context.mediaUrl) return () => {};
     void getVideoUploadUrl(context.mediaUrl)
       .then((url) => {
         if (active) setUploadedMediaUrl(url);
@@ -261,19 +331,19 @@ function AudioPlayer({ compact, context, fullAccess }: { compact: boolean; conte
 
   return (
     <Card style={[styles.playerCard, compact ? styles.playerCardCompact : null]} contentStyle={[styles.playerBody, compact ? styles.playerBodyCompact : null]}>
-      {embedUrl && Platform.OS === 'web' ? (
+      {embedUrl && Platform.OS === "web" ? (
         <View style={styles.embeddedPlayer}>
-          {createElement('iframe', {
+          {createElement("iframe", {
             src: embedUrl,
             title: context.title,
-            allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+            allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
             allowFullScreen: true,
-            style: { border: 0, width: '100%', height: '100%', display: 'block' },
+            style: { border: 0, width: "100%", height: "100%", display: "block" },
           })}
         </View>
-      ) : uploadedMediaAvailable && Platform.OS === 'web' ? (
+      ) : uploadedMediaAvailable && Platform.OS === "web" ? (
         <View style={uploadedMediaIsAudio ? styles.uploadedAudioWrap : styles.embeddedPlayer}>
-          {uploadedMediaIsAudio ? createElement('audio', { src: uploadedMediaUrl, controls: true, onTimeUpdate: enforcePreviewLimit, style: { width: '100%', display: 'block' } }) : createElement('video', { src: uploadedMediaUrl, controls: true, playsInline: true, onTimeUpdate: enforcePreviewLimit, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#08142e' } })}
+          {uploadedMediaIsAudio ? createElement("audio", { id: mediaElementId, src: uploadedMediaUrl, controls: true, onLoadedMetadata: updatePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", display: "block" } }) : createElement("video", { id: mediaElementId, src: uploadedMediaUrl, controls: true, playsInline: true, onLoadedMetadata: updatePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#08142e" } })}
         </View>
       ) : uploadedMediaAvailable ? (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
@@ -293,19 +363,19 @@ function AudioPlayer({ compact, context, fullAccess }: { compact: boolean; conte
       )}
       <View style={styles.playerProgressRow}>
         <Text style={styles.playerTime}>{playerTime}</Text>
-        <View style={styles.playerTrack}><View style={styles.playerFill} /></View>
+        <View style={styles.playerTrack}><View style={[styles.playerFill, { width: progressWidth }]} /></View>
       </View>
       <Text style={styles.playerSourceText}>{sourceLabel}</Text>
       <View style={[styles.playerControls, compact ? styles.playerControlsCompact : null]}>
-        <PlayerIconButton icon={replaySymbol} label="Replay 10 seconds" />
-        <PlayerIconButton icon={forwardSymbol} label="Forward 10 seconds" />
+        <PlayerIconButton icon={replaySymbol} label="Replay 10 seconds" disabled={!controlsAvailable} onPress={() => seekBy(-10)} />
+        <PlayerIconButton icon={forwardSymbol} label="Forward 10 seconds" disabled={!controlsAvailable} onPress={() => seekBy(10)} />
         <View style={styles.controlDivider} />
         <Text style={styles.speedText}>1.0x</Text>
         <Text style={styles.speedLabel}>Speed</Text>
         <View style={styles.controlDivider} />
-        <PlayerIconButton icon={volumeSymbol} label="Volume" />
+        <PlayerIconButton icon={volumeSymbol} label="Volume" disabled={!controlsAvailable} />
         <View style={styles.volumeTrack}><View style={styles.volumeFill} /></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fullscreen" style={({ pressed }) => [styles.fullscreenButton, pressed ? styles.pressed : null]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fullscreen" accessibilityState={{ disabled: !controlsAvailable }} disabled={!controlsAvailable} onPress={requestFullscreen} style={({ pressed }) => [styles.fullscreenButton, !controlsAvailable ? styles.controlButtonDisabled : null, pressed ? styles.pressed : null]}>
           <SymbolView name={fullscreenSymbol} tintColor="#d8e3ff" size={19} style={styles.fullscreenIcon} />
         </Pressable>
       </View>
@@ -423,9 +493,14 @@ function QuestionsPanel({ compact, context }: { compact: boolean; context: Liste
   );
 }
 
-function OutlinePanel({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
+function OutlinePanel({ compact, context, currentSeconds }: { compact: boolean; context: ListeningPracticeContext; currentSeconds: number }) {
   const [expanded, setExpanded] = useState(!compact);
-  const transcriptPreview = context.selection.sessionMode === 'exam' ? [] : context.transcript.slice(0, 3);
+  const transcriptPreview = context.selection.sessionMode === "exam" ? [] : context.transcript.slice(0, 3);
+  const displayOutline = context.outline.map((item) => {
+    const active = currentSeconds >= item.startSeconds && currentSeconds < item.endSeconds;
+    const done = currentSeconds >= item.endSeconds;
+    return { ...item, active, done };
+  });
 
   return (
     <Card style={styles.sideCard} contentStyle={styles.sideBody}>
@@ -439,9 +514,9 @@ function OutlinePanel({ compact, context }: { compact: boolean; context: Listeni
       </View>
       {expanded ? (
         <>
-          {context.outline.length ? (
+          {displayOutline.length ? (
             <View style={styles.timelineList}>
-              {context.outline.map((item) => (
+              {displayOutline.map((item) => (
                 <View key={item.title + item.time} style={[styles.timelineRow, item.active ? styles.timelineRowActive : null]}>
                   <View style={[styles.timelineMarker, item.done ? styles.timelineDone : null, item.active ? styles.timelineActive : null]}>
                     {item.done ? <SymbolView name={checkSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : item.active ? <SymbolView name={playSymbol} tintColor="#ffffff" size={10} style={styles.timelineCheck} /> : null}
@@ -578,8 +653,23 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
   const isWide = width >= 1120;
   const isTablet = width >= 760;
   const isCompact = width < 620;
-  const [mobilePanel, setMobilePanel] = useState<'notes' | 'questions'>('notes');
-  const fullAccess = !context.isPremium || getEntitlementAccess(user, 'video-full-access').allowed;
+  const [mobilePanel, setMobilePanel] = useState<"notes" | "questions">("notes");
+  const fullAccess = !context.isPremium || getEntitlementAccess(user, "video-full-access").allowed;
+  const playbackKey = [
+    context.mediaProvider,
+    context.mediaUrl,
+    String(context.durationSeconds),
+    String(context.previewDurationSeconds),
+    context.isPremium ? "premium" : "free",
+    fullAccess ? "full" : "preview",
+  ].join("|");
+  const effectivePlaybackDuration = getEffectivePlaybackDuration(context, fullAccess);
+  const defaultPlayback = useMemo<PlaybackSnapshot>(() => ({ currentSeconds: 0, durationSeconds: effectivePlaybackDuration }), [effectivePlaybackDuration]);
+  const [storedPlayback, setStoredPlayback] = useState<PlaybackState>(() => ({ ...defaultPlayback, sourceKey: playbackKey }));
+  const playback: PlaybackSnapshot = storedPlayback.sourceKey === playbackKey ? storedPlayback : defaultPlayback;
+  const handlePlaybackChange = useCallback((value: PlaybackSnapshot) => {
+    setStoredPlayback({ ...value, sourceKey: playbackKey });
+  }, [playbackKey]);
 
   useEffect(() => {
     let active = true;
@@ -597,7 +687,7 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
       <ModeBanner context={context} />
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.mainColumn}>
-          <AudioPlayer compact={isCompact} context={context} fullAccess={fullAccess} />
+          <AudioPlayer compact={isCompact} context={context} fullAccess={fullAccess} playback={playback} onPlaybackChange={handlePlaybackChange} />
           {isCompact ? (
             <View style={styles.mobilePracticeStack}>
               <MobilePanelToggle value={mobilePanel} onChange={setMobilePanel} />
@@ -611,7 +701,7 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
           )}
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
-          <OutlinePanel compact={isCompact} context={context} />
+          <OutlinePanel compact={isCompact} context={context} currentSeconds={playback.currentSeconds} />
           <StatsPanel context={context} />
           <StudyTipPanel />
         </View>
@@ -655,7 +745,7 @@ const styles = StyleSheet.create({
   playerProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   playerTime: { fontFamily: fontFamily, color: '#ffffff', fontSize: 10, lineHeight: 14, fontWeight: '700', flexShrink: 0 },
   playerTrack: { flex: 1, minWidth: 90, height: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
-  playerFill: { width: '43%', height: '100%', borderRadius: 999, backgroundColor: studentTokens.yellow },
+  playerFill: { height: "100%", borderRadius: 999, backgroundColor: studentTokens.yellow },
   playerControls: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 14 },
   embeddedPlayer: { width: '100%', aspectRatio: 16 / 9, borderRadius: 10, overflow: 'hidden', backgroundColor: '#08142e' },
   uploadedAudioWrap: { width: '100%', minHeight: 74, borderRadius: 10, backgroundColor: '#08142e', justifyContent: 'center', padding: 12 },
@@ -768,7 +858,8 @@ const styles = StyleSheet.create({
   playerBodyCompact: { minHeight: 0, paddingHorizontal: 16, paddingVertical: 16, gap: 14 },
   playerTopRowCompact: { minHeight: 0, flexDirection: 'column', alignItems: 'stretch', gap: 12 },
   waveformWrapCompact: { minHeight: 78, maxHeight: 84, overflow: 'hidden' },
-  controlButton: { minWidth: 44, minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  controlButton: { minWidth: 44, minHeight: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
+  controlButtonDisabled: { opacity: 0.38 },
   fullscreenButton: { minWidth: 44, minHeight: 44, borderRadius: 14, marginLeft: 'auto', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   playerControlsCompact: { minHeight: 44, flexWrap: 'wrap', gap: 8 },
   modeNotice: { borderRadius: 8, borderWidth: 1, borderColor: '#c7e8e3', backgroundColor: studentTokens.tealSoft, paddingHorizontal: 10, paddingVertical: 8 },
