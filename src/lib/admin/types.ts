@@ -313,6 +313,8 @@ export type AdminEntityDraft = {
   listeningSessionMode?: ListeningHubItem["sessionMode"];
   listeningQuestionCount?: number;
   listeningQuestions?: ListeningHubQuestion[];
+  listeningNoteSeed?: string;
+  listeningStudyTip?: string;
   listeningActionLabel?: string;
 };
 

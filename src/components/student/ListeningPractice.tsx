@@ -1,7 +1,7 @@
 import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type DimensionValue } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type DimensionValue } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
@@ -120,6 +120,8 @@ type ListeningPracticeContext = {
   previewDurationSeconds: number;
   questionCount: number;
   questions: ListeningHubQuestion[];
+  noteSeed: string;
+  studyTip: string;
   outline: TimelineItem[];
   transcript: TranscriptLine[];
 };
@@ -142,6 +144,69 @@ function clampSeconds(value: number, min: number, max: number) {
 function getEffectivePlaybackDuration(context: ListeningPracticeContext, fullAccess: boolean) {
   const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
   return Math.max(1, previewSeconds || context.durationSeconds);
+}
+
+type ListeningNoteState = {
+  key: string;
+  text: string;
+  updatedAt: string | null;
+};
+
+function hasBrowserStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function countWordsFromNote(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function listeningNoteStorageKey(userId: string, context: ListeningPracticeContext) {
+  const contentKey = context.hubItem?.id ?? context.hubItem?.slug ?? context.title;
+  return ["akademik-skor.listening-practice-notes.v1", userId, contentKey].join("|");
+}
+
+function defaultListeningNote(context: ListeningPracticeContext) {
+  const noteSeed = context.noteSeed.trim();
+  if (noteSeed) return noteSeed;
+  const outlineLines = context.outline.slice(0, 4).map((item) => "- " + item.title + " (" + item.time + ")");
+  const focusQuestion = context.questions[0]?.prompt?.trim();
+  const blocks = [
+    context.title,
+    context.subtitle,
+    outlineLines.length ? "Key topics:\n" + outlineLines.join("\n") : "",
+    focusQuestion ? "Question focus:\n- " + focusQuestion : "",
+  ].filter(Boolean);
+  return blocks.length ? blocks.join("\n\n") : "Main idea:\n- \nSupporting details:\n- \nExamples:\n- ";
+}
+
+function readListeningPracticeNote(key: string, fallbackText: string): ListeningNoteState {
+  if (!hasBrowserStorage()) return { key, text: fallbackText, updatedAt: null };
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return { key, text: fallbackText, updatedAt: null };
+    const parsed = JSON.parse(raw) as Partial<ListeningNoteState>;
+    return { key, text: typeof parsed.text === "string" ? parsed.text : fallbackText, updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : null };
+  } catch {
+    return { key, text: fallbackText, updatedAt: null };
+  }
+}
+
+function writeListeningPracticeNote(note: ListeningNoteState) {
+  if (!hasBrowserStorage()) return;
+  window.localStorage.setItem(note.key, JSON.stringify(note));
+}
+
+function formatNoteEditedLabel(updatedAt: string | null) {
+  if (!updatedAt) return "Not edited yet";
+  return "Last edited: " + new Date(updatedAt).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function getListeningStudyTip(context: ListeningPracticeContext) {
+  const customTip = context.studyTip.trim();
+  if (customTip) return customTip;
+  if (context.selection.sessionMode === "exam") return "Use the first listen to map the lecture structure, then answer without checking transcript support.";
+  if (context.outline.length) return "Use the outline timings to organize notes by section instead of writing full sentences.";
+  return "Take notes using abbreviations and symbols to keep up with the lecture and improve recall later.";
 }
 
 
@@ -189,6 +254,8 @@ function resolveListeningPracticeContext(params: ListeningSearchParams): Listeni
     previewDurationSeconds,
     questionCount,
     questions,
+    noteSeed: hubItem?.noteSeed ?? "",
+    studyTip: hubItem?.studyTip ?? "",
     outline: makeOutlineFromHub(hubItem, durationSeconds),
     transcript: hubItem?.transcript ?? [],
     rules: examMode
@@ -382,7 +449,19 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
     </Card>
   );
 }
-function NotesPanel() {
+function NotesPanel({ context, userId }: { context: ListeningPracticeContext; userId: string }) {
+  const defaultNote = useMemo(() => defaultListeningNote(context), [context]);
+  const noteKey = useMemo(() => listeningNoteStorageKey(userId, context), [userId, context]);
+  const [storedNote, setStoredNote] = useState<ListeningNoteState>(() => readListeningPracticeNote(noteKey, defaultNote));
+  const note = storedNote.key === noteKey ? storedNote : readListeningPracticeNote(noteKey, defaultNote);
+  const wordCount = countWordsFromNote(note.text);
+  const handleNoteChange = useCallback((text: string) => {
+    const next = { key: noteKey, text, updatedAt: new Date().toISOString() };
+    setStoredNote(next);
+    writeListeningPracticeNote(next);
+  }, [noteKey]);
+  const clearNote = useCallback(() => handleNoteChange(""), [handleNoteChange]);
+
   return (
     <Card style={styles.practiceCard} contentStyle={styles.notesBody}>
       <View style={styles.cardHeadRow}>
@@ -398,45 +477,53 @@ function NotesPanel() {
       </View>
 
       <View style={styles.noteToolbar}>
-        {['B', 'I', 'U'].map((item) => <Text key={item} style={styles.noteToolbarText}>{item}</Text>)}
+        {["B", "I", "U"].map((item) => <Text key={item} style={styles.noteToolbarText}>{item}</Text>)}
         <View style={styles.noteToolbarDivider} />
         <Text style={styles.noteToolbarText}>-</Text>
         <Text style={styles.noteToolbarText}>=</Text>
         <Text style={styles.noteToolbarText}>link</Text>
-        <Pressable accessibilityRole="button" style={styles.clearButton}><Text style={styles.clearText}>Clear</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={clearNote} style={styles.clearButton}><Text style={styles.clearText}>Clear</Text></Pressable>
       </View>
 
       <View style={styles.paperArea}>
         <View style={styles.paperMargin} />
-        <View style={styles.paperLines}>
-          <Text style={styles.noteLine}>Key points about campus facilities:</Text>
-          <Text style={styles.noteLine}>- Library open 24/7 during exam period</Text>
-          <Text style={styles.noteLine}>- Group study rooms can be booked online</Text>
-          <Text style={styles.noteLine}>- IT help desk on 2nd floor</Text>
-          <Text style={styles.noteLine}>- Printing: $0.10 per page (black & white)</Text>
-          <Text style={styles.noteLine}>- Student ID required for all services</Text>
-          <Text style={styles.noteLineMuted}>Helpful tip: Download the campus app!</Text>
-        </View>
+        <TextInput
+          accessibilityLabel="Listening note text"
+          value={note.text}
+          onChangeText={handleNoteChange}
+          placeholder="Write key points while listening..."
+          placeholderTextColor={studentTokens.muted}
+          multiline
+          textAlignVertical="top"
+          style={styles.noteInput}
+        />
       </View>
       <View style={styles.notesFooter}>
-        <Text style={styles.footerText}>124 words</Text>
-        <Text style={styles.footerText}>Last edited: Today, 10:15 AM</Text>
+        <Text style={styles.footerText}>{wordCount} words</Text>
+        <Text style={styles.footerText}>{formatNoteEditedLabel(note.updatedAt)}</Text>
       </View>
     </Card>
   );
 }
 
-function QuestionNavigator({ total }: { total: number }) {
+type QuestionPanelState = {
+  key: string;
+  activeIndex: number;
+  selections: Record<number, string>;
+  submitted: Record<number, boolean>;
+};
+
+function QuestionNavigator({ total, activeIndex, answeredIndexes, onSelect }: { total: number; activeIndex: number; answeredIndexes: Set<number>; onSelect: (index: number) => void }) {
   const questionNumbers = Array.from({ length: Math.min(Math.max(total, 1), 10) }, (_, index) => String(index + 1));
   return (
     <View style={styles.navigatorRow}>
       {questionNumbers.map((item, index) => {
-        const answered = index < 2;
-        const active = item === '3';
+        const answered = answeredIndexes.has(index);
+        const active = index === activeIndex;
         return (
-          <View key={item} style={[styles.navigatorItem, answered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null]}>
+          <Pressable key={item} accessibilityRole="button" accessibilityLabel={"Go to question " + item} onPress={() => onSelect(index)} style={({ pressed }) => [styles.navigatorItem, answered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null, pressed ? styles.pressed : null]}>
             <Text style={[styles.navigatorText, active ? styles.navigatorTextActive : null]}>{item}</Text>
-          </View>
+          </Pressable>
         );
       })}
       {total > 10 ? <Text style={styles.navigatorOverflow}>+{total - 10}</Text> : null}
@@ -445,49 +532,94 @@ function QuestionNavigator({ total }: { total: number }) {
   );
 }
 
-function AnswerRow({ item }: { item: AnswerOption }) {
+function AnswerRow({ item, selected, submitted, isCorrect, onPress }: { item: AnswerOption; selected: boolean; submitted: boolean; isCorrect: boolean; onPress: () => void }) {
+  const highlighted = selected || (submitted && isCorrect);
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: Boolean(item.selected) }} style={({ pressed }) => [styles.answerRow, item.selected ? styles.answerSelected : null, pressed ? styles.pressed : null]}>
-      <View style={[styles.answerLetter, item.selected ? styles.answerLetterSelected : null]}>
-        <Text style={[styles.answerLetterText, item.selected ? styles.answerLetterTextSelected : null]}>{item.key}</Text>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} disabled={submitted} style={({ pressed }) => [styles.answerRow, highlighted ? styles.answerSelected : null, submitted && selected && !isCorrect ? styles.answerIncorrect : null, pressed ? styles.pressed : null]}>
+      <View style={[styles.answerLetter, highlighted ? styles.answerLetterSelected : null, submitted && selected && !isCorrect ? styles.answerLetterIncorrect : null]}>
+        <Text style={[styles.answerLetterText, highlighted ? styles.answerLetterTextSelected : null]}>{item.key}</Text>
       </View>
-      <Text style={[styles.answerText, item.selected ? styles.answerTextSelected : null]}>{item.text}</Text>
+      <Text style={[styles.answerText, highlighted ? styles.answerTextSelected : null]}>{item.text}</Text>
     </Pressable>
   );
 }
 
-function QuestionsPanel({ compact, context }: { compact: boolean; context: ListeningPracticeContext }) {
-  const currentQuestion = context.questions[0] ?? fallbackListeningQuestion;
+function QuestionsPanel({ compact, context, remainingSeconds }: { compact: boolean; context: ListeningPracticeContext; remainingSeconds: number }) {
   const questionTotal = Math.max(1, context.questions.length || context.questionCount);
+  const questionKey = (context.hubItem?.id ?? context.title) + "|" + String(questionTotal);
+  const defaultQuestionState = useMemo<QuestionPanelState>(() => ({ key: questionKey, activeIndex: 0, selections: {}, submitted: {} }), [questionKey]);
+  const [storedQuestionState, setQuestionState] = useState<QuestionPanelState>(() => defaultQuestionState);
+  const questionState = storedQuestionState.key === questionKey ? storedQuestionState : defaultQuestionState;
+  const activeIndex = Math.min(Math.max(questionState.activeIndex, 0), questionTotal - 1);
+  const currentQuestion = context.questions[activeIndex] ?? context.questions[0] ?? fallbackListeningQuestion;
+  const selectedKey = questionState.selections[activeIndex] ?? "";
+  const submitted = Boolean(questionState.submitted[activeIndex]);
+  const answeredIndexes = useMemo(() => new Set(Object.keys(questionState.selections).map((item) => Number(item)).filter(Number.isFinite)), [questionState.selections]);
   const explanation = currentQuestion.explanation?.trim();
+  const selectQuestion = useCallback((index: number) => {
+    setQuestionState((current) => {
+      const base = current.key === questionKey ? current : defaultQuestionState;
+      return { ...base, activeIndex: Math.min(Math.max(index, 0), questionTotal - 1) };
+    });
+  }, [defaultQuestionState, questionKey, questionTotal]);
+  const selectAnswer = useCallback((key: string) => {
+    setQuestionState((current) => {
+      const base = current.key === questionKey ? current : defaultQuestionState;
+      if (base.submitted[activeIndex]) return base;
+      return { ...base, selections: { ...base.selections, [activeIndex]: key } };
+    });
+  }, [activeIndex, defaultQuestionState, questionKey]);
+  const submitAnswer = useCallback(() => {
+    if (!selectedKey) return;
+    setQuestionState((current) => {
+      const base = current.key === questionKey ? current : defaultQuestionState;
+      return { ...base, submitted: { ...base.submitted, [activeIndex]: true } };
+    });
+  }, [activeIndex, defaultQuestionState, questionKey, selectedKey]);
+  const goToQuestion = useCallback((delta: number) => selectQuestion(activeIndex + delta), [activeIndex, selectQuestion]);
+  const noticeText = context.selection.sessionMode === "exam"
+    ? "Exam mode: feedback and transcript stay hidden until submission."
+    : submitted
+      ? explanation || "Answer saved. Continue to the next question when you are ready."
+      : "Choose an answer, then submit to see the explanation.";
+
   return (
     <Card style={styles.practiceCard} contentStyle={styles.questionBody}>
       <View style={styles.cardHeadRow}>
         <View>
           <Text style={styles.cardLabelOrange}>QUESTIONS</Text>
-          <Text style={styles.questionProgress}>Question 1 of {questionTotal}</Text>
+          <Text style={styles.questionProgress}>Question {activeIndex + 1} of {questionTotal}</Text>
         </View>
         <View style={styles.timeLimitPill}>
           <SymbolView name={clockSymbol} tintColor={studentTokens.orange} size={13} style={styles.timeIcon} />
           <View>
-            <Text style={styles.timeText}>19:42</Text>
+            <Text style={styles.timeText}>{formatVideoTimestamp(Math.max(0, remainingSeconds))}</Text>
             <Text style={styles.timeLabel}>Time Left</Text>
           </View>
         </View>
         {!compact ? <SymbolView name={moreSymbol} tintColor={studentTokens.text} size={16} style={styles.moreIcon} /> : null}
       </View>
-      <QuestionNavigator total={questionTotal} />
+      <QuestionNavigator total={questionTotal} activeIndex={activeIndex} answeredIndexes={answeredIndexes} onSelect={selectQuestion} />
       <Text style={styles.questionText}>{currentQuestion.prompt}</Text>
       <View style={styles.answerList}>
-        {currentQuestion.options.map((item) => <AnswerRow key={item.key} item={{ ...item, selected: item.key === currentQuestion.correctOptionKey }} />)}
+        {currentQuestion.options.map((item) => (
+          <AnswerRow
+            key={item.key}
+            item={item}
+            selected={selectedKey === item.key}
+            submitted={submitted}
+            isCorrect={item.key === currentQuestion.correctOptionKey}
+            onPress={() => selectAnswer(item.key)}
+          />
+        ))}
       </View>
-      <View style={[styles.modeNotice, context.selection.sessionMode === 'exam' ? styles.modeNoticeExam : null]}>
-        <Text style={styles.modeNoticeText}>{context.selection.sessionMode === 'exam' ? 'Exam mode: feedback and transcript stay hidden until submission.' : explanation || 'Practice mode: explanation can appear after your answer.'}</Text>
+      <View style={[styles.modeNotice, context.selection.sessionMode === "exam" ? styles.modeNoticeExam : null]}>
+        <Text style={styles.modeNoticeText}>{noticeText}</Text>
       </View>
       <View style={[styles.questionActions, compact ? styles.questionActionsCompact : null]}>
-        <Button label="Back" size="sm" variant="secondary" style={[styles.backButton, compact ? styles.actionButtonCompact : null]} />
-        <Button label="Submit Answer" size="sm" variant="secondary" left={<SymbolView name={sendSymbol} tintColor={studentTokens.orange} size={14} style={styles.buttonIcon} />} style={[styles.submitButton, compact ? styles.actionButtonCompact : null]} />
-        <Button label="Next" size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} style={[styles.nextButton, compact ? styles.actionButtonCompact : null]} textStyle={styles.nextButtonText} />
+        <Button label="Back" size="sm" variant="secondary" onPress={() => goToQuestion(-1)} disabled={activeIndex === 0} style={[styles.backButton, compact ? styles.actionButtonCompact : null]} />
+        <Button label="Submit Answer" size="sm" variant="secondary" left={<SymbolView name={sendSymbol} tintColor={studentTokens.orange} size={14} style={styles.buttonIcon} />} onPress={submitAnswer} disabled={!selectedKey || submitted} style={[styles.submitButton, compact ? styles.actionButtonCompact : null]} />
+        <Button label="Next" size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} onPress={() => goToQuestion(1)} disabled={activeIndex >= questionTotal - 1} style={[styles.nextButton, compact ? styles.actionButtonCompact : null]} textStyle={styles.nextButtonText} />
       </View>
     </Card>
   );
@@ -583,7 +715,7 @@ function StatsPanel({ context }: { context: ListeningPracticeContext }) {
   );
 }
 
-function StudyTipPanel() {
+function StudyTipPanel({ context }: { context: ListeningPracticeContext }) {
   return (
     <Card style={styles.tipCard} contentStyle={styles.tipBody}>
       <View style={styles.tipHead}>
@@ -592,7 +724,7 @@ function StudyTipPanel() {
         </View>
         <Text style={styles.tipTitle}>STUDY TIP</Text>
       </View>
-      <Text style={styles.tipText}>Take notes using abbreviations and symbols to keep up with the lecture and improve recall later.</Text>
+      <Text style={styles.tipText}>{getListeningStudyTip(context)}</Text>
     </Card>
   );
 }
@@ -667,6 +799,7 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
   const defaultPlayback = useMemo<PlaybackSnapshot>(() => ({ currentSeconds: 0, durationSeconds: effectivePlaybackDuration }), [effectivePlaybackDuration]);
   const [storedPlayback, setStoredPlayback] = useState<PlaybackState>(() => ({ ...defaultPlayback, sourceKey: playbackKey }));
   const playback: PlaybackSnapshot = storedPlayback.sourceKey === playbackKey ? storedPlayback : defaultPlayback;
+  const remainingQuestionSeconds = Math.max(0, playback.durationSeconds - playback.currentSeconds);
   const handlePlaybackChange = useCallback((value: PlaybackSnapshot) => {
     setStoredPlayback({ ...value, sourceKey: playbackKey });
   }, [playbackKey]);
@@ -691,19 +824,19 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
           {isCompact ? (
             <View style={styles.mobilePracticeStack}>
               <MobilePanelToggle value={mobilePanel} onChange={setMobilePanel} />
-              {mobilePanel === 'notes' ? <NotesPanel /> : <QuestionsPanel compact context={context} />}
+              {mobilePanel === 'notes' ? <NotesPanel context={context} userId={user.id} /> : <QuestionsPanel compact context={context} remainingSeconds={remainingQuestionSeconds} />}
             </View>
           ) : (
             <View style={[styles.practiceGrid, isTablet ? styles.practiceGridWide : null]}>
-              <NotesPanel />
-              <QuestionsPanel compact={isCompact} context={context} />
+              <NotesPanel context={context} userId={user.id} />
+              <QuestionsPanel compact={isCompact} context={context} remainingSeconds={remainingQuestionSeconds} />
             </View>
           )}
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
           <OutlinePanel compact={isCompact} context={context} currentSeconds={playback.currentSeconds} />
           <StatsPanel context={context} />
-          <StudyTipPanel />
+          <StudyTipPanel context={context} />
         </View>
       </View>
       <ScoreNudge />
@@ -778,6 +911,7 @@ const styles = StyleSheet.create({
   clearText: { fontFamily: fontFamily, color: '#42506b', fontSize: 8, lineHeight: 11, fontWeight: '700' },
   paperArea: { minHeight: 246, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: '#fffdf8', overflow: 'hidden', flexDirection: 'row' },
   paperMargin: { width: 18, borderRightWidth: 1, borderRightColor: '#ffb8b8', backgroundColor: '#fff8f2' },
+  noteInput: { flex: 1, minWidth: 0, minHeight: 246, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 14, color: "#31405c", fontFamily: fontFamily, fontSize: 10, lineHeight: 15, fontWeight: "600" },
   paperLines: { flex: 1, minWidth: 0, paddingHorizontal: 14, paddingTop: 14, gap: 8 },
   noteLine: { fontFamily: fontFamily, color: '#31405c', fontSize: 10, lineHeight: 15, fontWeight: '600' },
   noteLineMuted: { fontFamily: fontFamily, color: '#5f6980', fontSize: 10, lineHeight: 15, fontWeight: '600', marginTop: 10 },
@@ -802,8 +936,10 @@ const styles = StyleSheet.create({
   answerList: { gap: 8 },
   answerRow: { minHeight: 39, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.surface, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 9, paddingVertical: 8 },
   answerSelected: { borderColor: '#f3c25f', backgroundColor: '#fff7e4' },
+  answerIncorrect: { borderColor: "#f7b0a2", backgroundColor: "#fff1ed" },
   answerLetter: { width: 21, height: 21, borderRadius: 11, backgroundColor: '#f1f4f9', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   answerLetterSelected: { backgroundColor: studentTokens.orange },
+  answerLetterIncorrect: { backgroundColor: "#ef6b4a" },
   answerLetterText: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 9, lineHeight: 12, fontWeight: '700' },
   answerLetterTextSelected: { color: '#ffffff' },
   answerText: { fontFamily: fontFamily, flex: 1, minWidth: 0, color: '#4f5870', fontSize: 9, lineHeight: 14, fontWeight: '600' },

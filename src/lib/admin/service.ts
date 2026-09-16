@@ -501,6 +501,8 @@ function defaultListeningHubDraftFields(catalog: ContentCatalog): Partial<AdminE
     previewDurationSeconds: 0,
     chaptersText: "00:00|Introduction\n03:00|Main point\n08:00|Examples",
     transcriptText: "",
+    listeningNoteSeed: "Main idea:\n- \nSupporting details:\n- \nExamples:\n- ",
+    listeningStudyTip: "Listen for signpost phrases and write short symbols instead of full sentences.",
     listeningTopicId: topic?.id ?? "",
     listeningTaskTypeId: task?.id ?? "",
     listeningSubskillId: subskill?.id ?? "",
@@ -527,6 +529,8 @@ function listeningHubDraftFromItem(item?: Partial<ListeningHubItem>): Partial<Ad
     previewDurationSeconds: item?.previewDurationSeconds ?? 0,
     chaptersText: serializeVideoTimedText(item?.outline?.map((chapter) => ({ startSeconds: chapter.startSeconds, text: chapter.title }))),
     transcriptText: serializeVideoTimedText(item?.transcript),
+    listeningNoteSeed: item?.noteSeed ?? "",
+    listeningStudyTip: item?.studyTip ?? "",
     listeningTopicId: item?.topicId,
     listeningTaskTypeId: item?.taskTypeId,
     listeningSubskillId: item?.subskillId,
@@ -551,6 +555,8 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   const transcript = parseVideoTimedText(draft.transcriptText);
   const questions = normalizeListeningHubQuestions(draft.listeningQuestions ?? existing?.questions ?? (defaults.listeningQuestions as ListeningHubQuestion[] | undefined));
   const previewDurationSeconds = clampAdminNumber(draft.previewDurationSeconds ?? existing?.previewDurationSeconds ?? defaults.previewDurationSeconds, 0, durationSeconds);
+  const noteSeed = draft.listeningNoteSeed?.trim() || existing?.noteSeed || String(defaults.listeningNoteSeed ?? "");
+  const studyTip = draft.listeningStudyTip?.trim() || existing?.studyTip || String(defaults.listeningStudyTip ?? "");
   return {
     topicId: topicOptions.some((item) => item.id === draft.listeningTopicId) ? String(draft.listeningTopicId) : existing?.topicId ?? String(defaults.listeningTopicId ?? ""),
     taskTypeId,
@@ -570,6 +576,8 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
     previewDurationSeconds,
     questionCount: questions.length,
     questions,
+    noteSeed,
+    studyTip,
     actionLabel: draft.listeningActionLabel?.trim() || existing?.actionLabel || "Start Focused Practice",
     outline: outline.lines.map((line) => ({ startSeconds: line.startSeconds, title: line.text })),
     transcript: transcript.lines,

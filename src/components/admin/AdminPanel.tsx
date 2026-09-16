@@ -934,6 +934,16 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <TextInput accessibilityLabel="Listening transkript" value={draft.transcriptText ?? ""} onChangeText={(value) => setField("transcriptText", value)} placeholder={'00:00|Today we will discuss...\n00:18|The first point is...'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                   <Text style={styles.formHelper}>Her satır: zaman|metin. Practice modunda öğrenci tarafında referans olarak gösterilir.</Text>
                 </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Not başlangıcı</Text>
+                  <TextInput accessibilityLabel="Listening not başlangıcı" value={draft.listeningNoteSeed ?? ""} onChangeText={(value) => setField("listeningNoteSeed", value)} placeholder={"Main idea:\n- \nSupporting details:\n- "} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Öğrenci not alma kartında başlangıç metni olarak görünür; öğrenci kendi notunu tarayıcıda düzenleyebilir.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Çalışma ipucu</Text>
+                  <TextInput accessibilityLabel="Listening çalışma ipucu" value={draft.listeningStudyTip ?? ""} onChangeText={(value) => setField("listeningStudyTip", value)} placeholder="Listen for signpost phrases and write short symbols." placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Öğrenci practice ekranındaki Study Tip kartında gösterilir.</Text>
+                </View>
                 <View>
                   <Text style={styles.formLabel}>Listening Hub içeriği</Text>
                   <Text style={styles.formHelper}>Bu modül konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci doğru-yanlış, mastery veya oturum geçmişi burada tutulmaz.</Text>
