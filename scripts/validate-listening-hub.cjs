@@ -87,6 +87,12 @@ if (!practiceRoute.includes("ListeningPractice")) fail("Existing /practice/liste
   "saveListeningAttempt",
   "listening-attempt-result",
   "Practice Again",
+  "AccessibilityInfo",
+  "togglePlayback",
+  "setPlaybackSpeed",
+  "setVolumeLevel",
+  "seekToPercent",
+  "reduceMotionChanged",
 ].forEach((token) => {
   if (!practice.includes(token)) fail("Missing practice responsive/mode token: " + token);
 });

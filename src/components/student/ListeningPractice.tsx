@@ -1,7 +1,7 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type DimensionValue } from 'react-native';
+import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type DimensionValue, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
@@ -69,7 +69,10 @@ type MediaElementHandle = {
   currentTime: number;
   duration?: number;
   volume?: number;
+  muted?: boolean;
   paused?: boolean;
+  ended?: boolean;
+  playbackRate?: number;
   play?: () => Promise<void> | void;
   pause?: () => void;
   requestFullscreen?: () => Promise<void> | void;
@@ -81,12 +84,14 @@ const arrowSymbol = symbolName('chevron.right', 'chevron_right');
 const backSymbol = symbolName('arrow.left', 'arrow_back');
 const headphonesSymbol = symbolName('headphones', 'headphones');
 const playSymbol = symbolName('play.fill', 'play_arrow');
+const pauseSymbol = symbolName('pause.fill', 'pause');
 const clockSymbol = symbolName('clock', 'schedule');
 const documentSymbol = symbolName('doc.text', 'description');
 const checkSymbol = symbolName('checkmark', 'check');
 const noteSymbol = symbolName('note.text', 'sticky_note_2');
 const moreSymbol = symbolName('ellipsis', 'more_horiz');
 const volumeSymbol = symbolName('speaker.wave.2', 'volume_up');
+const mutedVolumeSymbol = symbolName('speaker.slash', 'volume_off');
 const fullscreenSymbol = symbolName('arrow.up.left.and.arrow.down.right', 'fullscreen');
 const replaySymbol = symbolName('gobackward.10', 'replay_10');
 const forwardSymbol = symbolName('goforward.10', 'forward_10');
@@ -95,6 +100,7 @@ const flameSymbol = symbolName('flame.fill', 'local_fire_department');
 const questionSymbol = symbolName('questionmark.circle', 'help');
 
 const waveformBars = [18, 29, 44, 54, 42, 62, 38, 58, 49, 68, 35, 76, 52, 64, 47, 72, 40, 58, 50, 80, 44, 66, 55, 70, 36, 58, 45, 78, 50, 64, 43, 61, 39, 55, 47, 74, 42, 60, 48, 67, 38, 53, 46, 63, 41, 58, 44, 72, 49, 66, 37, 54, 45, 60, 42, 57, 36, 51, 44, 62, 40, 56, 34, 48, 43, 59, 39, 52, 32, 46, 41, 55, 36, 50, 30, 43, 38, 51, 35, 47, 31, 45, 34, 49, 32, 44, 30, 40];
+const playbackRates = [0.75, 1, 1.25, 1.5, 2];
 
 
 const fallbackListeningQuestion: ListeningHubQuestion = {
@@ -357,18 +363,79 @@ function LectureResourcesPanel({ context, fullAccess }: { context: ListeningPrac
   );
 }
 
-function Waveform({ compact }: { compact: boolean }) {
+function Waveform({
+  compact,
+  progressPercent,
+  currentSeconds,
+  isPlaying,
+  disabled,
+  onSeek,
+}: {
+  compact: boolean;
+  progressPercent: number;
+  currentSeconds: number;
+  isPlaying: boolean;
+  disabled: boolean;
+  onSeek: (progress: number) => void;
+}) {
+  const [waveformWidth, setWaveformWidth] = useState(0);
+  const [motionTick, setMotionTick] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const bars = compact ? waveformBars.filter((_, index) => index % 2 === 0) : waveformBars;
+  const activeIndex = Math.min(bars.length - 1, Math.max(0, Math.floor(progressPercent / 100 * bars.length)));
+  const markerPercent = clampSeconds(progressPercent, 2, 98);
+  const markerLeft = `${markerPercent}%` as DimensionValue;
+
+  useEffect(() => {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => { if (active) setReduceMotion(value); })
+      .catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying || reduceMotion) return;
+    const timer = setInterval(() => setMotionTick((value) => (value + 1) % 120), 140);
+    return () => clearInterval(timer);
+  }, [isPlaying, reduceMotion]);
+
+  const handleLayout = (event: LayoutChangeEvent) => setWaveformWidth(event.nativeEvent.layout.width);
+  const handleSeek = (event: GestureResponderEvent) => {
+    if (disabled || waveformWidth <= 0) return;
+    onSeek(clampSeconds(event.nativeEvent.locationX / waveformWidth, 0, 1));
+  };
+
   return (
-    <View style={[styles.waveformWrap, compact ? styles.waveformWrapCompact : null]}>
-      {waveformBars.map((height, index) => {
-        const active = index < 30;
-        const barHeight = compact ? Math.max(16, Math.round(height * 0.72)) : height;
-        return <View key={`${height}-${index}`} style={[styles.waveBar, { height: barHeight, backgroundColor: active ? studentTokens.yellow : '#32486f', opacity: active ? 1 : 0.78 }]} />;
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Listening timeline"
+      accessibilityHint="Select a position in the audio"
+      accessibilityState={{ disabled }}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(progressPercent), text: formatVideoTimestamp(currentSeconds) }}
+      disabled={disabled}
+      onLayout={handleLayout}
+      onPress={handleSeek}
+      style={({ pressed }) => [styles.waveformWrap, compact ? styles.waveformWrapCompact : null, disabled ? styles.waveformDisabled : null, pressed ? styles.waveformPressed : null]}
+    >
+      {bars.map((height, index) => {
+        const played = (index + 1) / bars.length * 100 <= progressPercent;
+        const distance = Math.abs(index - activeIndex);
+        const pulse = isPlaying && !reduceMotion && distance <= 7
+          ? Math.max(0, Math.sin((motionTick + index) * 0.85)) * 0.24 * (1 - distance / 8)
+          : 0;
+        const baseHeight = compact ? Math.max(14, Math.round(height * 0.68)) : height;
+        const barHeight = Math.round(baseHeight * (1 + pulse));
+        return <View key={`${height}-${index}`} style={[styles.waveBar, { height: barHeight, backgroundColor: played ? studentTokens.yellow : '#32486f', opacity: played ? 1 : 0.78 }]} />;
       })}
-      <View style={styles.waveMarker}>
-        <View style={styles.markerPill}><Text style={styles.markerText}>08:47</Text></View>
+      <View pointerEvents="none" style={[styles.waveMarker, { left: markerLeft }]}>
+        <View style={styles.markerPill}><Text style={styles.markerText}>{formatVideoTimestamp(currentSeconds)}</Text></View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -401,11 +468,16 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
     const seed = context.mediaUrl || context.title;
     return "listening-media-" + seed.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80);
   }, [context.mediaUrl, context.title]);
+  const playerShellId = mediaElementId + "-shell";
   const getMediaElement = () => {
     if (Platform.OS !== "web" || typeof document === "undefined") return null;
     return document.getElementById(mediaElementId) as MediaElementHandle | null;
   };
   const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = useState(0.72);
+  const [muted, setMuted] = useState(false);
   const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
   const canPlayMedia = !context.isPremium || fullAccess || previewSeconds > 0;
   const rawEmbedUrl = context.mediaProvider === "upload" ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
@@ -416,6 +488,7 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
   const effectiveDuration = Math.max(1, previewSeconds || playback.durationSeconds || context.durationSeconds);
   const safeCurrent = clampSeconds(playback.currentSeconds, 0, effectiveDuration);
   const progressPercent = clampSeconds((safeCurrent / effectiveDuration) * 100, 0, 100);
+  const hasEnded = safeCurrent >= effectiveDuration - 0.5;
   const progressWidth = `${progressPercent}%` as DimensionValue;
   const playerTime = formatVideoTimestamp(safeCurrent) + " / " + formatVideoTimestamp(effectiveDuration);
   const previewLabel = context.isPremium && !fullAccess ? previewSeconds > 0 ? " · Ücretsiz önizleme: " + formatVideoTimestamp(previewSeconds) : " · Premium içerik kilitli" : "";
@@ -440,8 +513,18 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
     const rawDuration = Number(media.duration);
     const mediaDuration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : context.durationSeconds;
     const durationSeconds = previewSeconds > 0 ? Math.min(previewSeconds, mediaDuration) : mediaDuration;
+    media.volume = volume;
+    media.muted = muted;
+    media.playbackRate = playbackRate;
     if (safeCurrent > 0) media.currentTime = clampSeconds(safeCurrent, 0, Math.max(0, durationSeconds - 1));
     updatePlaybackFromMedia(event);
+  };
+  const seekToPercent = (progress: number) => {
+    const media = getMediaElement();
+    if (!media || !controlsAvailable) return;
+    const currentSeconds = clampSeconds(progress, 0, 1) * effectiveDuration;
+    media.currentTime = currentSeconds;
+    onPlaybackChange({ currentSeconds, durationSeconds: effectiveDuration });
   };
   const seekBy = (deltaSeconds: number) => {
     const media = getMediaElement();
@@ -451,12 +534,47 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
     media.currentTime = currentSeconds;
     onPlaybackChange({ currentSeconds, durationSeconds });
   };
-  const requestFullscreen = () => {
+  const togglePlayback = () => {
     const media = getMediaElement();
-    const request = media?.requestFullscreen ?? media?.webkitRequestFullscreen;
-    if (request) void request.call(media);
+    if (!media || !controlsAvailable) return;
+    if (media.ended || hasEnded) {
+      media.currentTime = 0;
+      onPlaybackChange({ currentSeconds: 0, durationSeconds: effectiveDuration });
+    }
+    if (media.paused === false) {
+      media.pause?.();
+      return;
+    }
+    const playResult = media.play?.();
+    if (playResult && typeof playResult.catch === 'function') void playResult.catch(() => setIsPlaying(false));
   };
-
+  const setPlaybackSpeed = (nextRate: number) => {
+    if (!playbackRates.includes(nextRate)) return;
+    setPlaybackRate(nextRate);
+    const media = getMediaElement();
+    if (media) media.playbackRate = nextRate;
+  };
+  const setVolumeLevel = (nextVolume: number) => {
+    const normalized = clampSeconds(nextVolume, 0, 1);
+    setVolume(normalized);
+    setMuted(normalized === 0);
+    const media = getMediaElement();
+    if (!media) return;
+    media.volume = normalized;
+    media.muted = normalized === 0;
+  };
+  const toggleMute = () => {
+    const nextMuted = !muted;
+    setMuted(nextMuted);
+    const media = getMediaElement();
+    if (media) media.muted = nextMuted;
+  };
+  const requestFullscreen = () => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const target = document.getElementById(uploadedMediaIsAudio ? playerShellId : mediaElementId) as MediaElementHandle | null;
+    const request = target?.requestFullscreen ?? target?.webkitRequestFullscreen;
+    if (request) void request.call(target);
+  };
 
   useEffect(() => {
     let active = true;
@@ -484,7 +602,23 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
   }, [mediaElementId, safeCurrent]);
 
   return (
+    <View nativeID={playerShellId} style={styles.playerShell}>
     <Card style={[styles.playerCard, compact ? styles.playerCardCompact : null]} contentStyle={[styles.playerBody, compact ? styles.playerBodyCompact : null]}>
+      {uploadedMediaAvailable && uploadedMediaIsAudio && Platform.OS === "web" ? createElement("audio", {
+        id: mediaElementId,
+        src: uploadedMediaUrl,
+        preload: "metadata",
+        onLoadedMetadata: restorePlaybackFromMedia,
+        onTimeUpdate: updatePlaybackFromMedia,
+        onSeeked: updatePlaybackFromMedia,
+        onPlay: () => setIsPlaying(true),
+        onPause: () => setIsPlaying(false),
+        onEnded: (event: { currentTarget?: MediaElementHandle }) => {
+          setIsPlaying(false);
+          updatePlaybackFromMedia(event);
+        },
+        style: { display: "none" },
+      }) : null}
       {embedUrl && Platform.OS === "web" ? (
         <View style={styles.embeddedPlayer}>
           {createElement("iframe", {
@@ -495,24 +629,39 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
             style: { border: 0, width: "100%", height: "100%", display: "block" },
           })}
         </View>
-      ) : uploadedMediaAvailable && Platform.OS === "web" ? (
-        <View style={uploadedMediaIsAudio ? styles.uploadedAudioWrap : styles.embeddedPlayer}>
-          {uploadedMediaIsAudio ? createElement("audio", { id: mediaElementId, src: uploadedMediaUrl, controls: true, onLoadedMetadata: restorePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", display: "block" } }) : createElement("video", { id: mediaElementId, src: uploadedMediaUrl, controls: true, playsInline: true, onLoadedMetadata: restorePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#08142e" } })}
+      ) : uploadedMediaAvailable && Platform.OS === "web" && !uploadedMediaIsAudio ? (
+        <View style={styles.embeddedPlayer}>
+          {createElement("video", {
+            id: mediaElementId,
+            src: uploadedMediaUrl,
+            controls: true,
+            playsInline: true,
+            onLoadedMetadata: restorePlaybackFromMedia,
+            onTimeUpdate: updatePlaybackFromMedia,
+            onSeeked: updatePlaybackFromMedia,
+            onPlay: () => setIsPlaying(true),
+            onPause: () => setIsPlaying(false),
+            onEnded: (event: { currentTarget?: MediaElementHandle }) => {
+              setIsPlaying(false);
+              updatePlaybackFromMedia(event);
+            },
+            style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#08142e" },
+          })}
         </View>
-      ) : uploadedMediaAvailable ? (
+      ) : uploadedMediaAvailable && Platform.OS !== "web" ? (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Open listening media" onPress={() => uploadedMediaUrl ? Linking.openURL(uploadedMediaUrl) : undefined} style={({ pressed }) => [styles.externalMediaButton, pressed ? styles.pressed : null]}>
             <SymbolView name={playSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
             <Text style={styles.externalMediaText}>Dosyayı aç</Text>
           </Pressable>
-          <Waveform compact={compact} />
+          <Waveform compact={compact} progressPercent={progressPercent} currentSeconds={safeCurrent} isPlaying={false} disabled onSeek={seekToPercent} />
         </View>
       ) : (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Play audio" style={({ pressed }) => [styles.pauseCircle, pressed ? styles.pressed : null]}>
-            <SymbolView name={playSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
+          <Pressable accessibilityRole="button" accessibilityLabel={hasEnded ? "Replay audio" : isPlaying ? "Pause audio" : "Play audio"} accessibilityState={{ disabled: !controlsAvailable }} disabled={!controlsAvailable} onPress={togglePlayback} style={({ pressed }) => [styles.pauseCircle, !controlsAvailable ? styles.controlButtonDisabled : null, pressed ? styles.pressed : null]}>
+            <SymbolView name={hasEnded ? replaySymbol : isPlaying ? pauseSymbol : playSymbol} tintColor="#ffffff" size={24} style={styles.pauseIcon} />
           </Pressable>
-          <Waveform compact={compact} />
+          <Waveform compact={compact} progressPercent={progressPercent} currentSeconds={safeCurrent} isPlaying={isPlaying} disabled={!controlsAvailable} onSeek={seekToPercent} />
         </View>
       )}
       <View style={styles.playerProgressRow}>
@@ -524,16 +673,39 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
         <PlayerIconButton icon={replaySymbol} label="Replay 10 seconds" disabled={!controlsAvailable} onPress={() => seekBy(-10)} />
         <PlayerIconButton icon={forwardSymbol} label="Forward 10 seconds" disabled={!controlsAvailable} onPress={() => seekBy(10)} />
         <View style={styles.controlDivider} />
-        <Text style={styles.speedText}>1.0x</Text>
-        <Text style={styles.speedLabel}>Speed</Text>
+        <View style={styles.speedControl}>
+          {Platform.OS === "web" ? createElement("select", {
+            "aria-label": "Playback speed",
+            disabled: !controlsAvailable,
+            value: String(playbackRate),
+            onChange: (event: { currentTarget?: { value?: string } }) => setPlaybackSpeed(Number(event.currentTarget?.value ?? 1)),
+            style: { minWidth: 70, height: 32, border: 0, outline: 0, background: "transparent", color: "#ffffff", fontFamily, fontSize: 12, fontWeight: 700, cursor: controlsAvailable ? "pointer" : "default" },
+          }, playbackRates.map((rate) => createElement("option", { key: rate, value: String(rate), style: { color: "#001b48" } }, `${rate}x`))) : (
+            <Pressable disabled={!controlsAvailable} onPress={() => setPlaybackSpeed(playbackRates[(playbackRates.indexOf(playbackRate) + 1) % playbackRates.length])}>
+              <Text style={styles.speedText}>{playbackRate}x</Text>
+            </Pressable>
+          )}
+          <Text style={styles.speedLabel}>Speed</Text>
+        </View>
         <View style={styles.controlDivider} />
-        <PlayerIconButton icon={volumeSymbol} label="Volume" disabled={!controlsAvailable} />
-        <View style={styles.volumeTrack}><View style={styles.volumeFill} /></View>
+        <PlayerIconButton icon={muted ? mutedVolumeSymbol : volumeSymbol} label={muted ? "Unmute" : "Mute"} disabled={!controlsAvailable} onPress={toggleMute} />
+        {Platform.OS === "web" ? createElement("input", {
+          "aria-label": "Volume",
+          disabled: !controlsAvailable,
+          type: "range",
+          min: 0,
+          max: 1,
+          step: 0.05,
+          value: muted ? 0 : volume,
+          onChange: (event: { currentTarget?: { value?: string } }) => setVolumeLevel(Number(event.currentTarget?.value ?? 0)),
+          style: { width: compact ? 108 : 132, maxWidth: "24%", accentColor: studentTokens.yellow, cursor: controlsAvailable ? "pointer" : "default" },
+        }) : <View style={styles.volumeTrack}><View style={[styles.volumeFill, { width: `${(muted ? 0 : volume) * 100}%` as DimensionValue }]} /></View>}
         <Pressable accessibilityRole="button" accessibilityLabel="Fullscreen" accessibilityState={{ disabled: !controlsAvailable }} disabled={!controlsAvailable} onPress={requestFullscreen} style={({ pressed }) => [styles.fullscreenButton, !controlsAvailable ? styles.controlButtonDisabled : null, pressed ? styles.pressed : null]}>
           <SymbolView name={fullscreenSymbol} tintColor="#d8e3ff" size={19} style={styles.fullscreenIcon} />
         </Pressable>
       </View>
     </Card>
+    </View>
   );
 }
 function NotesPanel({ context, userId }: { context: ListeningPracticeContext; userId: string }) {
@@ -1202,15 +1374,18 @@ const styles = StyleSheet.create({
   mainColumn: { flex: 1, minWidth: 0, gap: 10 },
   sideColumn: { width: 330, maxWidth: '100%', gap: 12, flexShrink: 0 },
   sideColumnStacked: { width: '100%' },
+  playerShell: { borderRadius: 11, backgroundColor: '#001b48' },
   playerCard: { padding: 0, borderRadius: 11, borderColor: '#061f55', backgroundColor: '#001b48', overflow: 'hidden', shadowOpacity: 0.1, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
   playerBody: { minHeight: 198, paddingHorizontal: 20, paddingVertical: 18, gap: 16 },
   playerTopRow: { flex: 1, minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: 18 },
   pauseCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#f15f21', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   pauseIcon: { width: 24, height: 24 },
   waveformWrap: { flex: 1, minWidth: 0, minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 3, position: 'relative' },
-  waveBar: { width: 3, borderRadius: 999 },
-  waveMarker: { position: 'absolute', left: '38%', top: 4, bottom: 13, width: 2, backgroundColor: studentTokens.yellowDeep },
-  markerPill: { position: 'absolute', top: -14, left: -18, minWidth: 40, height: 18, borderRadius: 5, backgroundColor: studentTokens.yellow, alignItems: 'center', justifyContent: 'center' },
+  waveformDisabled: { opacity: 0.58 },
+  waveformPressed: { opacity: 0.88 },
+  waveBar: { flexGrow: 1, flexBasis: 1, minWidth: 2, maxWidth: 3, borderRadius: 999 },
+  waveMarker: { position: 'absolute', top: 4, bottom: 13, width: 2, backgroundColor: studentTokens.yellowDeep },
+  markerPill: { position: 'absolute', top: -14, left: -22, minWidth: 46, height: 18, borderRadius: 5, backgroundColor: studentTokens.yellow, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   markerText: { fontFamily: fontFamily, color: studentTokens.navy, fontSize: 8, lineHeight: 10, fontWeight: '700' },
   playerProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   playerTime: { fontFamily: fontFamily, color: '#ffffff', fontSize: 10, lineHeight: 14, fontWeight: '700', flexShrink: 0 },
@@ -1224,8 +1399,9 @@ const styles = StyleSheet.create({
   playerSourceText: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 9, lineHeight: 13, fontWeight: '600' },
   controlIcon: { width: 19, height: 19, flexShrink: 0 },
   controlDivider: { width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.16)' },
+  speedControl: { minWidth: 70, alignItems: 'center', justifyContent: 'center' },
   speedText: { fontFamily: fontFamily, color: '#ffffff', fontSize: 12, lineHeight: 15, fontWeight: '700' },
-  speedLabel: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 7, lineHeight: 9, fontWeight: '700', marginLeft: -10, marginTop: 16 },
+  speedLabel: { fontFamily: fontFamily, color: '#d8e3ff', fontSize: 7, lineHeight: 9, fontWeight: '700' },
   volumeTrack: { width: 132, maxWidth: '24%', height: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.24)', overflow: 'hidden' },
   volumeFill: { width: '48%', height: '100%', backgroundColor: studentTokens.yellow, borderRadius: 999 },
   fullscreenIcon: { width: 19, height: 19, alignSelf: "center" },
