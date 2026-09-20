@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Button, Card, Progress, studentTokens } from '@/components/student/ui';
+import type { AuthUser } from '@/lib/auth';
 import type { ReadingPracticeQuestion, ReadingPracticeScreen } from '@/lib/content';
+import { createReadingAttempt, saveReadingAttempt, type ReadingAttempt } from '@/lib/reading-attempts';
 import { countReadingPracticeWords, formatReadingPracticeTimer, getReadingPracticeScreen, syncPublishedReadingPracticeScreens } from '@/lib/reading-practice-content';
 
 const fontFamily = 'Quicksand';
@@ -35,21 +37,8 @@ const emptyQuestion: ReadingPracticeQuestion = {
   options: [],
 };
 
-function clampCount(value: number | undefined, min: number, max: number) {
-  if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, Math.round(value ?? min)));
-}
-
-function getActiveQuestionIndex(content: ReadingPracticeScreen) {
+function buildMetrics(content: ReadingPracticeScreen, answered: number, marked: number, activeQuestion: number): MetricItem[] {
   const questionCount = Math.max(1, content.questions.length);
-  return clampCount(content.currentQuestionIndex, 0, questionCount - 1);
-}
-
-function buildMetrics(content: ReadingPracticeScreen): MetricItem[] {
-  const questionCount = Math.max(1, content.questions.length);
-  const activeQuestion = getActiveQuestionIndex(content);
-  const answered = clampCount(content.answeredCount, 0, questionCount);
-  const marked = clampCount(content.markedCount, 0, questionCount);
   const unanswered = Math.max(0, questionCount - answered);
 
   return [
@@ -161,21 +150,45 @@ function PassageCard({ content }: { content: ReadingPracticeScreen }) {
   );
 }
 
-function AnswerRow({ option, selected }: { option: ReadingPracticeQuestion['options'][number]; selected: boolean }) {
+function AnswerRow({
+  option,
+  selected,
+  reviewMode,
+  correct,
+  onPress,
+}: {
+  option: ReadingPracticeQuestion['options'][number];
+  selected: boolean;
+  reviewMode: boolean;
+  correct: boolean;
+  onPress: () => void;
+}) {
+  const wrongSelection = reviewMode && selected && !correct;
+  const highlighted = selected || (reviewMode && correct);
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} style={({ pressed }) => [styles.answerRow, selected ? styles.answerSelected : null, pressed ? styles.pressed : null]}>
-      <View style={[styles.answerLetter, selected ? styles.answerLetterSelected : null]}>
-        <Text style={[styles.answerLetterText, selected ? styles.answerLetterTextSelected : null]}>{option.key}</Text>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled: reviewMode }} disabled={reviewMode} onPress={onPress} style={({ pressed }) => [styles.answerRow, highlighted ? styles.answerSelected : null, wrongSelection ? styles.answerIncorrect : null, pressed ? styles.pressed : null]}>
+      <View style={[styles.answerLetter, highlighted ? styles.answerLetterSelected : null, wrongSelection ? styles.answerLetterIncorrect : null]}>
+        <Text style={[styles.answerLetterText, highlighted ? styles.answerLetterTextSelected : null]}>{option.key}</Text>
       </View>
-      <Text style={[styles.answerText, selected ? styles.answerTextSelected : null]}>{option.text}</Text>
+      <Text style={[styles.answerText, highlighted ? styles.answerTextSelected : null]}>{option.text}</Text>
     </Pressable>
   );
 }
 
-function QuestionNavigator({ content, activeIndex }: { content: ReadingPracticeScreen; activeIndex: number }) {
+function QuestionNavigator({
+  content,
+  activeIndex,
+  answeredIndexes,
+  markedIndexes,
+  onSelect,
+}: {
+  content: ReadingPracticeScreen;
+  activeIndex: number;
+  answeredIndexes: Set<number>;
+  markedIndexes: Set<number>;
+  onSelect: (index: number) => void;
+}) {
   const questionCount = Math.max(1, content.questions.length);
-  const answered = clampCount(content.answeredCount, 0, questionCount);
-  const marked = clampCount(content.markedCount, 0, questionCount);
 
   return (
     <View style={styles.navigatorPanel}>
@@ -183,12 +196,12 @@ function QuestionNavigator({ content, activeIndex }: { content: ReadingPracticeS
       <View style={styles.navigatorRow}>
         {Array.from({ length: questionCount }, (_, index) => {
           const active = index === activeIndex;
-          const isAnswered = index < answered;
-          const isMarked = Boolean(content.questions[index]?.marked) || index < marked;
+          const isAnswered = answeredIndexes.has(index);
+          const isMarked = markedIndexes.has(index);
           return (
-            <View key={index} style={[styles.navigatorItem, isAnswered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null, isMarked ? styles.navigatorMarked : null]}>
+            <Pressable key={index} accessibilityRole="button" accessibilityLabel={`Go to question ${index + 1}`} onPress={() => onSelect(index)} style={({ pressed }) => [styles.navigatorItem, isAnswered ? styles.navigatorAnswered : null, active ? styles.navigatorActive : null, isMarked ? styles.navigatorMarked : null, pressed ? styles.pressed : null]}>
               <Text style={[styles.navigatorText, active ? styles.navigatorTextActive : null]}>{index + 1}</Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -196,10 +209,38 @@ function QuestionNavigator({ content, activeIndex }: { content: ReadingPracticeS
   );
 }
 
-function QuestionCard({ compact, content, timerText }: { compact: boolean; content: ReadingPracticeScreen; timerText: string }) {
-  const activeIndex = getActiveQuestionIndex(content);
+function QuestionCard({
+  compact,
+  content,
+  timerText,
+  activeIndex,
+  selections,
+  markedIndexes,
+  reviewMode,
+  onSelectAnswer,
+  onSelectQuestion,
+  onToggleMarked,
+  onSubmit,
+  onShowResult,
+}: {
+  compact: boolean;
+  content: ReadingPracticeScreen;
+  timerText: string;
+  activeIndex: number;
+  selections: Record<number, string>;
+  markedIndexes: Set<number>;
+  reviewMode: boolean;
+  onSelectAnswer: (key: string) => void;
+  onSelectQuestion: (index: number) => void;
+  onToggleMarked: () => void;
+  onSubmit: () => void;
+  onShowResult: () => void;
+}) {
   const activeQuestion = content.questions[activeIndex] ?? emptyQuestion;
   const questionCount = Math.max(1, content.questions.length);
+  const selectedKey = selections[activeIndex] ?? '';
+  const answeredIndexes = new Set(Object.keys(selections).map(Number).filter(Number.isFinite));
+  const isMarked = markedIndexes.has(activeIndex);
 
   return (
     <Card style={styles.practiceCard} contentStyle={styles.questionBody}>
@@ -216,23 +257,83 @@ function QuestionCard({ compact, content, timerText }: { compact: boolean; conte
       </View>
 
       <View style={styles.answerList}>
-        {activeQuestion.options.map((option) => <AnswerRow key={option.key} option={option} selected={option.key === activeQuestion.correctOptionKey} />)}
+        {activeQuestion.options.map((option) => (
+          <AnswerRow
+            key={option.key}
+            option={option}
+            selected={option.key === selectedKey}
+            reviewMode={reviewMode}
+            correct={option.key === activeQuestion.correctOptionKey}
+            onPress={() => onSelectAnswer(option.key)}
+          />
+        ))}
       </View>
 
-      <View style={styles.reviewRow}>
-        <View style={styles.reviewBox} />
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: isMarked, disabled: reviewMode }} disabled={reviewMode} onPress={onToggleMarked} style={({ pressed }) => [styles.reviewRow, pressed ? styles.pressed : null]}>
+        <View style={[styles.reviewBox, isMarked ? styles.reviewBoxMarked : null]}>
+          {isMarked ? <SymbolView name={checkSymbol} tintColor="#ffffff" size={11} style={styles.reviewCheck} /> : null}
+        </View>
         <Text style={styles.reviewText}>Mark for Review</Text>
         <SymbolView name={flagSymbol} tintColor={studentTokens.blue} size={13} style={styles.reviewIcon} />
-      </View>
+      </Pressable>
 
-      <QuestionNavigator content={content} activeIndex={activeIndex} />
+      <QuestionNavigator content={content} activeIndex={activeIndex} answeredIndexes={answeredIndexes} markedIndexes={markedIndexes} onSelect={onSelectQuestion} />
 
       <View style={[styles.questionActions, compact ? styles.questionActionsCompact : null]}>
-        <Button label="Previous" size="sm" variant="secondary" style={[styles.navButton, compact ? styles.navButtonCompact : null]} />
-        <Button label="Next" size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} style={[styles.nextButton, compact ? styles.navButtonCompact : null]} textStyle={styles.nextButtonText} />
+        <Button label="Previous" size="sm" variant="secondary" disabled={activeIndex === 0} onPress={() => onSelectQuestion(activeIndex - 1)} style={[styles.navButton, compact ? styles.navButtonCompact : null]} />
+        <Button label="Next" size="sm" variant="ghost" disabled={activeIndex >= questionCount - 1} onPress={() => onSelectQuestion(activeIndex + 1)} right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} style={[styles.nextButton, compact ? styles.navButtonCompact : null]} textStyle={styles.nextButtonText} />
       </View>
 
-      <Button label="Submit & Review" size="sm" variant="secondary" left={<SymbolView name={documentSymbol} tintColor={studentTokens.yellowDeep} size={15} style={styles.buttonIcon} />} style={styles.submitButton} />
+      <Button label={reviewMode ? 'Back to Results' : 'Submit & Review'} size="sm" variant="secondary" onPress={reviewMode ? onShowResult : onSubmit} left={<SymbolView name={documentSymbol} tintColor={studentTokens.yellowDeep} size={15} style={styles.buttonIcon} />} style={styles.submitButton} />
+    </Card>
+  );
+}
+
+function ReadingResultCard({
+  result,
+  saveStatus,
+  compact,
+  onReview,
+  onRestart,
+}: {
+  result: ReadingAttempt;
+  saveStatus: 'saving' | 'firestore' | 'local';
+  compact: boolean;
+  onReview: () => void;
+  onRestart: () => void;
+}) {
+  const router = useRouter();
+  const saveMessage = saveStatus === 'saving'
+    ? 'Saving your result...'
+    : saveStatus === 'firestore'
+      ? 'Result saved to your learning history.'
+      : 'Result saved on this device; the cloud record could not be written.';
+
+  return (
+    <Card testID="reading-attempt-result" style={styles.practiceCard} contentStyle={styles.resultBody}>
+      <View style={styles.resultIconBox}><SymbolView name={checkSymbol} tintColor={studentTokens.teal} size={24} style={styles.resultIcon} /></View>
+      <Text style={styles.resultEyebrow}>{result.status === 'timed-out' ? 'TIME ENDED' : 'PRACTICE COMPLETE'}</Text>
+      <Text style={styles.resultScore}>{result.accuracyPercent}%</Text>
+      <Text style={styles.resultTitle}>{result.correctCount} of {result.questionCount} correct</Text>
+      <Text style={styles.resultMessage}>
+        {result.accuracyPercent >= 80
+          ? 'Strong result. Continue with a harder reading set.'
+          : result.accuracyPercent >= 60
+            ? 'Good start. Review the missed items before the next set.'
+            : 'Review the passage and repeat this question type once more.'}
+      </Text>
+      <View style={styles.resultStats}>
+        <View style={styles.resultStat}><Text style={styles.resultStatValue}>{result.answeredCount}</Text><Text style={styles.resultStatLabel}>Answered</Text></View>
+        <View style={styles.resultStat}><Text style={styles.resultStatValue}>{result.incorrectCount}</Text><Text style={styles.resultStatLabel}>Incorrect</Text></View>
+        <View style={styles.resultStat}><Text style={styles.resultStatValue}>{result.unansweredCount}</Text><Text style={styles.resultStatLabel}>Unanswered</Text></View>
+        <View style={styles.resultStat}><Text style={styles.resultStatValue}>{formatReadingPracticeTimer(result.timeSpentSeconds)}</Text><Text style={styles.resultStatLabel}>Time used</Text></View>
+      </View>
+      <Text style={[styles.resultSaveText, saveStatus === 'local' ? styles.resultSaveTextLocal : null]}>{saveMessage}</Text>
+      <View style={[styles.resultActions, compact ? styles.questionActionsCompact : null]}>
+        <Button label="Review Answers" size="sm" variant="secondary" onPress={onReview} style={styles.resultActionButton} />
+        <Button label="Practice Again" size="sm" variant="primary" onPress={onRestart} style={styles.resultActionButton} />
+        <Button label="Back to Dashboard" size="sm" variant="secondary" onPress={() => router.push('/dashboard' as Href)} style={styles.resultActionButton} />
+      </View>
     </Card>
   );
 }
@@ -270,14 +371,53 @@ function ReviewTipsCard({ content }: { content: ReadingPracticeScreen }) {
   );
 }
 
-export function ReadingPractice() {
+type ReadingPracticeProps = {
+  user: AuthUser;
+};
+
+type ReadingQuestionState = {
+  key: string;
+  activeIndex: number;
+  selections: Record<number, string>;
+  marked: Record<number, boolean>;
+  startedAt: string;
+};
+
+type ReadingResultState = {
+  key: string;
+  attempt: ReadingAttempt;
+  saveStatus: 'saving' | 'firestore' | 'local';
+};
+
+export function ReadingPractice({ user }: ReadingPracticeProps) {
   const { width } = useWindowDimensions();
   const [content, setContent] = useState(() => getReadingPracticeScreen());
+  const questionCount = Math.max(1, content.questions.length);
+  const attemptKey = `${content.id}|${questionCount}`;
+  const defaultQuestionState = useMemo<ReadingQuestionState>(() => ({
+    key: attemptKey,
+    activeIndex: 0,
+    selections: {},
+    marked: {},
+    startedAt: new Date().toISOString(),
+  }), [attemptKey]);
+  const [storedQuestionState, setQuestionState] = useState<ReadingQuestionState>(() => defaultQuestionState);
+  const questionState = storedQuestionState.key === attemptKey ? storedQuestionState : defaultQuestionState;
+  const timeLimitSeconds = Math.max(1, Math.round(content.timeLimitSeconds || content.timeRemainingSeconds || 1200));
+  const [timerState, setTimerState] = useState(() => ({ key: attemptKey, remainingSeconds: timeLimitSeconds }));
+  const remainingSeconds = timerState.key === attemptKey ? timerState.remainingSeconds : timeLimitSeconds;
+  const [resultState, setResultState] = useState<ReadingResultState | null>(null);
+  const result = resultState?.key === attemptKey ? resultState : null;
+  const [reviewKey, setReviewKey] = useState<string | null>(null);
+  const reviewMode = reviewKey === attemptKey && Boolean(result);
+  const completionStarted = useRef(false);
   const isWide = width >= 1040;
   const isTablet = width >= 760;
   const isCompact = width < 620;
-  const metrics = useMemo(() => buildMetrics(content), [content]);
-  const timerText = formatReadingPracticeTimer(content.timeRemainingSeconds);
+  const answeredCount = Object.keys(questionState.selections).length;
+  const markedIndexes = useMemo(() => new Set(Object.entries(questionState.marked).filter(([, value]) => value).map(([index]) => Number(index))), [questionState.marked]);
+  const metrics = useMemo(() => buildMetrics(content, answeredCount, markedIndexes.size, questionState.activeIndex), [answeredCount, content, markedIndexes.size, questionState.activeIndex]);
+  const timerText = formatReadingPracticeTimer(remainingSeconds);
 
   useEffect(() => {
     let active = true;
@@ -289,6 +429,102 @@ export function ReadingPractice() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    completionStarted.current = false;
+  }, [attemptKey]);
+
+  useEffect(() => {
+    if (result || remainingSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setTimerState((current) => {
+        const base = current.key === attemptKey ? current : { key: attemptKey, remainingSeconds: timeLimitSeconds };
+        return { ...base, remainingSeconds: Math.max(0, base.remainingSeconds - 1) };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [attemptKey, remainingSeconds, result, timeLimitSeconds]);
+
+  const selectQuestion = useCallback((index: number) => {
+    setQuestionState((current) => {
+      const base = current.key === attemptKey ? current : defaultQuestionState;
+      return { ...base, activeIndex: Math.min(Math.max(index, 0), questionCount - 1) };
+    });
+  }, [attemptKey, defaultQuestionState, questionCount]);
+
+  const selectAnswer = useCallback((key: string) => {
+    if (result) return;
+    setQuestionState((current) => {
+      const base = current.key === attemptKey ? current : defaultQuestionState;
+      return { ...base, selections: { ...base.selections, [base.activeIndex]: key } };
+    });
+  }, [attemptKey, defaultQuestionState, result]);
+
+  const toggleMarked = useCallback(() => {
+    if (result) return;
+    setQuestionState((current) => {
+      const base = current.key === attemptKey ? current : defaultQuestionState;
+      return { ...base, marked: { ...base.marked, [base.activeIndex]: !base.marked[base.activeIndex] } };
+    });
+  }, [attemptKey, defaultQuestionState, result]);
+
+  const finishAttempt = useCallback((state: ReadingQuestionState, status: 'completed' | 'timed-out') => {
+    if (completionStarted.current) return;
+    completionStarted.current = true;
+    const responses = Array.from({ length: questionCount }, (_, questionIndex) => {
+      const question = content.questions[questionIndex];
+      const selectedOptionKey = state.selections[questionIndex] ?? null;
+      const correctOptionKey = question?.correctOptionKey ?? null;
+      return {
+        questionIndex,
+        selectedOptionKey,
+        correctOptionKey,
+        isCorrect: selectedOptionKey && correctOptionKey ? selectedOptionKey === correctOptionKey : null,
+        marked: Boolean(state.marked[questionIndex]),
+      };
+    });
+    const answered = responses.filter((item) => item.selectedOptionKey !== null).length;
+    const correct = responses.filter((item) => item.isCorrect === true).length;
+    const incorrect = responses.filter((item) => item.isCorrect === false).length;
+    const attempt = createReadingAttempt({
+      userId: user.id,
+      contentId: content.id,
+      contentTitle: content.title,
+      passageTitle: content.passageTitle,
+      questionType: content.questionType,
+      startedAt: state.startedAt,
+      completedAt: new Date().toISOString(),
+      status,
+      questionCount,
+      answeredCount: answered,
+      correctCount: correct,
+      incorrectCount: incorrect,
+      unansweredCount: questionCount - answered,
+      markedCount: responses.filter((item) => item.marked).length,
+      accuracyPercent: Math.round(correct / questionCount * 100),
+      timeLimitSeconds,
+      timeSpentSeconds: Math.min(timeLimitSeconds, Math.max(0, timeLimitSeconds - remainingSeconds)),
+      responses,
+    });
+    setResultState({ key: attemptKey, attempt, saveStatus: 'saving' });
+    setReviewKey(null);
+    void saveReadingAttempt(attempt)
+      .then((saved) => setResultState((current) => current?.attempt.id === attempt.id ? { ...current, saveStatus: saved.destination } : current))
+      .catch(() => setResultState((current) => current?.attempt.id === attempt.id ? { ...current, saveStatus: 'local' } : current));
+  }, [attemptKey, content, questionCount, remainingSeconds, timeLimitSeconds, user.id]);
+
+  useEffect(() => {
+    if (remainingSeconds > 0 || result || completionStarted.current) return;
+    finishAttempt(questionState, 'timed-out');
+  }, [finishAttempt, questionState, remainingSeconds, result]);
+
+  const restartAttempt = useCallback(() => {
+    completionStarted.current = false;
+    setQuestionState({ ...defaultQuestionState, startedAt: new Date().toISOString() });
+    setTimerState({ key: attemptKey, remainingSeconds: timeLimitSeconds });
+    setResultState(null);
+    setReviewKey(null);
+  }, [attemptKey, defaultQuestionState, timeLimitSeconds]);
+
   return (
     <View testID="reading-practice-screen" style={styles.screen}>
       <PageHeader compact={!isTablet} content={content} metrics={metrics} />
@@ -299,7 +535,24 @@ export function ReadingPractice() {
           <PassageCard content={content} />
         </View>
         <View style={[styles.questionColumn, !isWide ? styles.questionColumnStacked : null]}>
-          <QuestionCard compact={isCompact} content={content} timerText={timerText} />
+          {result && !reviewMode ? (
+            <ReadingResultCard result={result.attempt} saveStatus={result.saveStatus} compact={isCompact} onReview={() => setReviewKey(attemptKey)} onRestart={restartAttempt} />
+          ) : (
+            <QuestionCard
+              compact={isCompact}
+              content={content}
+              timerText={timerText}
+              activeIndex={questionState.activeIndex}
+              selections={questionState.selections}
+              markedIndexes={markedIndexes}
+              reviewMode={reviewMode}
+              onSelectAnswer={selectAnswer}
+              onSelectQuestion={selectQuestion}
+              onToggleMarked={toggleMarked}
+              onSubmit={() => finishAttempt(questionState, 'completed')}
+              onShowResult={() => setReviewKey(null)}
+            />
+          )}
         </View>
       </View>
 
@@ -375,14 +628,18 @@ const styles = StyleSheet.create({
   answerList: { gap: 8 },
   answerRow: { minHeight: 40, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.surface, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 9, paddingVertical: 8 },
   answerSelected: { borderColor: '#6bd5be', backgroundColor: '#eafaf6' },
+  answerIncorrect: { borderColor: '#f2a596', backgroundColor: '#fff0ed' },
   answerLetter: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#f1f4f9', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   answerLetterSelected: { backgroundColor: studentTokens.teal },
+  answerLetterIncorrect: { backgroundColor: studentTokens.orange },
   answerLetterText: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 10, lineHeight: 14, fontWeight: '700' },
   answerLetterTextSelected: { color: '#ffffff' },
   answerText: { fontFamily: fontFamily, flex: 1, minWidth: 0, color: '#4f5870', fontSize: 9, lineHeight: 14, fontWeight: '600' },
   answerTextSelected: { color: studentTokens.ink, fontWeight: '700' },
   reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   reviewBox: { width: 15, height: 15, borderRadius: 3, borderWidth: 1, borderColor: '#b7c0d2', backgroundColor: studentTokens.surface },
+  reviewBoxMarked: { borderColor: studentTokens.blue, backgroundColor: studentTokens.blue, alignItems: 'center', justifyContent: 'center' },
+  reviewCheck: { width: 11, height: 11 },
   reviewText: { fontFamily: fontFamily, color: '#5f6980', fontSize: 9, lineHeight: 12, fontWeight: '600' },
   reviewIcon: { width: 13, height: 13 },
   navigatorPanel: { borderRadius: 9, borderWidth: 1, borderColor: '#eef1f6', backgroundColor: studentTokens.neutral, padding: 10, gap: 8 },
@@ -402,6 +659,21 @@ const styles = StyleSheet.create({
   nextButtonText: { color: '#ffffff' },
   submitButton: { minHeight: 38, borderRadius: 7, backgroundColor: studentTokens.yellowSoft, borderColor: '#f3dfa3' },
   buttonIcon: { width: 15, height: 15 },
+  resultBody: { minHeight: 460, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  resultIconBox: { width: 50, height: 50, borderRadius: 25, backgroundColor: studentTokens.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  resultIcon: { width: 24, height: 24 },
+  resultEyebrow: { fontFamily: fontFamily, color: studentTokens.teal, fontSize: 9, lineHeight: 12, fontWeight: '700' },
+  resultScore: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 36, lineHeight: 42, fontWeight: '700' },
+  resultTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  resultMessage: { maxWidth: 390, fontFamily: fontFamily, color: studentTokens.text, fontSize: 10, lineHeight: 15, fontWeight: '600', textAlign: 'center' },
+  resultStats: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 5 },
+  resultStat: { minWidth: 82, flex: 1, borderRadius: 8, backgroundColor: studentTokens.neutral, padding: 9, alignItems: 'center', gap: 2 },
+  resultStatValue: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  resultStatLabel: { fontFamily: fontFamily, color: studentTokens.text, fontSize: 8, lineHeight: 11, fontWeight: '600' },
+  resultSaveText: { fontFamily: fontFamily, color: studentTokens.teal, fontSize: 8, lineHeight: 12, fontWeight: '700', textAlign: 'center' },
+  resultSaveTextLocal: { color: studentTokens.orange },
+  resultActions: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  resultActionButton: { flex: 1, minWidth: 120 },
   supportGrid: { gap: 10 },
   supportGridWide: { flexDirection: 'row', alignItems: 'stretch' },
   supportCard: { padding: 0, borderRadius: 11, borderColor: '#e5eaf2', flex: 1, shadowOpacity: 0.05, shadowRadius: 13, shadowOffset: { width: 0, height: 7 } },

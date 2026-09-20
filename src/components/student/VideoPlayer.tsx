@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState } from 'react';
+import { createElement, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
@@ -8,6 +8,7 @@ import { Button, Card, EmptyState, ErrorState, Input, Progress, Skeleton, Tabs, 
 import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
 import { formatVideoTimestamp, getVideoEmbedUrl } from '@/lib/video-media';
+import { buildVideoProgress, loadVideoProgress, readVideoProgress, saveVideoProgress, type VideoProgress } from '@/lib/video-progress';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
 import { getCourseVideoLessons, getRelatedVideoLessons, getVideoLessonById, skillThemes, syncPublishedVideoCatalog, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 
@@ -229,12 +230,29 @@ function presentationForLesson(lesson: VideoLesson): LessonPresentation {
   };
 }
 
-function PlayerFrame({ lesson, fullAccess, compact, showQualityMenu }: { lesson: VideoLesson; fullAccess: boolean; compact: boolean; showQualityMenu: boolean }) {
+function PlayerFrame({
+  lesson,
+  fullAccess,
+  compact,
+  showQualityMenu,
+  progress,
+  onPlaybackProgress,
+}: {
+  lesson: VideoLesson;
+  fullAccess: boolean;
+  compact: boolean;
+  showQualityMenu: boolean;
+  progress: VideoProgress | null;
+  onPlaybackProgress: (currentSeconds: number, durationSeconds: number, ended?: boolean) => void;
+}) {
   const theme = skillThemes[lesson.skill];
   const presentation = presentationForLesson(lesson);
+  const trackedPercent = progress?.progressPercent ?? 0;
+  const trackedSeconds = progress?.currentSeconds ?? 0;
   const poster = lesson.thumbnail.startsWith('http') ? { uri: lesson.thumbnail } : presentation.thumb ?? skillImageSources[lesson.skill];
   const embedUrl = getVideoEmbedUrl(lesson.mediaProvider, lesson.mediaUrl);
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+  const [resumedLessonId, setResumedLessonId] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     if (lesson.mediaProvider !== 'upload') return () => {};
@@ -253,9 +271,39 @@ function PlayerFrame({ lesson, fullAccess, compact, showQualityMenu }: { lesson:
   const externalVideoAvailable = Boolean((embedUrl || uploadedVideoUrl) && (!lesson.isPremium || fullAccess));
 
   if (uploadedVideoUrl && externalVideoAvailable && Platform.OS === 'web') {
+    const configuredDuration = Math.max(1, getLessonDurationSeconds(lesson));
+    const previewLimit = !fullAccess && lesson.isPremium ? getLessonPreviewSeconds(lesson) : 0;
+    const readDuration = (element: HTMLVideoElement) => Number.isFinite(element.duration) && element.duration > 0 ? element.duration : configuredDuration;
+    const reportPlayback = (event: SyntheticEvent<HTMLVideoElement>, ended = false) => {
+      const element = event.currentTarget;
+      const duration = readDuration(element);
+      if (previewLimit > 0 && element.currentTime >= previewLimit) {
+        element.pause();
+        element.currentTime = previewLimit;
+      }
+      onPlaybackProgress(Math.min(element.currentTime, previewLimit || duration), duration, ended);
+    };
+    const handleLoadedMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
+      if (resumedLessonId === lesson.id || trackedSeconds <= 0) return;
+      const element = event.currentTarget;
+      const duration = readDuration(element);
+      element.currentTime = Math.min(trackedSeconds, previewLimit || Math.max(0, duration - 1));
+      setResumedLessonId(lesson.id);
+      onPlaybackProgress(element.currentTime, duration);
+    };
     return (
       <View style={[styles.videoFrame, compact ? styles.videoFrameCompact : null, styles.externalVideoFrame]}>
-        {createElement('video', { src: uploadedVideoUrl, controls: true, playsInline: true, poster: typeof poster === 'object' && poster && 'uri' in poster ? poster.uri : undefined, style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#111827' } })}
+        {createElement('video', {
+          src: uploadedVideoUrl,
+          controls: true,
+          playsInline: true,
+          poster: typeof poster === 'object' && poster && 'uri' in poster ? poster.uri : undefined,
+          onLoadedMetadata: handleLoadedMetadata,
+          onTimeUpdate: (event: SyntheticEvent<HTMLVideoElement>) => reportPlayback(event),
+          onPause: (event: SyntheticEvent<HTMLVideoElement>) => reportPlayback(event),
+          onEnded: (event: SyntheticEvent<HTMLVideoElement>) => reportPlayback(event, true),
+          style: { width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: '#111827' },
+        })}
       </View>
     );
   }
@@ -302,12 +350,12 @@ function PlayerFrame({ lesson, fullAccess, compact, showQualityMenu }: { lesson:
         <View style={styles.controlIconButtonSmall}>
           <SymbolView name={volumeSymbol} tintColor="#ffffff" size={16} style={styles.controlIconSmall} />
         </View>
-        <Text style={styles.playerTime}>{presentation.watched} / {presentation.time}</Text>
+        <Text style={styles.playerTime}>{formatVideoTimestamp(trackedSeconds)} / {presentation.time}</Text>
         <View style={styles.playerTrack}>
-          <View style={[styles.playerFill, { width: `${presentation.progress}%` }]} />
-          <View style={[styles.playerThumb, { left: `${presentation.progress}%` }]} />
+          <View style={[styles.playerFill, { width: `${trackedPercent}%` }]} />
+          <View style={[styles.playerThumb, { left: `${trackedPercent}%` }]} />
         </View>
-        <Text style={styles.playerPercent}>{presentation.progress}%</Text>
+        <Text style={styles.playerPercent}>{trackedPercent}%</Text>
         {!compact ? (
           <View style={styles.playerToolGroup}>
             <SymbolView name={ccSymbol} tintColor="#ffffff" size={15} style={styles.toolIcon} />
@@ -319,7 +367,7 @@ function PlayerFrame({ lesson, fullAccess, compact, showQualityMenu }: { lesson:
     </View>
   );
 }
-function UnlockStrip({ lesson, fullAccess, compact }: { lesson: VideoLesson; fullAccess: boolean; compact: boolean }) {
+function UnlockStrip({ lesson, fullAccess, compact, progress }: { lesson: VideoLesson; fullAccess: boolean; compact: boolean; progress: VideoProgress | null }) {
   const router = useRouter();
   const presentation = presentationForLesson(lesson);
   const lessonAvailable = fullAccess || !lesson.isPremium;
@@ -330,7 +378,9 @@ function UnlockStrip({ lesson, fullAccess, compact }: { lesson: VideoLesson; ful
     ? lesson.isPremium ? 'Full lesson unlocked' : 'Full lesson available'
     : previewLabel ? `Free preview ends at ${previewLabel} / ${durationLabel}` : `Premium lesson locked (${durationLabel})`;
   const statusText = lessonAvailable
-    ? `Duration ${durationLabel} - transcript, resources, and full player controls are active.`
+    ? progress
+      ? `${progress.progressPercent}% complete - resume from ${formatVideoTimestamp(progress.currentSeconds)}.`
+      : `Duration ${durationLabel} - transcript, resources, and full player controls are active.`
     : previewLabel ? `Unlock the full ${durationLabel} lesson to continue learning without limits.` : `Unlock this ${durationLabel} lesson to start watching.`;
   const statusIcon = lessonAvailable ? checkSymbol : lockSymbol;
 
@@ -343,6 +393,7 @@ function UnlockStrip({ lesson, fullAccess, compact }: { lesson: VideoLesson; ful
         <View style={styles.unlockCopy}>
           <Text style={styles.unlockTitle}>{statusTitle}</Text>
           <Text style={styles.unlockText}>{statusText}</Text>
+          {progress ? <Progress value={progress.progressPercent} color={studentTokens.teal} style={styles.videoProgressBar} /> : null}
         </View>
       </View>
       <View style={[styles.unlockActions, compact ? styles.unlockActionsCompact : null]}>
@@ -353,11 +404,25 @@ function UnlockStrip({ lesson, fullAccess, compact }: { lesson: VideoLesson; ful
   );
 }
 
-function PlayerPanel({ lesson, fullAccess, compact, showQualityMenu }: { lesson: VideoLesson; fullAccess: boolean; compact: boolean; showQualityMenu: boolean }) {
+function PlayerPanel({
+  lesson,
+  fullAccess,
+  compact,
+  showQualityMenu,
+  progress,
+  onPlaybackProgress,
+}: {
+  lesson: VideoLesson;
+  fullAccess: boolean;
+  compact: boolean;
+  showQualityMenu: boolean;
+  progress: VideoProgress | null;
+  onPlaybackProgress: (currentSeconds: number, durationSeconds: number, ended?: boolean) => void;
+}) {
   return (
     <Card style={styles.playerCard} contentStyle={styles.playerCardBody}>
-      <PlayerFrame lesson={lesson} fullAccess={fullAccess} compact={compact} showQualityMenu={showQualityMenu} />
-      <UnlockStrip lesson={lesson} fullAccess={fullAccess} compact={compact} />
+      <PlayerFrame lesson={lesson} fullAccess={fullAccess} compact={compact} showQualityMenu={showQualityMenu} progress={progress} onPlaybackProgress={onPlaybackProgress} />
+      <UnlockStrip lesson={lesson} fullAccess={fullAccess} compact={compact} progress={progress} />
     </Card>
   );
 }
@@ -659,12 +724,21 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const isCompact = width < 620;
   const [tab, setTab] = useState<PlayerTab>('overview');
   const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Lesson saved to your learning list.');
   const [catalogSync, setCatalogSync] = useState({ version: 0, loading: true });
   const noteKey = lessonNotesKey(user.id, lessonId);
   const [studentNoteState, setStudentNoteState] = useState<LessonNoteState>(() => ({ key: noteKey, note: readLessonNote(user.id, lessonId) }));
   const lesson = getVideoLessonById(lessonId);
-  const courseLessons = getCourseVideoLessons(lessonId);
-  const relatedLessons = getRelatedVideoLessons(lessonId).slice(0, 3);
+  const progressKey = `${user.id}|${lessonId}`;
+  const [storedProgress, setStoredProgress] = useState(() => ({ key: progressKey, progress: readVideoProgress(user.id, lessonId) }));
+  const progress = storedProgress.key === progressKey ? storedProgress.progress : readVideoProgress(user.id, lessonId);
+  const lastSavedProgress = useRef({ key: progressKey, seconds: progress?.currentSeconds ?? -10 });
+  const applySavedProgress = (item: VideoLesson) => {
+    const saved = readVideoProgress(user.id, item.id);
+    return { ...item, progress: saved?.progressPercent ?? 0 };
+  };
+  const courseLessons = getCourseVideoLessons(lessonId).map(applySavedProgress);
+  const relatedLessons = getRelatedVideoLessons(lessonId).slice(0, 3).map(applySavedProgress);
   const studentNote = studentNoteState.key === noteKey ? studentNoteState.note : readLessonNote(user.id, lessonId);
 
   useEffect(() => {
@@ -674,6 +748,18 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
       .catch(() => { if (active) setCatalogSync((current) => ({ ...current, loading: false })); });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadVideoProgress(user.id, lessonId)
+      .then((next) => {
+        if (!active) return;
+        setStoredProgress({ key: progressKey, progress: next });
+        lastSavedProgress.current = { key: progressKey, seconds: next?.currentSeconds ?? -10 };
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [lessonId, progressKey, user.id]);
 
   if (!lesson && catalogSync.loading) {
     return <Skeleton lines={6} />;
@@ -688,20 +774,66 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
   const theme = skillThemes[lesson.skill];
   const presentation = presentationForLesson(lesson);
   const fullAccess = getEntitlementAccess(user, 'video-full-access').allowed;
+  const accessMode = fullAccess || !lesson.isPremium ? 'full' : 'preview';
+  const lessonWithProgress = { ...lesson, progress: progress?.progressPercent ?? 0 };
   const noteText = studentNote?.text ?? '';
 
-  const handleSave = () => {
+  const showToast = (message: string) => {
+    setToastMessage(message);
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 1800);
   };
+
+  const handleSave = () => showToast('Lesson saved to your learning list.');
 
   const handleNoteChange = (text: string) => {
     setStudentNoteState({ key: noteKey, note: saveLessonNote(user.id, lessonId, text) });
   };
 
+  const persistPlayback = (currentSeconds: number, durationSeconds: number, ended = false) => {
+    const previous = readVideoProgress(user.id, lesson.id);
+    const next = buildVideoProgress({
+      previous,
+      userId: user.id,
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      skill: lesson.skill,
+      currentSeconds,
+      durationSeconds: durationSeconds || getLessonDurationSeconds(lesson),
+      completed: ended,
+      accessMode: fullAccess || !lesson.isPremium ? 'full' : 'preview',
+    });
+    setStoredProgress({ key: progressKey, progress: next });
+    const previousSavedSeconds = lastSavedProgress.current.key === progressKey ? lastSavedProgress.current.seconds : -10;
+    const shouldSave = ended || Math.abs(next.currentSeconds - previousSavedSeconds) >= 5;
+    if (!shouldSave) return;
+    lastSavedProgress.current = { key: progressKey, seconds: next.currentSeconds };
+    void saveVideoProgress(next).catch(() => {});
+  };
+
+  const markComplete = () => {
+    if (accessMode !== 'full') return;
+    const durationSeconds = Math.max(1, getLessonDurationSeconds(lesson));
+    const next = buildVideoProgress({
+      previous: progress,
+      userId: user.id,
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      skill: lesson.skill,
+      currentSeconds: durationSeconds,
+      durationSeconds,
+      completed: true,
+      accessMode,
+    });
+    setStoredProgress({ key: progressKey, progress: next });
+    lastSavedProgress.current = { key: progressKey, seconds: durationSeconds };
+    showToast('Lesson marked as complete.');
+    void saveVideoProgress(next).catch(() => {});
+  };
+
   return (
     <View testID="video-player-screen" style={styles.screen}>
-      <Toast visible={toastVisible} message="Lesson saved to your learning list." tone="success" />
+      <Toast visible={toastVisible} message={toastMessage} tone="success" />
 
       <View style={styles.breadcrumbRow}>
         <SymbolView name={homeSymbol} tintColor={studentTokens.blue} size={13} style={styles.breadcrumbIcon} />
@@ -721,23 +853,24 @@ export function VideoPlayer({ user, lessonId }: VideoPlayerProps) {
         <View style={[styles.pageActions, isCompact ? styles.pageActionsCompact : null]}>
           <Button label="Add to Favorites" size="sm" variant="secondary" left={<SymbolView name={bookmarkSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={handleSave} style={isCompact ? styles.mobileActionButton : undefined} />
           <Button label="Share" size="sm" variant="secondary" left={<SymbolView name={shareSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={handleSave} style={isCompact ? styles.mobileActionButton : undefined} />
+          <Button label={progress?.completed ? 'Completed' : 'Mark Complete'} size="sm" variant={progress?.completed ? 'secondary' : 'primary'} disabled={progress?.completed || accessMode !== 'full'} left={<SymbolView name={checkSymbol} tintColor={studentTokens.navy} size={14} style={styles.buttonIcon} />} onPress={markComplete} style={isCompact ? styles.mobileActionButton : undefined} />
         </View>
       </View>
 
       <View style={[styles.lessonGrid, isWide ? styles.lessonGridWide : null]}>
         <View style={styles.playerColumn}>
-          <PlayerPanel lesson={lesson} fullAccess={fullAccess} compact={isCompact} showQualityMenu={isWide} />
-          <DetailPanel lesson={lesson} fullAccess={fullAccess} tab={tab} onTabChange={setTab} wide={isTablet} noteText={noteText} onNoteChange={handleNoteChange} />
+          <PlayerPanel lesson={lessonWithProgress} fullAccess={fullAccess} compact={isCompact} showQualityMenu={isWide} progress={progress} onPlaybackProgress={persistPlayback} />
+          <DetailPanel lesson={lessonWithProgress} fullAccess={fullAccess} tab={tab} onTabChange={setTab} wide={isTablet} noteText={noteText} onNoteChange={handleNoteChange} />
         </View>
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
           <LessonsInCourse lessons={courseLessons} currentLessonId={lesson.id} fullAccess={fullAccess} />
-          <ResourcesPanel lesson={lesson} fullAccess={fullAccess} onViewAll={() => setTab('resources')} />
+          <ResourcesPanel lesson={lessonWithProgress} fullAccess={fullAccess} onViewAll={() => setTab('resources')} />
         </View>
       </View>
 
       <View style={[styles.bottomGrid, isTablet ? styles.bottomGridWide : null]}>
-        <NoteSummary lesson={lesson} note={studentNote} onViewAll={() => setTab('notes')} />
-        <RelatedPanel currentLesson={lesson} lessons={relatedLessons} />
+        <NoteSummary lesson={lessonWithProgress} note={studentNote} onViewAll={() => setTab('notes')} />
+        <RelatedPanel currentLesson={lessonWithProgress} lessons={relatedLessons} />
       </View>
     </View>
   );
@@ -833,6 +966,7 @@ const styles = StyleSheet.create({  screen: { gap: 10, position: 'relative' },
   unlockCopy: { flex: 1, minWidth: 0 },
   unlockTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 10, lineHeight: 14, fontWeight: '700' },
   unlockText: { fontFamily: fontFamily, color: '#4f5870', fontSize: 8, lineHeight: 12, fontWeight: '600', marginTop: 1 },
+  videoProgressBar: { marginTop: 5, maxWidth: 320 },
   unlockActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   unlockActionsCompact: { width: '100%', flexWrap: 'wrap' },
   unlockButton: { minWidth: 148, minHeight: 32, borderRadius: 7 },

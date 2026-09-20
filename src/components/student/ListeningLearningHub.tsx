@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { type Href, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type DimensionValue } from 'react-native';
 
 import {
@@ -21,28 +21,35 @@ import {
   getListeningHubItems,
   defaultListeningSelection,
   ensureCompatibleSubskill,
-  getListeningContinueItem,
   getListeningDifficulties,
   getListeningDifficultyById,
   getListeningLearningChain,
   getListeningLengthById,
   getListeningLengths,
-  getListeningOverview,
   getListeningPracticeModes,
   getListeningSubskillById,
   getListeningSubskills,
   getListeningTaskTypeById,
   getListeningTaskTypes,
   makeListeningSelection,
+  getLatestListeningProgress,
+  loadListeningAttempts,
+  loadListeningProgressCatalog,
+  readListeningAttempts,
+  readListeningProgressCatalog,
   syncPublishedListeningHubItems,
+  type ListeningAttempt,
   type ListeningHubDisplayItem,
   type ListeningIconKey,
+  type ListeningMetric,
   type ListeningPracticeMode,
   type ListeningPracticeModeId,
+  type ListeningProgress,
   type ListeningSelection,
   type ListeningTaskTypeId,
   type ListeningTone,
 } from '@/lib/listening';
+import { formatVideoTimestamp } from '@/lib/video-media';
 
 const fontFamily = 'Quicksand';
 
@@ -90,31 +97,64 @@ function ListeningLoading() {
   );
 }
 
-function selectionFromContinue() {
-  const item = getListeningContinueItem();
-  return makeListeningSelection({
-    taskTypeId: item.taskTypeId,
-    subskillId: item.subskillId,
-    difficultyId: item.difficultyId,
-    lengthId: item.lengthId,
-    sessionMode: item.sessionMode,
-  });
-}
-
-function ContinueLearningCard({ onContinue }: { onContinue: () => void }) {
-  const item = getListeningContinueItem();
-
+function ContinueListeningCard({
+  progress,
+  fallback,
+  onContinue,
+}: {
+  progress: ListeningProgress | null;
+  fallback: ListeningHubDisplayItem | null;
+  onContinue: () => void;
+}) {
+  const title = progress?.contentTitle ?? fallback?.title ?? 'No listening in progress';
+  const subtitle = progress?.subtitle ?? fallback?.meta ?? 'Start a published listening practice to see your progress here.';
   return (
     <Card style={styles.continueCard} contentStyle={styles.continueBody}>
       <View style={styles.continueCopy}>
-        <Text style={styles.orangeLabel}>CONTINUE LEARNING</Text>
-        <Text style={styles.continueTitle}>{item.title}</Text>
-        <Text style={styles.onNavyText}>{item.subtitle}</Text>
-        <Progress value={item.progress} color={studentTokens.yellowDeep} label={item.lastActivity} showValue />
+        <Text style={styles.orangeLabel}>CONTINUE LISTENING</Text>
+        <Text style={styles.continueTitle}>{title}</Text>
+        <Text style={styles.onNavyText}>{subtitle}</Text>
+        {progress ? <Progress value={progress.progressPercent} color={studentTokens.yellowDeep} label={`Continue from ${formatVideoTimestamp(progress.currentSeconds)}`} showValue /> : null}
       </View>
-      <Button label="Resume" onPress={onContinue} left={<LearningIcon name={learningIcons.play} color={studentTokens.navy} size={16} />} />
+      <Button label={progress ? 'Resume' : 'Start Listening'} disabled={!progress && !fallback} onPress={onContinue} left={<LearningIcon name={learningIcons.play} color={studentTokens.navy} size={16} />} />
     </Card>
   );
+}
+
+function startOfCurrentWeek() {
+  const date = new Date();
+  const dayFromMonday = (date.getDay() + 6) % 7;
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - dayFromMonday);
+  return date.getTime();
+}
+
+function buildLiveListeningMetrics(attempts: ListeningAttempt[]): ListeningMetric[] {
+  const totalQuestions = attempts.reduce((total, attempt) => total + attempt.questionCount, 0);
+  const totalCorrect = attempts.reduce((total, attempt) => total + attempt.correctCount, 0);
+  const mastery = totalQuestions > 0 ? Math.round(totalCorrect / totalQuestions * 100) : 0;
+  const weekStart = startOfCurrentWeek();
+  const weekly = attempts.filter((attempt) => Date.parse(attempt.completedAt) >= weekStart);
+  const weeklyMinutes = Math.round(weekly.reduce((total, attempt) => total + attempt.timeSpentSeconds, 0) / 60);
+  const subskillTotals = new Map<string, { correct: number; questions: number }>();
+  attempts.forEach((attempt) => {
+    const current = subskillTotals.get(attempt.subskillId) ?? { correct: 0, questions: 0 };
+    current.correct += attempt.correctCount;
+    current.questions += attempt.questionCount;
+    subskillTotals.set(attempt.subskillId, current);
+  });
+  const weakest = [...subskillTotals.entries()]
+    .map(([id, value]) => ({ id, accuracy: value.questions > 0 ? Math.round(value.correct / value.questions * 100) : 0 }))
+    .sort((first, second) => first.accuracy - second.accuracy)[0];
+  const weakestTitle = weakest ? getListeningSubskills().find((item) => item.id === weakest.id)?.title ?? weakest.id : 'No data';
+  const best = [...attempts].sort((first, second) => second.accuracyPercent - first.accuracyPercent || Date.parse(second.completedAt) - Date.parse(first.completedAt))[0];
+
+  return [
+    { id: 'mastery', label: 'Listening Mastery', value: `${mastery} / 100`, note: attempts.length ? `${attempts.length} completed sets` : 'Complete a set to begin', progress: mastery, tone: 'blue', iconKey: 'headphones' },
+    { id: 'practice-week', label: 'Practice This Week', value: `${weekly.length} sessions`, note: `${weeklyMinutes} minutes total`, progress: weekly.length, max: Math.max(4, weekly.length), tone: 'teal', iconKey: 'check' },
+    { id: 'weakest', label: 'Weakest Subskill', value: weakestTitle, note: weakest ? `${weakest.accuracy}% recent accuracy` : 'Not enough results yet', progress: weakest?.accuracy ?? 0, tone: 'orange', iconKey: 'target' },
+    { id: 'recent-best', label: 'Recent Best', value: best ? `${best.correctCount} / ${best.questionCount}` : '0 / 0', note: best?.contentTitle ?? 'No completed set yet', progress: best?.accuracyPercent ?? 0, tone: 'purple', iconKey: 'star' },
+  ];
 }
 
 function PracticeModeCard({ item, selected, onPress }: { item: ListeningPracticeMode; selected: boolean; onPress: () => void }) {
@@ -324,26 +364,21 @@ function SessionRulesCard({ mode }: { mode: ListeningPracticeMode }) {
   );
 }
 
-function RecentActivityCard() {
+function RecentActivityCard({ attempts }: { attempts: ListeningAttempt[] }) {
+  const recent = [...attempts].sort((first, second) => Date.parse(second.completedAt) - Date.parse(first.completedAt)).slice(0, 2);
   return (
     <Card title="Recent Listening" eyebrow="Activity">
       <View style={styles.activityList}>
-        <View style={styles.activityRow}>
-          <LearningIconBubble icon={iconFor('headphones')} tone="blue" size={36} />
-          <View style={styles.activityCopy}>
-            <Text style={styles.cardTitle}>Lecture 03 - Note Taking</Text>
-            <Text style={styles.bodyText}>10 questions - 72% complete</Text>
+        {recent.length ? recent.map((attempt) => (
+          <View key={attempt.id} style={styles.activityRow}>
+            <LearningIconBubble icon={learningIcons.check} tone="teal" size={36} />
+            <View style={styles.activityCopy}>
+              <Text style={styles.cardTitle}>{attempt.contentTitle}</Text>
+              <Text style={styles.bodyText}>{attempt.questionCount} questions - {attempt.correctCount} correct</Text>
+            </View>
+            <Badge label={`${attempt.accuracyPercent}%`} tone="teal" />
           </View>
-          <Badge label="Resume" tone="blue" />
-        </View>
-        <View style={styles.activityRow}>
-          <LearningIconBubble icon={learningIcons.check} tone="teal" size={36} />
-          <View style={styles.activityCopy}>
-            <Text style={styles.cardTitle}>Conversation Function Drill</Text>
-            <Text style={styles.bodyText}>8 questions - 6 correct</Text>
-          </View>
-          <Badge label="Reviewed" tone="teal" />
-        </View>
+        )) : <Text style={styles.bodyText}>No completed listening practice yet.</Text>}
       </View>
     </Card>
   );
@@ -354,6 +389,8 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
   const { width } = useWindowDimensions();
   const [hubSync, setHubSync] = useState({ version: 0, loading: true, error: "" });
   const [hubRefreshToken, setHubRefreshToken] = useState(0);
+  const [attempts, setAttempts] = useState<ListeningAttempt[]>(() => readListeningAttempts(user.id));
+  const [progressItems, setProgressItems] = useState<ListeningProgress[]>(() => readListeningProgressCatalog(user.id));
   const [modeId, setModeId] = useState<ListeningPracticeModeId>('focused-practice');
   const modes = getListeningPracticeModes();
   const selectedMode = modes.find((mode) => mode.id === modeId) ?? modes[1];
@@ -374,11 +411,24 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
     return () => { active = false; };
   }, [hubRefreshToken]);
 
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void Promise.all([loadListeningAttempts(user.id), loadListeningProgressCatalog(user.id)])
+      .then(([nextAttempts, nextProgress]) => {
+        if (!active) return;
+        setAttempts(nextAttempts);
+        setProgressItems(nextProgress);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [user.id]));
+
   const hubItems = getListeningHubItems();
+  const latestProgress = useMemo(() => getLatestListeningProgress(progressItems), [progressItems]);
 
   const metrics = useMemo(
-    () => getListeningOverview().map((metric) => ({ ...metric, icon: iconFor(metric.iconKey) })),
-    [],
+    () => buildLiveListeningMetrics(attempts).map((metric) => ({ ...metric, icon: iconFor(metric.iconKey) })),
+    [attempts],
   );
 
   const applyMode = (mode: ListeningPracticeMode) => {
@@ -395,7 +445,13 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
     setHubRefreshToken((value) => value + 1);
   };
 
-  const openContinue = () => openPractice(selectionFromContinue());
+  const openContinue = () => {
+    if (latestProgress) {
+      router.push(latestProgress.href as Href);
+      return;
+    }
+    if (hubItems[0]) router.push(hubItems[0].href as Href);
+  };
   const openHubItem = (item: ListeningHubDisplayItem) => router.push(item.href as Href);
   const isHubLoading = hubSync.loading && hubItems.length === 0;
   const isHubError = Boolean(hubSync.error) && hubItems.length === 0;
@@ -413,7 +469,7 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
       />
 
       <LearningMetricGrid metrics={metrics} />
-      <ContinueLearningCard onContinue={openContinue} />
+      <ContinueListeningCard progress={latestProgress} fallback={hubItems[0] ?? null} onContinue={openContinue} />
 
       <View style={[styles.mainGrid, isWide ? styles.mainGridWide : null]}>
         <View style={styles.primaryColumn}>
@@ -432,7 +488,7 @@ export function ListeningLearningHub({ user }: ListeningLearningHubProps) {
         <View style={styles.sideColumn}>
           <LearningChainCard selection={selection} onStart={() => openPractice()} />
           <SessionRulesCard mode={selectedMode} />
-          <RecentActivityCard />
+          <RecentActivityCard attempts={attempts} />
           {user.plan === 'free' ? (
             <Card style={styles.premiumNudge} contentStyle={styles.premiumBody}>
               <Text style={styles.orangeLabel}>PREMIUM CONTEXT</Text>
@@ -511,5 +567,3 @@ const styles = StyleSheet.create({
   premiumNudge: { borderColor: '#f3dfa3', backgroundColor: studentTokens.yellowSoft, borderRadius: 11 },
   premiumBody: { gap: 8 },
 });
-
-

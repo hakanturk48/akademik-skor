@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type DimensionValue } from 'react-native';
@@ -14,7 +14,16 @@ import {
   getListeningSelectionFromParams,
   getListeningSubskillById,
   getListeningTaskTypeById,
+  createListeningPracticeHref,
+  createListeningAttempt,
+  buildListeningProgress,
+  cacheListeningProgress,
+  loadListeningProgressCatalog,
+  readListeningProgressCatalog,
+  saveListeningAttempt,
+  saveListeningProgress,
   syncPublishedListeningHubItems,
+  type ListeningAttempt,
   type ListeningHubDisplayItem,
   type ListeningSelection,
 } from '@/lib/listening';
@@ -378,10 +387,13 @@ function mediaLooksAudioSource(mimeType?: string, mediaUrl?: string) {
   return /\.(mp3|m4a|aac|wav|ogg|opus)$/.test(url);
 }
 
-function addListeningPreviewEnd(embedUrl: string | null, provider: ListeningPracticeContext['mediaProvider'], previewSeconds: number) {
-  if (!embedUrl || provider !== 'youtube' || previewSeconds <= 0) return embedUrl;
-  const separator = embedUrl.includes('?') ? '&' : '?';
-  return embedUrl + separator + 'end=' + Math.max(1, Math.floor(previewSeconds));
+function addListeningPlaybackRange(embedUrl: string | null, provider: ListeningPracticeContext['mediaProvider'], previewSeconds: number, startSeconds: number) {
+  if (!embedUrl || provider !== 'youtube') return embedUrl;
+  const params: string[] = [];
+  if (startSeconds > 0) params.push('start=' + Math.max(1, Math.floor(startSeconds)));
+  if (previewSeconds > 0) params.push('end=' + Math.max(1, Math.floor(previewSeconds)));
+  if (!params.length) return embedUrl;
+  return embedUrl + (embedUrl.includes('?') ? '&' : '?') + params.join('&');
 }
 
 function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange }: { compact: boolean; context: ListeningPracticeContext; fullAccess: boolean; playback: PlaybackSnapshot; onPlaybackChange: (value: PlaybackSnapshot) => void }) {
@@ -397,7 +409,7 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
   const previewSeconds = context.isPremium && !fullAccess ? Math.min(context.previewDurationSeconds, context.durationSeconds) : 0;
   const canPlayMedia = !context.isPremium || fullAccess || previewSeconds > 0;
   const rawEmbedUrl = context.mediaProvider === "upload" ? null : getVideoEmbedUrl(context.mediaProvider, context.mediaUrl);
-  const embedUrl = canPlayMedia ? addListeningPreviewEnd(rawEmbedUrl, context.mediaProvider, previewSeconds) : null;
+  const embedUrl = canPlayMedia ? addListeningPlaybackRange(rawEmbedUrl, context.mediaProvider, previewSeconds, playback.currentSeconds) : null;
   const uploadedMediaIsAudio = mediaLooksAudioSource(context.mediaMimeType, context.mediaUrl);
   const uploadedMediaAvailable = Boolean(context.mediaProvider === "upload" && uploadedMediaUrl && canPlayMedia);
   const controlsAvailable = Boolean(uploadedMediaAvailable && Platform.OS === "web");
@@ -421,6 +433,15 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
       currentSeconds = durationSeconds;
     }
     onPlaybackChange({ currentSeconds, durationSeconds });
+  };
+  const restorePlaybackFromMedia = (event: { currentTarget?: MediaElementHandle }) => {
+    const media = event.currentTarget;
+    if (!media) return;
+    const rawDuration = Number(media.duration);
+    const mediaDuration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : context.durationSeconds;
+    const durationSeconds = previewSeconds > 0 ? Math.min(previewSeconds, mediaDuration) : mediaDuration;
+    if (safeCurrent > 0) media.currentTime = clampSeconds(safeCurrent, 0, Math.max(0, durationSeconds - 1));
+    updatePlaybackFromMedia(event);
   };
   const seekBy = (deltaSeconds: number) => {
     const media = getMediaElement();
@@ -455,6 +476,13 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
     };
   }, [context.mediaProvider, context.mediaUrl]);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined" || safeCurrent <= 0) return;
+    const media = document.getElementById(mediaElementId) as MediaElementHandle | null;
+    if (!media || Math.abs((Number(media.currentTime) || 0) - safeCurrent) < 2) return;
+    media.currentTime = safeCurrent;
+  }, [mediaElementId, safeCurrent]);
+
   return (
     <Card style={[styles.playerCard, compact ? styles.playerCardCompact : null]} contentStyle={[styles.playerBody, compact ? styles.playerBodyCompact : null]}>
       {embedUrl && Platform.OS === "web" ? (
@@ -469,7 +497,7 @@ function AudioPlayer({ compact, context, fullAccess, playback, onPlaybackChange 
         </View>
       ) : uploadedMediaAvailable && Platform.OS === "web" ? (
         <View style={uploadedMediaIsAudio ? styles.uploadedAudioWrap : styles.embeddedPlayer}>
-          {uploadedMediaIsAudio ? createElement("audio", { id: mediaElementId, src: uploadedMediaUrl, controls: true, onLoadedMetadata: updatePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", display: "block" } }) : createElement("video", { id: mediaElementId, src: uploadedMediaUrl, controls: true, playsInline: true, onLoadedMetadata: updatePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#08142e" } })}
+          {uploadedMediaIsAudio ? createElement("audio", { id: mediaElementId, src: uploadedMediaUrl, controls: true, onLoadedMetadata: restorePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", display: "block" } }) : createElement("video", { id: mediaElementId, src: uploadedMediaUrl, controls: true, playsInline: true, onLoadedMetadata: restorePlaybackFromMedia, onTimeUpdate: updatePlaybackFromMedia, onSeeked: updatePlaybackFromMedia, onEnded: updatePlaybackFromMedia, style: { width: "100%", height: "100%", display: "block", objectFit: "contain", backgroundColor: "#08142e" } })}
         </View>
       ) : uploadedMediaAvailable ? (
         <View style={[styles.playerTopRow, compact ? styles.playerTopRowCompact : null]}>
@@ -570,6 +598,13 @@ type QuestionPanelState = {
   activeIndex: number;
   selections: Record<number, string>;
   submitted: Record<number, boolean>;
+  answeredAtSeconds: Record<number, number>;
+  startedAt: string;
+};
+
+type AttemptResultState = {
+  attempt: ListeningAttempt;
+  saveStatus: 'saving' | 'firestore' | 'local';
 };
 
 function QuestionNavigator({ total, activeIndex, answeredIndexes, onSelect }: { total: number; activeIndex: number; answeredIndexes: Set<number>; onSelect: (index: number) => void }) {
@@ -603,11 +638,38 @@ function AnswerRow({ item, selected, submitted, isCorrect, onPress }: { item: An
   );
 }
 
-function QuestionsPanel({ compact, context, remainingSeconds }: { compact: boolean; context: ListeningPracticeContext; remainingSeconds: number }) {
+function QuestionsPanel({
+  compact,
+  context,
+  user,
+  remainingSeconds,
+  timeLimitSeconds,
+  onCompleted,
+  onRestart,
+}: {
+  compact: boolean;
+  context: ListeningPracticeContext;
+  user: AuthUser;
+  remainingSeconds: number;
+  timeLimitSeconds: number;
+  onCompleted: (attempt: ListeningAttempt) => void;
+  onRestart: () => void;
+}) {
+  const router = useRouter();
   const questionTotal = Math.max(1, context.questions.length || context.questionCount);
   const questionKey = (context.hubItem?.id ?? context.title) + "|" + String(questionTotal);
-  const defaultQuestionState = useMemo<QuestionPanelState>(() => ({ key: questionKey, activeIndex: 0, selections: {}, submitted: {} }), [questionKey]);
+  const defaultQuestionState = useMemo<QuestionPanelState>(() => ({
+    key: questionKey,
+    activeIndex: 0,
+    selections: {},
+    submitted: {},
+    answeredAtSeconds: {},
+    startedAt: new Date().toISOString(),
+  }), [questionKey]);
   const [storedQuestionState, setQuestionState] = useState<QuestionPanelState>(() => defaultQuestionState);
+  const [resultState, setResultState] = useState<AttemptResultState | null>(null);
+  const [reviewMode, setReviewMode] = useState(false);
+  const completionStarted = useRef(false);
   const questionState = storedQuestionState.key === questionKey ? storedQuestionState : defaultQuestionState;
   const activeIndex = Math.min(Math.max(questionState.activeIndex, 0), questionTotal - 1);
   const currentQuestion = context.questions[activeIndex] ?? context.questions[0] ?? fallbackListeningQuestion;
@@ -628,17 +690,131 @@ function QuestionsPanel({ compact, context, remainingSeconds }: { compact: boole
       return { ...base, selections: { ...base.selections, [activeIndex]: key } };
     });
   }, [activeIndex, defaultQuestionState, questionKey]);
-  const submitAnswer = useCallback(() => {
-    if (!selectedKey) return;
-    setQuestionState((current) => {
-      const base = current.key === questionKey ? current : defaultQuestionState;
-      return { ...base, submitted: { ...base.submitted, [activeIndex]: true } };
+  const finishAttempt = useCallback((state: QuestionPanelState, status: 'completed' | 'timed-out') => {
+    if (completionStarted.current) return;
+    completionStarted.current = true;
+
+    const responses = Array.from({ length: questionTotal }, (_, questionIndex) => {
+      const question = context.questions[questionIndex] ?? (questionIndex === 0 ? fallbackListeningQuestion : undefined);
+      const wasSubmitted = Boolean(state.submitted[questionIndex]);
+      const selectedOptionKey = wasSubmitted ? state.selections[questionIndex] ?? null : null;
+      const correctOptionKey = question?.correctOptionKey ?? null;
+      return {
+        questionIndex,
+        selectedOptionKey,
+        correctOptionKey,
+        isCorrect: wasSubmitted && correctOptionKey ? selectedOptionKey === correctOptionKey : null,
+        answeredAtSeconds: wasSubmitted ? state.answeredAtSeconds[questionIndex] ?? null : null,
+      };
     });
-  }, [activeIndex, defaultQuestionState, questionKey, selectedKey]);
+    const answeredCount = responses.filter((item) => item.selectedOptionKey !== null).length;
+    const correctCount = responses.filter((item) => item.isCorrect === true).length;
+    const incorrectCount = responses.filter((item) => item.isCorrect === false).length;
+    const timeSpentSeconds = Math.min(timeLimitSeconds, Math.max(0, timeLimitSeconds - remainingSeconds));
+    const attempt = createListeningAttempt({
+      userId: user.id,
+      contentId: context.hubItem?.id ?? context.hubItem?.slug ?? questionKey,
+      contentTitle: context.title,
+      topicId: context.hubItem?.topicId ?? null,
+      taskTypeId: context.selection.taskTypeId,
+      subskillId: context.selection.subskillId,
+      difficultyId: context.selection.difficultyId,
+      lengthId: context.selection.lengthId,
+      sessionMode: context.selection.sessionMode,
+      startedAt: state.startedAt,
+      completedAt: new Date().toISOString(),
+      status,
+      questionCount: questionTotal,
+      answeredCount,
+      correctCount,
+      incorrectCount,
+      unansweredCount: questionTotal - answeredCount,
+      accuracyPercent: Math.round(correctCount / questionTotal * 100),
+      timeLimitSeconds,
+      timeSpentSeconds,
+      responses,
+    });
+
+    setResultState({ attempt, saveStatus: 'saving' });
+    setReviewMode(false);
+    onCompleted(attempt);
+    void saveListeningAttempt(attempt)
+      .then((saved) => {
+        setResultState((current) => current?.attempt.id === attempt.id ? { attempt, saveStatus: saved.destination } : current);
+      })
+      .catch(() => {
+        setResultState((current) => current?.attempt.id === attempt.id ? { attempt, saveStatus: 'local' } : current);
+      });
+  }, [context, onCompleted, questionKey, questionTotal, remainingSeconds, timeLimitSeconds, user.id]);
+  const submitAnswer = useCallback(() => {
+    if (!selectedKey || submitted || resultState) return;
+    const nextState: QuestionPanelState = {
+      ...questionState,
+      submitted: { ...questionState.submitted, [activeIndex]: true },
+      answeredAtSeconds: {
+        ...questionState.answeredAtSeconds,
+        [activeIndex]: Math.min(timeLimitSeconds, Math.max(0, timeLimitSeconds - remainingSeconds)),
+      },
+    };
+    setQuestionState(nextState);
+    if (Object.keys(nextState.submitted).length >= questionTotal) finishAttempt(nextState, 'completed');
+  }, [activeIndex, finishAttempt, questionState, questionTotal, remainingSeconds, resultState, selectedKey, submitted, timeLimitSeconds]);
   const goToQuestion = useCallback((delta: number) => selectQuestion(activeIndex + delta), [activeIndex, selectQuestion]);
+  const restartAttempt = useCallback(() => {
+    completionStarted.current = false;
+    setQuestionState({ ...defaultQuestionState, startedAt: new Date().toISOString() });
+    setResultState(null);
+    setReviewMode(false);
+    onRestart();
+  }, [defaultQuestionState, onRestart]);
+
+  useEffect(() => {
+    if (remainingSeconds > 0 || resultState || completionStarted.current) return;
+    finishAttempt(questionState, 'timed-out');
+  }, [finishAttempt, questionState, remainingSeconds, resultState]);
+
+  if (resultState && !reviewMode) {
+    const { attempt, saveStatus } = resultState;
+    const saveMessage = saveStatus === 'saving'
+      ? 'Saving your result...'
+      : saveStatus === 'firestore'
+        ? 'Result saved to your learning history.'
+        : 'Result saved on this device; the cloud record could not be written.';
+    return (
+      <Card testID="listening-attempt-result" style={styles.practiceCard} contentStyle={styles.resultBody}>
+        <View style={styles.resultIconBox}>
+          <SymbolView name={checkSymbol} tintColor={studentTokens.teal} size={24} style={styles.resultIcon} />
+        </View>
+        <Text style={styles.resultEyebrow}>{attempt.status === 'timed-out' ? 'TIME ENDED' : 'PRACTICE COMPLETE'}</Text>
+        <Text style={styles.resultScore}>{attempt.accuracyPercent}%</Text>
+        <Text style={styles.resultTitle}>{attempt.correctCount} of {attempt.questionCount} correct</Text>
+        <Text style={styles.resultMessage}>
+          {attempt.accuracyPercent >= 80
+            ? 'Strong result. Continue with a harder listening set.'
+            : attempt.accuracyPercent >= 60
+              ? 'Good start. Review the missed item before the next set.'
+              : 'Review the explanation and repeat this subskill once more.'}
+        </Text>
+        <View style={styles.resultStats}>
+          <View style={styles.resultStat}><Text style={styles.resultStatValue}>{attempt.answeredCount}</Text><Text style={styles.resultStatLabel}>Answered</Text></View>
+          <View style={styles.resultStat}><Text style={styles.resultStatValue}>{attempt.incorrectCount}</Text><Text style={styles.resultStatLabel}>Incorrect</Text></View>
+          <View style={styles.resultStat}><Text style={styles.resultStatValue}>{attempt.unansweredCount}</Text><Text style={styles.resultStatLabel}>Unanswered</Text></View>
+          <View style={styles.resultStat}><Text style={styles.resultStatValue}>{formatVideoTimestamp(attempt.timeSpentSeconds)}</Text><Text style={styles.resultStatLabel}>Time used</Text></View>
+        </View>
+        <Text style={[styles.resultSaveText, saveStatus === 'local' ? styles.resultSaveTextLocal : null]}>{saveMessage}</Text>
+        <View style={[styles.resultActions, compact ? styles.questionActionsCompact : null]}>
+          <Button label="Review Answers" variant="secondary" size="sm" onPress={() => setReviewMode(true)} style={styles.resultActionButton} />
+          <Button label="Practice Again" size="sm" onPress={restartAttempt} style={styles.resultActionButton} />
+          <Button label="Back to Listening" variant="ghost" size="sm" onPress={() => router.push('/listening' as Href)} style={[styles.resultActionButton, styles.resultBackButton]} textStyle={styles.nextButtonText} />
+        </View>
+      </Card>
+    );
+  }
   const noticeText = context.selection.sessionMode === "exam"
     ? "Exam mode: feedback and transcript stay hidden until submission."
-    : submitted
+    : resultState
+      ? "Review mode: your submitted answer and the correct option are shown."
+      : submitted
       ? explanation || "Answer saved. Continue to the next question when you are ready."
       : "Choose an answer, then submit to see the explanation.";
 
@@ -677,8 +853,14 @@ function QuestionsPanel({ compact, context, remainingSeconds }: { compact: boole
       </View>
       <View style={[styles.questionActions, compact ? styles.questionActionsCompact : null]}>
         <Button label="Back" size="sm" variant="secondary" onPress={() => goToQuestion(-1)} disabled={activeIndex === 0} style={[styles.backButton, compact ? styles.actionButtonCompact : null]} />
-        <Button label="Submit Answer" size="sm" variant="secondary" left={<SymbolView name={sendSymbol} tintColor={studentTokens.orange} size={14} style={styles.buttonIcon} />} onPress={submitAnswer} disabled={!selectedKey || submitted} style={[styles.submitButton, compact ? styles.actionButtonCompact : null]} />
-        <Button label="Next" size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} onPress={() => goToQuestion(1)} disabled={activeIndex >= questionTotal - 1} style={[styles.nextButton, compact ? styles.actionButtonCompact : null]} textStyle={styles.nextButtonText} />
+        {resultState ? (
+          <Button label={activeIndex >= questionTotal - 1 ? "View Result" : "Next"} size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} onPress={() => activeIndex >= questionTotal - 1 ? setReviewMode(false) : goToQuestion(1)} style={[styles.nextButton, compact ? styles.actionButtonCompact : null]} textStyle={styles.nextButtonText} />
+        ) : (
+          <>
+            <Button label="Submit Answer" size="sm" variant="secondary" left={<SymbolView name={sendSymbol} tintColor={studentTokens.orange} size={14} style={styles.buttonIcon} />} onPress={submitAnswer} disabled={!selectedKey || submitted} style={[styles.submitButton, compact ? styles.actionButtonCompact : null]} />
+            <Button label="Next" size="sm" variant="ghost" right={<SymbolView name={arrowSymbol} tintColor="#ffffff" size={13} style={styles.buttonIcon} />} onPress={() => goToQuestion(1)} disabled={activeIndex >= questionTotal - 1 || !submitted} style={[styles.nextButton, compact ? styles.actionButtonCompact : null]} textStyle={styles.nextButtonText} />
+          </>
+        )}
       </View>
     </Card>
   );
@@ -788,7 +970,8 @@ function StudyTipPanel({ context }: { context: ListeningPracticeContext }) {
   );
 }
 
-function ScoreNudge() {
+function ScoreNudge({ attempt }: { attempt: ListeningAttempt | null }) {
+  const progress = attempt?.accuracyPercent ?? 0;
   return (
     <Card style={styles.nudgeCard} contentStyle={styles.nudgeBody}>
       <View style={styles.nudgeLeft}>
@@ -796,11 +979,15 @@ function ScoreNudge() {
           <SymbolView name={flameSymbol} tintColor={studentTokens.orange} size={18} style={styles.nudgeIcon} />
         </View>
         <View style={styles.nudgeCopy}>
-          <Text style={styles.nudgeTitle}>Listening section momentum</Text>
-          <Text style={styles.nudgeText}>You are 2 points away from 24/30 in Listening. Finish this set and review missed details.</Text>
+          <Text style={styles.nudgeTitle}>{attempt ? 'Listening result recorded' : 'Listening evidence'}</Text>
+          <Text style={styles.nudgeText}>
+            {attempt
+              ? `${attempt.accuracyPercent}% accuracy from ${attempt.questionCount} question${attempt.questionCount === 1 ? '' : 's'} was added to your ${attempt.subskillId.replace(/-/g, ' ')} history.`
+              : 'Complete this set to add an accuracy and timing result to your listening skill history.'}
+          </Text>
         </View>
       </View>
-      <Progress value={73} color={studentTokens.teal} style={styles.nudgeProgress} />
+      <Progress value={progress} color={studentTokens.teal} style={styles.nudgeProgress} />
     </Card>
   );
 }
@@ -837,6 +1024,9 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
   const params = useLocalSearchParams<ListeningSearchParams>();
   const [hubVersion, setHubVersion] = useState(0);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [attemptSequence, setAttemptSequence] = useState(0);
+  const [attemptCompleted, setAttemptCompleted] = useState(false);
+  const [latestAttempt, setLatestAttempt] = useState<ListeningAttempt | null>(null);
   const context = useMemo(() => {
     void hubVersion;
     return resolveListeningPracticeContext(params);
@@ -847,7 +1037,17 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
   const isCompact = width < 620;
   const [mobilePanel, setMobilePanel] = useState<"notes" | "questions">("notes");
   const fullAccess = !context.isPremium || getEntitlementAccess(user, "video-full-access").allowed;
+  const progressContentId = context.hubItem?.id ?? context.hubItem?.slug ?? [
+    context.selection.taskTypeId,
+    context.selection.subskillId,
+    context.selection.difficultyId,
+    context.selection.lengthId,
+    context.selection.sessionMode,
+  ].join("-");
+  const progressHref = createListeningPracticeHref(context.selection) + (context.hubItem ? "&hub=" + encodeURIComponent(context.hubItem.id) : "");
+  const initialProgress = readListeningProgressCatalog(user.id).find((item) => item.contentId === progressContentId) ?? null;
   const playbackKey = [
+    progressContentId,
     context.mediaProvider,
     context.mediaUrl,
     String(context.durationSeconds),
@@ -856,19 +1056,70 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
     fullAccess ? "full" : "preview",
   ].join("|");
   const effectivePlaybackDuration = getEffectivePlaybackDuration(context, fullAccess);
-  const defaultPlayback = useMemo<PlaybackSnapshot>(() => ({ currentSeconds: 0, durationSeconds: effectivePlaybackDuration }), [effectivePlaybackDuration]);
+  const defaultPlayback = useMemo<PlaybackSnapshot>(() => ({
+    currentSeconds: Math.min(initialProgress?.currentSeconds ?? 0, effectivePlaybackDuration),
+    durationSeconds: effectivePlaybackDuration,
+  }), [effectivePlaybackDuration, initialProgress?.currentSeconds]);
   const [storedPlayback, setStoredPlayback] = useState<PlaybackState>(() => ({ ...defaultPlayback, sourceKey: playbackKey }));
   const playback: PlaybackSnapshot = storedPlayback.sourceKey === playbackKey ? storedPlayback : defaultPlayback;
+  const lastCachedPlayback = useRef({ key: playbackKey, seconds: initialProgress?.currentSeconds ?? -2 });
+  const lastSavedPlayback = useRef({ key: playbackKey, seconds: initialProgress?.currentSeconds ?? -10 });
   const questionLimitSeconds = useMemo(() => getToeflListeningQuestionLimitSeconds(Math.max(1, context.questions.length || context.questionCount)), [context.questionCount, context.questions.length]);
-  const questionTimerKey = [playbackKey, String(questionLimitSeconds)].join("|");
+  const questionTimerKey = [playbackKey, String(questionLimitSeconds), String(attemptSequence)].join("|");
   const [questionTimer, setQuestionTimer] = useState(() => ({ key: questionTimerKey, elapsedSeconds: 0 }));
   const effectiveQuestionTimer = questionTimer.key === questionTimerKey ? questionTimer : { key: questionTimerKey, elapsedSeconds: 0 };
   const remainingQuestionSeconds = Math.max(0, questionLimitSeconds - effectiveQuestionTimer.elapsedSeconds);
   const handlePlaybackChange = useCallback((value: PlaybackSnapshot) => {
     setStoredPlayback({ ...value, sourceKey: playbackKey });
-  }, [playbackKey]);
+    const previous = readListeningProgressCatalog(user.id).find((item) => item.contentId === progressContentId) ?? null;
+    const progress = buildListeningProgress({
+      previous,
+      userId: user.id,
+      contentId: progressContentId,
+      contentTitle: context.title,
+      subtitle: context.meta,
+      href: progressHref,
+      taskTypeId: context.selection.taskTypeId,
+      subskillId: context.selection.subskillId,
+      difficultyId: context.selection.difficultyId,
+      lengthId: context.selection.lengthId,
+      sessionMode: context.selection.sessionMode,
+      currentSeconds: value.currentSeconds,
+      durationSeconds: context.durationSeconds,
+    });
+    const cachedSeconds = lastCachedPlayback.current.key === playbackKey ? lastCachedPlayback.current.seconds : -2;
+    if (Math.abs(progress.currentSeconds - cachedSeconds) >= 1 || progress.completed) {
+      cacheListeningProgress(progress);
+      lastCachedPlayback.current = { key: playbackKey, seconds: progress.currentSeconds };
+    }
+    const savedSeconds = lastSavedPlayback.current.key === playbackKey ? lastSavedPlayback.current.seconds : -10;
+    if (Math.abs(progress.currentSeconds - savedSeconds) >= 5 || progress.completed) {
+      lastSavedPlayback.current = { key: playbackKey, seconds: progress.currentSeconds };
+      void saveListeningProgress(progress).catch(() => {});
+    }
+  }, [context, playbackKey, progressContentId, progressHref, user.id]);
 
   useEffect(() => {
+    let active = true;
+    void loadListeningProgressCatalog(user.id)
+      .then((items) => {
+        if (!active) return;
+        const saved = items.find((item) => item.contentId === progressContentId);
+        if (!saved) return;
+        const currentSeconds = Math.min(saved.currentSeconds, effectivePlaybackDuration);
+        setStoredPlayback((current) => {
+          if (current.sourceKey === playbackKey && current.currentSeconds > currentSeconds) return current;
+          return { sourceKey: playbackKey, currentSeconds, durationSeconds: effectivePlaybackDuration };
+        });
+        lastCachedPlayback.current = { key: playbackKey, seconds: currentSeconds };
+        lastSavedPlayback.current = { key: playbackKey, seconds: currentSeconds };
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [effectivePlaybackDuration, playbackKey, progressContentId, user.id]);
+
+  useEffect(() => {
+    if (attemptCompleted) return;
     const timer = setInterval(() => {
       setQuestionTimer((current) => {
         const base = current.key === questionTimerKey ? current : { key: questionTimerKey, elapsedSeconds: 0 };
@@ -877,7 +1128,17 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [questionLimitSeconds, questionTimerKey]);
+  }, [attemptCompleted, questionLimitSeconds, questionTimerKey]);
+
+  const restartAttempt = useCallback(() => {
+    setAttemptCompleted(false);
+    setLatestAttempt(null);
+    setAttemptSequence((value) => value + 1);
+  }, []);
+  const completeAttempt = useCallback((attempt: ListeningAttempt) => {
+    setAttemptCompleted(true);
+    setLatestAttempt(attempt);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -900,12 +1161,12 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
           {isCompact ? (
             <View style={styles.mobilePracticeStack}>
               <MobilePanelToggle value={mobilePanel} onChange={setMobilePanel} />
-              {mobilePanel === 'notes' ? <NotesPanel context={context} userId={user.id} /> : <QuestionsPanel compact context={context} remainingSeconds={remainingQuestionSeconds} />}
+              {mobilePanel === 'notes' ? <NotesPanel context={context} userId={user.id} /> : <QuestionsPanel key={questionTimerKey} compact context={context} user={user} remainingSeconds={remainingQuestionSeconds} timeLimitSeconds={questionLimitSeconds} onCompleted={completeAttempt} onRestart={restartAttempt} />}
             </View>
           ) : (
             <View style={[styles.practiceGrid, isTablet ? styles.practiceGridWide : null]}>
               <NotesPanel context={context} userId={user.id} />
-              <QuestionsPanel compact={isCompact} context={context} remainingSeconds={remainingQuestionSeconds} />
+              <QuestionsPanel key={questionTimerKey} compact={isCompact} context={context} user={user} remainingSeconds={remainingQuestionSeconds} timeLimitSeconds={questionLimitSeconds} onCompleted={completeAttempt} onRestart={restartAttempt} />
             </View>
           )}
         </View>
@@ -915,7 +1176,7 @@ export function ListeningPractice({ user }: { user: AuthUser }) {
           <StudyTipPanel context={context} />
         </View>
       </View>
-      <ScoreNudge />
+      <ScoreNudge attempt={latestAttempt} />
     </View>
   );
 }
@@ -994,6 +1255,22 @@ const styles = StyleSheet.create({
   notesFooter: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   footerText: { fontFamily: fontFamily, color: '#6e778b', fontSize: 8, lineHeight: 11, fontWeight: '700' },
   questionBody: { padding: 14, gap: 10 },
+  resultBody: { minHeight: 410, padding: 18, alignItems: 'center', justifyContent: 'center', gap: 9 },
+  resultIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: studentTokens.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  resultIcon: { width: 24, height: 24 },
+  resultEyebrow: { fontFamily: fontFamily, color: studentTokens.teal, fontSize: 9, lineHeight: 12, fontWeight: '700' },
+  resultScore: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 36, lineHeight: 42, fontWeight: '700' },
+  resultTitle: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  resultMessage: { maxWidth: 430, fontFamily: fontFamily, color: studentTokens.text, fontSize: 10, lineHeight: 15, fontWeight: '600', textAlign: 'center' },
+  resultStats: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  resultStat: { flex: 1, minWidth: 92, minHeight: 58, borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: studentTokens.neutral, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7 },
+  resultStatValue: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  resultStatLabel: { fontFamily: fontFamily, color: studentTokens.muted, fontSize: 8, lineHeight: 11, fontWeight: '700', marginTop: 2 },
+  resultSaveText: { fontFamily: fontFamily, color: studentTokens.teal, fontSize: 9, lineHeight: 13, fontWeight: '700', textAlign: 'center' },
+  resultSaveTextLocal: { color: studentTokens.yellowDeep },
+  resultActions: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 4 },
+  resultActionButton: { flex: 1, minWidth: 120, minHeight: 36, borderRadius: 7 },
+  resultBackButton: { backgroundColor: studentTokens.navy, borderColor: studentTokens.navy },
   cardLabelOrange: { fontFamily: fontFamily, color: studentTokens.orange, fontSize: 9, lineHeight: 12, fontWeight: '700' },
   questionProgress: { fontFamily: fontFamily, color: studentTokens.ink, fontSize: 10, lineHeight: 14, fontWeight: '700', marginTop: 4 },
   timeLimitPill: { minHeight: 35, borderRadius: 9, backgroundColor: studentTokens.yellowSoft, borderWidth: 1, borderColor: '#f3dfa3', paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },

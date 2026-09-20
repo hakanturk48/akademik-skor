@@ -951,7 +951,7 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                 </View>
                 <View>
                   <Text style={styles.formLabel}>Listening Hub içeriği</Text>
-                  <Text style={styles.formHelper}>Bu modül konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci doğru-yanlış, mastery veya oturum geçmişi burada tutulmaz.</Text>
+                  <Text style={styles.formHelper}>Bu modül konu bazlı listening parçasını ve practice yönlendirmesini yayınlar. Öğrenci deneme sonuçları içerik kaydında değil, kendi profilindeki listeningAttempts geçmişinde tutulur.</Text>
                 </View>
                 <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
                   <CatalogSelector label="Konu" options={listeningTopicOptions} value={draft.listeningTopicId} onChange={(listeningTopicId) => setField("listeningTopicId", listeningTopicId)} />

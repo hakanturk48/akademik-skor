@@ -8,6 +8,7 @@ import { Button, Card, EmptyState, ErrorState, Skeleton, studentTokens } from '@
 import type { AuthUser } from '@/lib/auth';
 import { getEntitlementAccess } from '@/lib/permissions';
 import { formatVideoTimestamp } from '@/lib/video-media';
+import { loadVideoProgressCatalog, readVideoProgress, type VideoProgress } from '@/lib/video-progress';
 import {
   discoverVideoLessons,
   getVideoLessonCatalog,
@@ -434,6 +435,7 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   const [sort, setSort] = useState<VideoSortMode>(initial.sort);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [catalogSync, setCatalogSync] = useState({ version: 0, loading: true, error: '' });
+  const [progressCatalog, setProgressCatalog] = useState<Record<string, VideoProgress>>({});
 
   useEffect(() => {
     let active = true;
@@ -443,10 +445,22 @@ export function VideoLessons({ user }: VideoLessonsProps) {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    void loadVideoProgressCatalog(user.id)
+      .then((next) => { if (active) setProgressCatalog(next); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [user.id]);
+
   const taskOptions = useMemo(() => getVideoTaskFilters(category), [category]);
   const subskillOptions = useMemo(() => getVideoSubskillFilters(task), [task]);
   const filters = useMemo(() => ({ query, category, task, subskill, level, duration, access, sort }), [access, category, duration, level, query, sort, subskill, task]);
-  const catalog = getVideoLessonCatalog();
+  const applySavedProgress = (lesson: VideoLesson) => {
+    const saved = progressCatalog[lesson.id] ?? readVideoProgress(user.id, lesson.id);
+    return { ...lesson, progress: saved?.progressPercent ?? 0 };
+  };
+  const catalog = getVideoLessonCatalog().map(applySavedProgress);
   const overviewStats = buildVideoOverviewStats(catalog);
   const featured = selectFeaturedLesson(catalog);
   const dataError = Boolean(catalogSync.error) && catalog.length === 0;
@@ -477,7 +491,7 @@ export function VideoLessons({ user }: VideoLessonsProps) {
   };
 
   const resetFilters = () => applyFilters({ query: '', category: 'all', task: 'all', subskill: 'all', level: 'all', duration: 'all', access: 'all', sort: 'recommended' });
-  const visibleLessons = discoverVideoLessons(filters);
+  const visibleLessons = discoverVideoLessons(filters).map(applySavedProgress);
   const sortLabel = videoSortFilters.find((item) => item.value === sort)?.label ?? 'Recommended';
   const levelLabel = videoLevelFilters.find((item) => item.value === level)?.label ?? 'All';
   const durationLabel = videoDurationFilters.find((item) => item.value === duration)?.label ?? 'Any';

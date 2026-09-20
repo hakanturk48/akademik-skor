@@ -28,6 +28,163 @@ service cloud.firestore {
         && (!changedProfileKeys().hasAny(['emailVerified']) || request.resource.data.emailVerified == request.auth.token.email_verified);
     }
 
+    function validListeningAttempt(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'id', 'schemaVersion', 'userId', 'contentId', 'contentTitle', 'topicId',
+          'taskTypeId', 'subskillId', 'difficultyId', 'lengthId', 'sessionMode',
+          'startedAt', 'completedAt', 'status', 'questionCount', 'answeredCount',
+          'correctCount', 'incorrectCount', 'unansweredCount', 'accuracyPercent',
+          'timeLimitSeconds', 'timeSpentSeconds', 'responses', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && data.schemaVersion == 1
+        && data.contentId is string
+        && data.contentId.size() <= 160
+        && data.contentTitle is string
+        && data.contentTitle.size() <= 200
+        && data.status in ['completed', 'timed-out']
+        && data.questionCount is int
+        && data.questionCount >= 1
+        && data.questionCount <= 50
+        && data.answeredCount is int
+        && data.answeredCount >= 0
+        && data.answeredCount <= data.questionCount
+        && data.correctCount is int
+        && data.correctCount >= 0
+        && data.correctCount <= data.answeredCount
+        && data.incorrectCount is int
+        && data.unansweredCount is int
+        && data.accuracyPercent is int
+        && data.accuracyPercent >= 0
+        && data.accuracyPercent <= 100
+        && data.timeLimitSeconds is int
+        && data.timeLimitSeconds > 0
+        && data.timeSpentSeconds is int
+        && data.timeSpentSeconds >= 0
+        && data.timeSpentSeconds <= data.timeLimitSeconds
+        && data.responses is list
+        && data.responses.size() == data.questionCount;
+    }
+
+    function validListeningProgress(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'schemaVersion', 'userId', 'contentId', 'contentTitle', 'subtitle', 'href',
+          'taskTypeId', 'subskillId', 'difficultyId', 'lengthId', 'sessionMode',
+          'currentSeconds', 'durationSeconds', 'progressPercent', 'completed',
+          'firstStartedAt', 'lastActivityAt', 'updatedAt'
+        ])
+        && data.schemaVersion == 1
+        && data.userId == userId
+        && data.contentId is string
+        && data.contentId.size() > 0
+        && data.contentId.size() <= 160
+        && data.contentTitle is string
+        && data.contentTitle.size() <= 200
+        && data.subtitle is string
+        && data.subtitle.size() <= 300
+        && data.href is string
+        && data.href.size() <= 600
+        && data.taskTypeId is string
+        && data.taskTypeId.size() <= 80
+        && data.subskillId is string
+        && data.subskillId.size() <= 80
+        && data.difficultyId is string
+        && data.difficultyId.size() <= 80
+        && data.lengthId is string
+        && data.lengthId.size() <= 80
+        && data.sessionMode in ['practice', 'exam']
+        && data.currentSeconds is int
+        && data.currentSeconds >= 0
+        && data.durationSeconds is int
+        && data.durationSeconds > 0
+        && data.currentSeconds <= data.durationSeconds
+        && data.progressPercent is int
+        && data.progressPercent >= 0
+        && data.progressPercent <= 100
+        && data.completed is bool
+        && data.firstStartedAt is string
+        && data.lastActivityAt is string
+        && data.updatedAt is timestamp;
+    }
+
+    function validReadingAttempt(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'id', 'schemaVersion', 'userId', 'contentId', 'contentTitle', 'passageTitle',
+          'questionType', 'startedAt', 'completedAt', 'status', 'questionCount',
+          'answeredCount', 'correctCount', 'incorrectCount', 'unansweredCount',
+          'markedCount', 'accuracyPercent', 'timeLimitSeconds', 'timeSpentSeconds',
+          'responses', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && data.schemaVersion == 1
+        && data.contentId is string
+        && data.contentId.size() <= 160
+        && data.contentTitle is string
+        && data.contentTitle.size() <= 200
+        && data.passageTitle is string
+        && data.passageTitle.size() <= 240
+        && data.questionType is string
+        && data.questionType.size() <= 120
+        && data.status in ['completed', 'timed-out']
+        && data.questionCount is int
+        && data.questionCount >= 1
+        && data.questionCount <= 50
+        && data.answeredCount is int
+        && data.answeredCount >= 0
+        && data.answeredCount <= data.questionCount
+        && data.correctCount is int
+        && data.correctCount >= 0
+        && data.correctCount <= data.answeredCount
+        && data.incorrectCount is int
+        && data.unansweredCount is int
+        && data.markedCount is int
+        && data.markedCount >= 0
+        && data.markedCount <= data.questionCount
+        && data.accuracyPercent is int
+        && data.accuracyPercent >= 0
+        && data.accuracyPercent <= 100
+        && data.timeLimitSeconds is int
+        && data.timeLimitSeconds > 0
+        && data.timeSpentSeconds is int
+        && data.timeSpentSeconds >= 0
+        && data.timeSpentSeconds <= data.timeLimitSeconds
+        && data.responses is list
+        && data.responses.size() == data.questionCount;
+    }
+
+    function validVideoProgress(userId, lessonId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'schemaVersion', 'userId', 'lessonId', 'lessonTitle', 'skill',
+          'currentSeconds', 'durationSeconds', 'progressPercent', 'completed',
+          'firstStartedAt', 'lastWatchedAt', 'completedAt', 'accessMode',
+          'createdAt', 'updatedAt'
+        ])
+        && data.schemaVersion == 1
+        && data.userId == userId
+        && data.lessonId == lessonId
+        && data.lessonTitle is string
+        && data.lessonTitle.size() <= 200
+        && data.skill is string
+        && data.skill.size() <= 80
+        && data.currentSeconds is int
+        && data.currentSeconds >= 0
+        && data.durationSeconds is int
+        && data.durationSeconds > 0
+        && data.currentSeconds <= data.durationSeconds
+        && data.progressPercent is int
+        && data.progressPercent >= 0
+        && data.progressPercent <= 100
+        && data.completed is bool
+        && data.firstStartedAt is string
+        && data.lastWatchedAt is string
+        && (data.completedAt == null || data.completedAt is string)
+        && data.accessMode in ['full', 'preview'];
+    }
+
     match /profiles/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn()
@@ -37,6 +194,40 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email;
       allow update: if safeOwnerProfileUpdate(userId) || isAdmin();
       allow delete: if false;
+
+      match /listeningAttempts/{attemptId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && validListeningAttempt(userId);
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      match /listeningProgress/{progressId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && validListeningProgress(userId);
+        allow delete: if false;
+      }
+
+      match /readingAttempts/{attemptId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && validReadingAttempt(userId);
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      match /videoProgress/{lessonId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && validVideoProgress(userId, lessonId);
+        allow delete: if false;
+      }
     }
 
     match /adminWorkspaces/{workspaceId} {

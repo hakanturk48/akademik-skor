@@ -50,7 +50,7 @@ const practiceRoute = read("src/app/practice/listening.tsx");
 });
 
 [
-  "ContinueLearningCard",
+  "ContinueListeningCard",
   "RecommendationList",
   "FocusedPracticeWizard",
   "LearningChainCard",
@@ -84,9 +84,23 @@ if (!practiceRoute.includes("ListeningPractice")) fail("Existing /practice/liste
   "Practice mode",
   "Exam mode",
   "getToeflListeningQuestionLimitSeconds",
+  "saveListeningAttempt",
+  "listening-attempt-result",
+  "Practice Again",
 ].forEach((token) => {
   if (!practice.includes(token)) fail("Missing practice responsive/mode token: " + token);
 });
+
+const attempts = read("src/lib/listening/attempts.ts");
+const progress = read("src/lib/listening/progress.ts");
+const firestoreRules = read("firestore.rules");
+if (!attempts.includes("'listeningAttempts'") || !attempts.includes("accuracyPercent")) fail("Listening attempts must persist compact assessment results.");
+if (!firestoreRules.includes("match /listeningAttempts/{attemptId}")) fail("Firestore rules must protect student listening attempts.");
+if (!hub.includes("buildLiveListeningMetrics") || !hub.includes("loadListeningAttempts")) fail("Listening overview metrics must use live attempt data.");
+if (!hub.includes("getLatestListeningProgress") || !hub.includes("CONTINUE LISTENING")) fail("Listening Hub must render the latest unfinished listening session.");
+if (!progress.includes("saveListeningProgress") || !progress.includes("'listeningProgress'")) fail("Listening playback progress must persist locally and in Firestore.");
+if (!practice.includes("saveListeningProgress") || !practice.includes("buildListeningProgress")) fail("Listening player must report live playback progress.");
+if (!firestoreRules.includes("match /listeningProgress/{progressId}")) fail("Firestore rules must protect student listening progress.");
 
 if (!process.exitCode) {
   console.log("Listening hub validation passed.");
