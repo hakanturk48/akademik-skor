@@ -107,6 +107,11 @@ if (!hub.includes("getLatestListeningProgress") || !hub.includes("CONTINUE LISTE
 if (!progress.includes("saveListeningProgress") || !progress.includes("'listeningProgress'")) fail("Listening playback progress must persist locally and in Firestore.");
 if (!practice.includes("saveListeningProgress") || !practice.includes("buildListeningProgress")) fail("Listening player must report live playback progress.");
 if (!firestoreRules.includes("match /listeningProgress/{progressId}")) fail("Firestore rules must protect student listening progress.");
+if (practice.includes("fallbackListeningQuestion")) fail("Listening practice must not substitute a hard-coded question for missing published content.");
+if (!practice.includes("markListeningComplete") || !practice.includes("completed: true")) fail("Listening completion must persist through the progress model.");
+if (!practice.includes("transcriptOpen") || !practice.includes("onSeek(item.startSeconds)")) fail("Listening outline and transcript controls must be interactive.");
+if (!practice.includes("applyNoteFormat") || !practice.includes("onSelectionChange")) fail("Listening note toolbar must edit the note instead of rendering decorative controls.");
+if (!hubContent.includes("isFirebaseConfigured ? [] : seedItems")) fail("Configured production builds must not fall back to seed listening items.");
 
 if (!process.exitCode) {
   console.log("Listening hub validation passed.");

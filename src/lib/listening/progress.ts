@@ -83,11 +83,13 @@ export function buildListeningProgress(input: {
   sessionMode: string;
   currentSeconds: number;
   durationSeconds: number;
+  completed?: boolean;
 }): ListeningProgress {
   const now = new Date().toISOString();
   const durationSeconds = Math.max(1, Math.round(input.durationSeconds));
-  const currentSeconds = Math.min(durationSeconds, Math.max(0, Math.round(input.currentSeconds)));
-  const progressPercent = Math.min(100, Math.max(0, Math.round(currentSeconds / durationSeconds * 100)));
+  const completed = Boolean(input.completed);
+  const currentSeconds = completed ? durationSeconds : Math.min(durationSeconds, Math.max(0, Math.round(input.currentSeconds)));
+  const progressPercent = completed ? 100 : Math.min(100, Math.max(0, Math.round(currentSeconds / durationSeconds * 100)));
   return {
     schemaVersion: 1,
     userId: input.userId,
@@ -103,7 +105,7 @@ export function buildListeningProgress(input: {
     currentSeconds,
     durationSeconds,
     progressPercent,
-    completed: progressPercent >= 95,
+    completed: completed || progressPercent >= 95,
     firstStartedAt: input.previous?.firstStartedAt ?? now,
     lastActivityAt: now,
   };

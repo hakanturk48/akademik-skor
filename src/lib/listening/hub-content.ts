@@ -22,6 +22,7 @@ function listeningQuestionPracticeMinutes(questionCount: number) {
 
 export type ListeningHubDisplayItem = ListeningHubItem & {
   href: string;
+  selection: ReturnType<typeof makeListeningSelection>;
   topicTitle: string;
   taskTypeTitle: string;
   subskillTitle: string;
@@ -102,6 +103,7 @@ function describeListeningHubItem(catalog: ContentCatalog, item: ListeningHubIte
   return {
     ...item,
     href,
+    selection,
     topicTitle,
     taskTypeTitle,
     subskillTitle,
@@ -115,7 +117,7 @@ export function getListeningHubItems(): ListeningHubDisplayItem[] {
   const storedItems = readPublishedListeningHubItems(storedState);
   const catalog = storedState?.catalog ?? contentCatalogSeed;
   const seedItems = (contentCatalogSeed.listeningHubItems ?? []).filter((item) => item.status === "active");
-  const items = storedItems.length ? storedItems : seedItems;
+  const items = storedItems.length ? storedItems : isFirebaseConfigured ? [] : seedItems;
 
   return [...items]
     .sort((first, second) => first.sortOrder - second.sortOrder || Date.parse(second.updatedAt) - Date.parse(first.updatedAt) || first.title.localeCompare(second.title))
