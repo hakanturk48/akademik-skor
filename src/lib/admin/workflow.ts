@@ -1,7 +1,7 @@
 import { validateContentCatalog } from '@/lib/content';
 import { getNavigationRouteEntry } from '@/lib/navigation/registry';
 import { validateVideoMediaUrl } from '@/lib/video-media';
-import type { BaseEntity, ContentCatalog, ListeningHubItem, Question, ReadingPracticeScreen, TaxonomyRef } from '@/lib/content';
+import type { BaseEntity, ContentCatalog, ListeningHubItem, Question, ReadingPracticeScreen, SpeakingTask, TaxonomyRef } from '@/lib/content';
 import type {
   AdminActor, AdminDocument, AdminMutableCollectionKey, AdminRevision, AdminSnapshot,
   AdminWorkspaceState, PublicationStatus, VersionDiff,
@@ -14,7 +14,7 @@ export const publicationStatuses: PublicationStatus[] = ['draft', 'review', 'pub
 export const workflowCollections: AdminMutableCollectionKey[] = [
   'navigationGroups', 'navigationItems', 'exams', 'examVersions', 'skills', 'taskTypes',
   'subskills', 'topics', 'levels', 'courses', 'modules', 'lessons', 'vocabularySets',
-  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', "questions", "readingPracticeScreens", "listeningHubItems", "practiceSets", 'tests',
+  'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', "questions", "readingPracticeScreens", "listeningHubItems", 'speakingTasks', "practiceSets", 'tests',
 ];
 export const workspaceStorageKey = 'akademik-skor.admin-workspace.v2';
 export const legacyWorkspaceStorageKey = 'akademik-skor.admin-workspace.v1';
@@ -25,6 +25,7 @@ function ensureWorkspaceCatalogShape(state: AdminWorkspaceState) {
   const catalog = state.catalog as unknown as Record<string, AdminSnapshot[]>;
   if (!Array.isArray(catalog.readingPracticeScreens)) catalog.readingPracticeScreens = [];
   if (!Array.isArray(catalog.listeningHubItems)) catalog.listeningHubItems = [];
+  if (!Array.isArray(catalog.speakingTasks)) catalog.speakingTasks = [];
 }
 
 export function workspaceItems(state: AdminWorkspaceState, collection: AdminMutableCollectionKey): AdminSnapshot[] {
@@ -61,6 +62,23 @@ export function migrateAdminWorkspace(state: AdminWorkspaceState): AdminWorkspac
     for (const document of Object.values(next.workflow.documents)) {
       if (document.collection === 'questions' && document.published && !document.published.questionOptions) {
         document.published.questionOptions = copy(next.catalog.questionOptions.filter((option) => option.questionId === document.entityId));
+      }
+    }
+    for (const collection of workflowCollections) {
+      for (const item of workspaceItems(next, collection)) {
+        const key = documentKey(collection, item.id);
+        if (next.workflow.documents[key]) continue;
+        const status = legacyStatus(item);
+        const snapshot: AdminSnapshot = { ...copy(item), version: 1, createdBy: null, updatedBy: null, publishedBy: null, publishedAt: null };
+        if (collection === 'questions') snapshot.questionOptions = copy(next.catalog.questionOptions.filter((option) => option.questionId === item.id));
+        next.workflow.documents[key] = {
+          collection,
+          entityId: item.id,
+          version: 1,
+          status,
+          published: status === 'published' ? copy(snapshot) : null,
+          revisions: [{ version: 1, status, snapshot, actor: null, timestamp: item.updatedAt, action: 'migrated', diff: [] }],
+        };
       }
     }
     return next as AdminWorkspaceState & { workflow: NonNullable<AdminWorkspaceState['workflow']> };
@@ -223,6 +241,18 @@ export function validatePublication(state: AdminWorkspaceState, collection: Admi
       if (mediaIssue) {
         issues.push(mediaIssue === 'Video bağlantısı gerekli.' ? 'Video URL is required before publishing.' : lesson.mediaProvider === 'youtube' ? 'A valid YouTube video URL is required before publishing.' : lesson.mediaProvider === 'vimeo' ? 'A valid Vimeo video URL is required before publishing.' : 'A stored video file is required before publishing.');
       }
+    }
+    if (collection === 'speakingTasks') {
+      const task = candidate as SpeakingTask;
+      const speakingSkill = live.catalog.skills.find((item) => item.slug === 'speaking');
+      if (!speakingSkill || task.taxonomy.skillId !== speakingSkill.id) issues.push('Speaking task must use the Speaking skill.');
+      if (task.prompt.trim().length < 20) issues.push('Speaking prompt is too short.');
+      if (!Number.isFinite(task.preparationSeconds) || task.preparationSeconds < 0 || task.preparationSeconds > 600) issues.push('Speaking preparation time must be between 0 and 600 seconds.');
+      if (!Number.isFinite(task.responseSeconds) || task.responseSeconds < 1 || task.responseSeconds > 600) issues.push('Speaking response time must be between 1 and 600 seconds.');
+      if (!(task.responseChecklist ?? []).length) issues.push('Speaking response checklist is required.');
+      if (!(task.scoringCriteria ?? []).length) issues.push('Speaking scoring criteria are required.');
+      if ((task.scoringCriteria ?? []).some((item) => !item.title.trim() || !item.description.trim() || !Number.isInteger(item.maxScore) || item.maxScore < 1 || item.maxScore > 4)) issues.push('Speaking scoring criteria are invalid.');
+      if (!(task.beforeStartChecklist ?? []).length) issues.push('Speaking start checklist is required.');
     }
   }
   return [...new Set(issues)];

@@ -336,6 +336,16 @@ export interface SpeakingTask extends BaseEntity {
   preparationSeconds: number;
   responseSeconds: number;
   rubricTagIds: string[];
+  responseChecklist?: string[];
+  scoringCriteria?: SpeakingScoringCriterion[];
+  beforeStartChecklist?: string[];
+}
+
+export interface SpeakingScoringCriterion {
+  id: string;
+  title: string;
+  description: string;
+  maxScore: number;
 }
 
 export interface SpeakingAttempt extends BaseEntity {

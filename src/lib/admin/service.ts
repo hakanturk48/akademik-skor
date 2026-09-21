@@ -19,6 +19,8 @@ import type {
   ListeningHubItem,
   ListeningHubQuestion,
   ReadingPracticeScreen,
+  SpeakingScoringCriterion,
+  SpeakingTask,
 } from '@/lib/content';
 import type { NavigationGroup, NavigationIconKey, NavigationItem, NavigationSeed } from '@/lib/navigation';
 
@@ -51,6 +53,7 @@ export const adminModules: AdminModuleConfig[] = [
   { key: 'video-lessons', title: 'Video Dersler', description: 'Video ders bilgileri, erişim ve sıralama.', iconKey: 'video' },
   { key: 'reading-practice', title: 'Okuma Pratiği', description: 'Reading Practice ekranı, passage ve soru akışı.', iconKey: 'reading' },
   { key: "listening-hub", title: "Listening Hub", description: "Konu bazlı listening parçaları ve practice rotaları.", iconKey: "listening" },
+  { key: 'speaking-practice', title: 'Konuşma Pratiği', description: 'Konuşma görevleri, süreler, yönergeler ve puanlama ölçütleri.', iconKey: 'speaking' },
   { key: 'vocabulary', title: 'Kelime Çalışmaları', description: 'Kelime setleri ve kelimeler.', iconKey: 'vocabulary' },
   { key: 'grammar', title: 'Dil Bilgisi', description: 'Dil bilgisi kategorileri, konuları ve dersleri.', iconKey: 'grammar' },
   { key: 'question-bank', title: 'Soru Bankası', description: 'Sorular, filtreler ve cevap seçenekleri.', iconKey: 'questions' },
@@ -86,6 +89,9 @@ export const adminModuleCollections: Record<Exclude<AdminModuleKey, 'dashboard'>
   ],
   "listening-hub": [
     { key: "listeningHubItems", label: "Listening Parçaları", singularLabel: "Listening Parçası", description: "Listening sayfasında konu bazlı gösterilecek canlı practice girişleri." },
+  ],
+  'speaking-practice': [
+    { key: 'speakingTasks', label: 'Konuşma Görevleri', singularLabel: 'Konuşma Görevi', description: 'Öğrenci konuşma ekranında yayınlanacak görev, süre ve değerlendirme içeriği.' },
   ],
   vocabulary: [
     { key: 'vocabularySets', label: 'Kelime Setleri', singularLabel: 'Kelime Seti', description: 'Gruplandırılmış TOEFL kelime setleri.' },
@@ -590,6 +596,154 @@ function listeningHubFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: 
   };
 }
 
+const defaultSpeakingChecklist = [
+  'Give a clear opinion and keep one position.',
+  'Use two reasons with specific examples.',
+  'Close with a short summary of your view.',
+];
+
+const defaultSpeakingCriteria: SpeakingScoringCriterion[] = [
+  { id: 'fluency-coherence', title: 'Fluency & Coherence', description: 'Speak smoothly and organize ideas clearly.', maxScore: 4 },
+  { id: 'lexical-resource', title: 'Lexical Resource', description: 'Use accurate academic vocabulary.', maxScore: 4 },
+  { id: 'grammatical-range', title: 'Grammatical Range', description: 'Use varied structures with control.', maxScore: 4 },
+  { id: 'pronunciation', title: 'Pronunciation', description: 'Keep rhythm, stress, and intonation natural.', maxScore: 4 },
+];
+
+const defaultSpeakingBeforeStart = [
+  'Find a quiet place',
+  'Check your microphone',
+  'Speak clearly and naturally',
+  'Stick to the time limit',
+  'Review the task prompt',
+];
+
+function parseSpeakingLines(value?: string) {
+  return (value ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function serializeSpeakingLines(lines?: string[]) {
+  return (lines ?? []).join('\n');
+}
+
+function speakingCriterionId(title: string, index: number) {
+  return normalizeSlug(title) || `criterion-${index + 1}`;
+}
+
+function parseSpeakingCriteriaText(value?: string) {
+  const criteria: SpeakingScoringCriterion[] = [];
+  const invalidLines: string[] = [];
+  parseSpeakingLines(value).forEach((line, index) => {
+    const [title = '', description = '', rawMaxScore = '4'] = line.split('|').map((part) => part.trim());
+    const maxScore = Number(rawMaxScore);
+    if (!title || !description || !Number.isInteger(maxScore) || maxScore < 1 || maxScore > 4) {
+      invalidLines.push(line);
+      return;
+    }
+    criteria.push({ id: speakingCriterionId(title, index), title, description, maxScore });
+  });
+  return { criteria, invalidLines };
+}
+
+function serializeSpeakingCriteriaText(criteria?: SpeakingScoringCriterion[]) {
+  return (criteria ?? []).map((item) => `${item.title}|${item.description}|${item.maxScore}`).join('\n');
+}
+
+function speakingSkillId(catalog: ContentCatalog) {
+  return catalog.skills.find((item) => item.slug === 'speaking')?.id ?? firstId(catalog.skills);
+}
+
+function speakingTaskOptions(catalog: ContentCatalog) {
+  const skillId = speakingSkillId(catalog);
+  return catalog.taskTypes.filter((item) => item.skillId === skillId);
+}
+
+function speakingTopicOptions(catalog: ContentCatalog) {
+  const skillId = speakingSkillId(catalog);
+  return catalog.topics.filter((item) => item.skillIds.includes(skillId));
+}
+
+function speakingSubskillOptions(catalog: ContentCatalog, taskTypeId?: string) {
+  const skillId = speakingSkillId(catalog);
+  return catalog.subskills.filter((item) => item.skillId === skillId && (!taskTypeId || item.taskTypeIds.includes(taskTypeId)));
+}
+
+function defaultSpeakingTaskDraftFields(catalog: ContentCatalog): Partial<AdminEntityDraft> {
+  const taskType = speakingTaskOptions(catalog)[0];
+  const subskill = speakingSubskillOptions(catalog, taskType?.id)[0];
+  const topic = speakingTopicOptions(catalog)[0];
+  return {
+    title: 'Independent Speaking Task',
+    slug: 'independent-speaking-task',
+    description: 'Timed independent speaking practice.',
+    prompt: 'Some people believe that celebrities are good role models for young people.\nTo what extent do you agree or disagree?\nGive reasons for your answer and include relevant examples from your own knowledge or experience.',
+    speakingTaskTypeId: taskType?.id ?? '',
+    speakingSubskillId: subskill?.id ?? '',
+    speakingTopicId: topic?.id ?? '',
+    speakingLevelId: firstId(catalog.levels),
+    speakingPreparationSeconds: 60,
+    speakingResponseSeconds: 120,
+    speakingChecklistText: serializeSpeakingLines(defaultSpeakingChecklist),
+    speakingCriteriaText: serializeSpeakingCriteriaText(defaultSpeakingCriteria),
+    speakingBeforeStartText: serializeSpeakingLines(defaultSpeakingBeforeStart),
+  };
+}
+
+function speakingTaskDraftFromItem(item?: Partial<SpeakingTask>): Partial<AdminEntityDraft> {
+  return {
+    prompt: item?.prompt ?? '',
+    speakingTaskTypeId: item?.taxonomy?.taskTypeId,
+    speakingSubskillId: item?.taxonomy?.subskillIds?.[0],
+    speakingTopicId: item?.taxonomy?.topicIds?.[0],
+    speakingLevelId: item?.taxonomy?.levelId,
+    speakingPreparationSeconds: item?.preparationSeconds,
+    speakingResponseSeconds: item?.responseSeconds,
+    speakingChecklistText: serializeSpeakingLines(item?.responseChecklist ?? defaultSpeakingChecklist),
+    speakingCriteriaText: serializeSpeakingCriteriaText(item?.scoringCriteria ?? defaultSpeakingCriteria),
+    speakingBeforeStartText: serializeSpeakingLines(item?.beforeStartChecklist ?? defaultSpeakingBeforeStart),
+  };
+}
+
+function speakingTaskFieldsFromDraft(draft: Partial<AdminEntityDraft>, catalog: ContentCatalog, existing?: Partial<SpeakingTask>): Omit<SpeakingTask, keyof BaseEntity> {
+  const defaults = defaultSpeakingTaskDraftFields(catalog);
+  const skillId = speakingSkillId(catalog);
+  const taskTypeId = speakingTaskOptions(catalog).some((item) => item.id === draft.speakingTaskTypeId)
+    ? String(draft.speakingTaskTypeId)
+    : existing?.taxonomy?.taskTypeId ?? String(defaults.speakingTaskTypeId ?? '');
+  const subskillId = speakingSubskillOptions(catalog, taskTypeId).some((item) => item.id === draft.speakingSubskillId)
+    ? String(draft.speakingSubskillId)
+    : existing?.taxonomy?.subskillIds?.[0] ?? String(defaults.speakingSubskillId ?? '');
+  const topicId = speakingTopicOptions(catalog).some((item) => item.id === draft.speakingTopicId)
+    ? String(draft.speakingTopicId)
+    : existing?.taxonomy?.topicIds?.[0] ?? String(defaults.speakingTopicId ?? '');
+  const levelId = catalog.levels.some((item) => item.id === draft.speakingLevelId)
+    ? String(draft.speakingLevelId)
+    : existing?.taxonomy?.levelId ?? String(defaults.speakingLevelId ?? '');
+  const baseTaxonomy = existing?.taxonomy ?? defaultTaxonomy(catalog, 'speaking-task');
+  const parsedCriteria = parseSpeakingCriteriaText(draft.speakingCriteriaText ?? serializeSpeakingCriteriaText(existing?.scoringCriteria ?? defaultSpeakingCriteria));
+  const rubricTagIds = existing?.rubricTagIds?.length
+    ? existing.rubricTagIds
+    : catalog.contentTags.filter((item) => item.slug === 'high-yield').map((item) => item.id);
+
+  return {
+    taxonomy: {
+      ...baseTaxonomy,
+      skillId,
+      taskTypeId,
+      subskillIds: subskillId ? [subskillId] : [],
+      topicIds: topicId ? [topicId] : [],
+      levelId,
+      contentTypeId: contentTypeId(catalog, 'speaking-task'),
+    },
+    prompt: draft.prompt?.trim() || existing?.prompt || String(defaults.prompt ?? ''),
+    preparationSeconds: clampAdminNumber(draft.speakingPreparationSeconds ?? existing?.preparationSeconds ?? defaults.speakingPreparationSeconds, 0, 600),
+    responseSeconds: clampAdminNumber(draft.speakingResponseSeconds ?? existing?.responseSeconds ?? defaults.speakingResponseSeconds, 1, 600),
+    rubricTagIds,
+    responseChecklist: parseSpeakingLines(draft.speakingChecklistText ?? serializeSpeakingLines(existing?.responseChecklist ?? defaultSpeakingChecklist)),
+    scoringCriteria: parsedCriteria.criteria,
+    beforeStartChecklist: parseSpeakingLines(draft.speakingBeforeStartText ?? serializeSpeakingLines(existing?.beforeStartChecklist ?? defaultSpeakingBeforeStart)),
+  };
+}
+
 function contentTypeId(catalog: ContentCatalog, slug: string) {
   return catalog.contentTypes.find((item) => item.slug === slug)?.id ?? firstId(catalog.contentTypes);
 }
@@ -799,7 +953,7 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
 
   const base = baseEntity(collection, draft, collectionItems(state.catalog, collection)) as CatalogEntity;
   const catalog = state.catalog;
-  const taxonomy = defaultTaxonomy(catalog, collection === 'tests' ? 'mini-test' : collection === 'grammarLessons' ? 'grammar-lesson' : collection === 'questions' ? 'question' : collection === 'practiceSets' ? 'practice-set' : collection === 'vocabularySets' ? 'vocabulary-set' : 'video-lesson');
+  const taxonomy = defaultTaxonomy(catalog, collection === 'tests' ? 'mini-test' : collection === 'grammarLessons' ? 'grammar-lesson' : collection === 'questions' ? 'question' : collection === 'practiceSets' ? 'practice-set' : collection === 'vocabularySets' ? 'vocabulary-set' : collection === 'speakingTasks' ? 'speaking-task' : 'video-lesson');
 
   switch (collection) {
     case 'exams':
@@ -849,6 +1003,8 @@ function makeTypedEntity(state: AdminWorkspaceState, collection: AdminMutableCol
       return { ...base, ...readingPracticeFieldsFromDraft({ ...defaultReadingPracticeDraftFields(), ...draft }) };
     case "listeningHubItems":
       return { ...base, ...listeningHubFieldsFromDraft({ ...defaultListeningHubDraftFields(catalog), ...draft }, catalog) };
+    case 'speakingTasks':
+      return { ...base, ...speakingTaskFieldsFromDraft({ ...defaultSpeakingTaskDraftFields(catalog), ...draft }, catalog) };
     case 'vocabularySets':
       return { ...base, taxonomy, wordIds: [], targetLevelId: firstId(catalog.levels) };
     case 'vocabularyWords':
@@ -962,6 +1118,10 @@ function applyDraftToEntity<T extends BaseEntity | NavigationGroup | NavigationI
 
   if (collection === "listeningHubItems") {
     Object.assign(next as BaseEntity & ListeningHubItem, listeningHubFieldsFromDraft(draft, catalog, next as Partial<ListeningHubItem>));
+  }
+
+  if (collection === 'speakingTasks') {
+    Object.assign(next as BaseEntity & SpeakingTask, speakingTaskFieldsFromDraft(draft, catalog, next as Partial<SpeakingTask>));
   }
 
   return next;
@@ -1100,6 +1260,12 @@ function relationSummary(state: AdminWorkspaceState, collection: AdminCollection
     return `Listening hub route · ${topic} · ${subskill} · ${questionCount} soru`;
   }
 
+  if (collection === 'speakingTasks') {
+    const task = entity as BaseEntity & Partial<SpeakingTask>;
+    const taskType = state.catalog.taskTypes.find((entry) => entry.id === task.taxonomy?.taskTypeId)?.title ?? 'Görev türü seçilmedi';
+    return `${taskType} · ${task.preparationSeconds ?? 0} sn hazırlık · ${task.responseSeconds ?? 0} sn yanıt`;
+  }
+
   if ('taxonomy' in entity) {
     const taxonomy = (entity as BaseEntity & { taxonomy?: TaxonomyRef }).taxonomy;
     const breadcrumb = taxonomy ? getTaxonomyBreadcrumb(state.catalog, taxonomy).join(' / ') : '';
@@ -1162,7 +1328,7 @@ export function listAdminRows(state: AdminWorkspaceState, collection: AdminMutab
 }
 
 export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashboardMetrics {
-  const contentCollections: AdminMutableCollectionKey[] = ["courses", "modules", "lessons", "readingPracticeScreens", "listeningHubItems", 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
+  const contentCollections: AdminMutableCollectionKey[] = ["courses", "modules", "lessons", "readingPracticeScreens", "listeningHubItems", 'speakingTasks', 'vocabularySets', 'vocabularyWords', 'grammarCategories', 'grammarTopics', 'grammarLessons', 'questions', 'practiceSets', 'tests'];
   const rows = contentCollections.flatMap((collection) => listAdminRows(state, collection));
 
   return {
@@ -1176,7 +1342,7 @@ export function getAdminDashboardMetrics(state: AdminWorkspaceState): AdminDashb
 
 export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: AdminEntityRow, catalog?: ContentCatalog): AdminEntityDraft {
   if (row) {
-    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & Partial<ListeningHubItem> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; mediaStoragePath?: string; mediaFileName?: string; mediaMimeType?: string; mediaSizeBytes?: number; mediaUploadedAt?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
+    const raw = row.raw as BaseEntity & Partial<ReadingPracticeScreen> & Partial<ListeningHubItem> & Partial<SpeakingTask> & { prompt?: string; explanation?: string; mediaProvider?: VideoMediaProvider; mediaUrl?: string; mediaStoragePath?: string; mediaFileName?: string; mediaMimeType?: string; mediaSizeBytes?: number; mediaUploadedAt?: string; courseId?: string; moduleId?: string; thumbnailUrl?: string; previewDurationSeconds?: number; chapters?: { startSeconds: number; title: string }[]; transcript?: { startSeconds: number; text: string }[]; resources?: LessonResource[]; durationSeconds?: number; estimatedMinutes?: number };
     return {
       title: row.title,
       slug: row.slug,
@@ -1207,6 +1373,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
       } : {}),
       ...(collection === "readingPracticeScreens" ? readingPracticeDraftFromScreen(raw, row) : {}),
       ...(collection === "listeningHubItems" ? listeningHubDraftFromItem(raw) : {}),
+      ...(collection === 'speakingTasks' ? speakingTaskDraftFromItem(raw) : {}),
       ...(collection === 'questions' && catalog ? { question: readQuestionDraft(catalog, row.raw as Question) } : {}),
     };
   }
@@ -1224,6 +1391,7 @@ export function initialAdminDraft(collection: AdminMutableCollectionKey, row?: A
     ...(collection === 'lessons' ? { mediaProvider: 'youtube' as const, mediaUrl: '', courseId: firstId(catalog?.courses ?? []), moduleId: firstId(catalog?.modules ?? []), thumbnailUrl: '', previewDurationSeconds: 0, chaptersText: '', transcriptText: '', resourcesText: '', durationSeconds: 900, estimatedMinutes: 15 } : {}),
     ...(collection === "readingPracticeScreens" ? defaultReadingPracticeDraftFields() : {}),
     ...(collection === "listeningHubItems" ? defaultListeningHubDraftFields(catalog ?? contentCatalogSeed) : {}),
+    ...(collection === 'speakingTasks' ? defaultSpeakingTaskDraftFields(catalog ?? contentCatalogSeed) : {}),
     ...(collection === 'questions' && catalog ? { question: { taxonomy: defaultTaxonomy(catalog, 'question'), stimulus: '', options: [] } } : {}),
   };
 }
@@ -1263,6 +1431,20 @@ export function validateAdminEntityDraft(collection: AdminMutableCollectionKey, 
     if (draft.chaptersText && parseVideoTimedText(draft.chaptersText).invalidLines.length) issues.push("Listening outline must use time|title lines.");
     if (draft.transcriptText && parseVideoTimedText(draft.transcriptText).invalidLines.length) issues.push("Listening transcript must use time|text lines.");
     if (draft.resourcesText && parseLessonResourcesText(draft.resourcesText).invalidLines.length) issues.push('Kaynaklar her satırda başlık|tür|boyut|url|premium biçiminde olmalı.');
+  }
+  if (collection === 'speakingTasks') {
+    const criteria = parseSpeakingCriteriaText(draft.speakingCriteriaText);
+    if ((draft.prompt ?? '').trim().length < 20) issues.push('Konuşma görev metni en az 20 karakter olmalı.');
+    if (!draft.speakingTaskTypeId) issues.push('Konuşma görev türü seçilmelidir.');
+    if (!draft.speakingSubskillId) issues.push('Konuşma alt becerisi seçilmelidir.');
+    if (!draft.speakingTopicId) issues.push('Konuşma konusu seçilmelidir.');
+    if (!draft.speakingLevelId) issues.push('Konuşma seviyesi seçilmelidir.');
+    if ((draft.speakingPreparationSeconds ?? -1) < 0 || (draft.speakingPreparationSeconds ?? 0) > 600) issues.push('Hazırlık süresi 0-600 saniye arasında olmalı.');
+    if ((draft.speakingResponseSeconds ?? 0) < 1 || (draft.speakingResponseSeconds ?? 0) > 600) issues.push('Konuşma süresi 1-600 saniye arasında olmalı.');
+    if (!parseSpeakingLines(draft.speakingChecklistText).length) issues.push('En az bir yanıt kontrol maddesi ekleyin.');
+    if (criteria.invalidLines.length) issues.push('Puanlama ölçütleri başlık|açıklama|4 biçiminde olmalı. Puan 1-4 arasında olmalıdır.');
+    if (!criteria.criteria.length) issues.push('En az bir puanlama ölçütü ekleyin.');
+    if (!parseSpeakingLines(draft.speakingBeforeStartText).length) issues.push('En az bir başlangıç kontrol maddesi ekleyin.');
   }
   if (collection === 'readingPracticeScreens') {
     const paragraphs = parseReadingPassageText(draft.passageText);

@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image } from 'expo-image';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ProgressRecommendationList } from '@/components/student/RecommendationCards';
 import { Button, Card, Progress, Tabs, studentTokens } from '@/components/student/ui';
 import type { AuthUser } from '@/lib/auth';
+import { isFirebaseStorageConfigured } from '@/lib/firebase';
+import type { SpeakingScoringCriterion, SpeakingTask } from '@/lib/content';
+import { formatSpeakingTime, getSpeakingTask, syncPublishedSpeakingTasks } from '@/lib/speaking/content';
+import { createSpeakingAttempt, loadSpeakingAttempts, makeSpeakingAttemptId, readSpeakingAttempts, saveSpeakingAttempt, subscribeSpeakingAttempts, type SpeakingAttemptRecord } from '@/lib/speaking/attempts';
+import { uploadSpeakingRecording } from '@/lib/speaking/recordings';
 
 type AppSymbolName = { ios: SFSymbol; android: AndroidSymbol; web: AndroidSymbol };
 type Tone = 'blue' | 'teal' | 'orange' | 'purple' | 'yellow' | 'navy' | 'green';
@@ -18,12 +23,6 @@ type Metric = {
   tone: Tone;
   icon: AppSymbolName;
   progress?: number;
-};
-
-type PracticeAnswer = {
-  key: string;
-  text: string;
-  selected?: boolean;
 };
 
 type TestRow = {
@@ -99,24 +98,20 @@ const toneSoft: Record<Tone, string> = {
 
 const waveformBars = [14, 26, 44, 62, 32, 54, 71, 39, 66, 48, 76, 35, 58, 46, 69, 42, 80, 51, 64, 38, 57, 45, 72, 36, 52, 44, 61, 33, 49, 40, 56, 31, 45, 38, 54, 28, 43, 34, 50, 30, 46, 36, 52, 32, 48, 39, 55, 35, 51, 29, 44];
 
-const speakingAnswers: PracticeAnswer[] = [
-  { key: 'A', text: 'Give a clear opinion and keep one position.' },
-  { key: 'B', text: 'Use two reasons with specific examples.', selected: true },
-  { key: 'C', text: 'Close with a short summary of your view.' },
+const fallbackSpeakingChecklist = [
+  'Give a clear opinion and keep one position.',
+  'Use two reasons with specific examples.',
+  'Close with a short summary of your view.',
 ];
 
-const speakingCriteria = [
-  { title: 'Fluency & Coherence', text: 'Speak smoothly and organize ideas clearly.', score: '0 - 4 raw', tone: 'orange' as Tone, icon: volumeSymbol },
-  { title: 'Lexical Resource', text: 'Use accurate academic vocabulary.', score: '0 - 4 raw', tone: 'green' as Tone, icon: bookSymbol },
-  { title: 'Grammatical Range', text: 'Use varied structures with control.', score: '0 - 4 raw', tone: 'blue' as Tone, icon: grammarSymbol },
-  { title: 'Pronunciation', text: 'Keep rhythm, stress, and intonation natural.', score: '0 - 4 raw', tone: 'purple' as Tone, icon: headphonesSymbol },
+const fallbackSpeakingCriteria: SpeakingScoringCriterion[] = [
+  { id: 'fluency-coherence', title: 'Fluency & Coherence', description: 'Speak smoothly and organize ideas clearly.', maxScore: 4 },
+  { id: 'lexical-resource', title: 'Lexical Resource', description: 'Use accurate academic vocabulary.', maxScore: 4 },
+  { id: 'grammatical-range', title: 'Grammatical Range', description: 'Use varied structures with control.', maxScore: 4 },
+  { id: 'pronunciation', title: 'Pronunciation', description: 'Keep rhythm, stress, and intonation natural.', maxScore: 4 },
 ];
 
-const previousAttempts = [
-  { attempt: '3 latest', date: 'May 30, 2025 - 09:45 AM', duration: '01:58', estimated: '23/30', delivery: '4.0', language: '3.5', topic: '4.0', pronunciation: '4.0' },
-  { attempt: '2', date: 'May 28, 2025 - 06:20 PM', duration: '02:00', estimated: '21/30', delivery: '3.5', language: '3.5', topic: '3.0', pronunciation: '3.5' },
-  { attempt: '1', date: 'May 26, 2025 - 08:15 AM', duration: '01:47', estimated: '19/30', delivery: '3.0', language: '2.5', topic: '3.0', pronunciation: '3.0' },
-];
+const fallbackSpeakingBeforeStart = ['Find a quiet place', 'Check your microphone', 'Speak clearly and naturally', 'Stick to the time limit', 'Review the task prompt'];
 
 const mockRows: TestRow[] = [
   { id: '01', name: 'Mock Test 01', type: 'Full Test - 4 Sections', duration: '120 min', questions: '100 Questions', difficulty: 'Moderate', access: 'Premium', score: '105 /120', date: 'May 30, 2025', action: 'Review Test', tone: 'purple' },
@@ -209,15 +204,16 @@ function MiniBadge({ label, tone = 'blue' }: { label: string; tone?: Tone }) {
   );
 }
 
-function Waveform({ color = studentTokens.yellow, muted = '#32486f', compact = false }: { color?: string; muted?: string; compact?: boolean }) {
+function Waveform({ color = studentTokens.yellow, muted = '#32486f', compact = false, progress = 46, active = false }: { color?: string; muted?: string; compact?: boolean; progress?: number; active?: boolean }) {
   const scale = compact ? 0.58 : 1;
+  const activeBars = Math.max(0, Math.min(waveformBars.length, Math.round((progress / 100) * waveformBars.length)));
 
   return (
     <View style={[styles.waveform, compact ? styles.waveformCompact : null]}>
       {waveformBars.map((height, index) => (
         <View
           key={`${height}-${index}`}
-          style={[styles.waveBar, { height: Math.max(9, Math.round(height * scale)), backgroundColor: index < 24 ? color : muted }]}
+          style={[styles.waveBar, { height: Math.max(9, Math.round(height * scale * (active && index % 3 === 0 ? 1.08 : 1))), backgroundColor: index < activeBars ? color : muted }]}
         />
       ))}
     </View>
@@ -298,18 +294,265 @@ function TimerBox({ label, value, tone }: { label: string; value: string; tone: 
   );
 }
 
-export function SpeakingPractice() {
+type SpeakingRecorderStatus = 'idle' | 'preparing' | 'recording' | 'paused' | 'stopped' | 'submitting' | 'submitted' | 'error';
+
+function useSpeakingRecorder(user: AuthUser, task: SpeakingTask, onSubmitted: (attempt: SpeakingAttemptRecord) => void) {
+  const [status, setStatus] = useState<SpeakingRecorderStatus>('idle');
+  const [preparationRemaining, setPreparationRemaining] = useState(task.preparationSeconds);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
+  const [message, setMessage] = useState('Click Start and speak clearly. You can pause if needed.');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const startedAtRef = useRef<string | null>(null);
+
+  useEffect(() => () => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const startCapture = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== 'inactive') return;
+    chunksRef.current = [];
+    recorder.start(250);
+    setElapsedSeconds(0);
+    setStatus('recording');
+    setMessage('Recording is active. Keep your response within the time limit.');
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'preparing') return;
+    if (preparationRemaining <= 0) {
+      startCapture();
+      return;
+    }
+    const timer = setTimeout(() => setPreparationRemaining((value) => Math.max(0, value - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [preparationRemaining, startCapture, status]);
+
+  const stop = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (status === 'preparing') {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      setPreparationRemaining(task.preparationSeconds);
+      setStatus('idle');
+      setMessage('Preparation cancelled. Click Start when you are ready.');
+      return;
+    }
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+  }, [status, task.preparationSeconds]);
+
+  useEffect(() => {
+    if (status !== 'recording') return;
+    const timer = setTimeout(() => {
+      setElapsedSeconds((value) => {
+        const next = Math.min(task.responseSeconds, value + 1);
+        if (next >= task.responseSeconds) {
+          const recorder = recorderRef.current;
+          if (recorder && recorder.state !== 'inactive') recorder.stop();
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [elapsedSeconds, status, task.responseSeconds]);
+
+  const start = async () => {
+    if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setStatus('error');
+      setMessage('Microphone recording is available in a supported web browser.');
+      return;
+    }
+    try {
+      setRecordingBlob(null);
+      setUploadProgress(0);
+      setElapsedSeconds(0);
+      setPreparationRemaining(task.preparationSeconds);
+      setMessage('Microphone permission is being requested.');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const candidates = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      const mimeType = candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate));
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunksRef.current.push(event.data); };
+      recorder.onerror = () => {
+        setStatus('error');
+        setMessage('The browser could not complete the recording. Please retry.');
+      };
+      recorder.onstop = () => {
+        const finalType = recorder.mimeType || chunksRef.current[0]?.type || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: finalType });
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        if (!blob.size) {
+          setStatus('error');
+          setMessage('No audio was captured. Check your microphone and retry.');
+          return;
+        }
+        setRecordingBlob(blob);
+        setStatus('stopped');
+        setMessage('Recording is ready. Submit it for evaluation or retry.');
+      };
+      startedAtRef.current = new Date().toISOString();
+      if (task.preparationSeconds > 0) {
+        setStatus('preparing');
+        setMessage('Preparation time is running. Recording will start automatically.');
+      } else startCapture();
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      setStatus('error');
+      setMessage(error instanceof Error && error.name === 'NotAllowedError' ? 'Microphone permission was denied. Allow microphone access and retry.' : 'The microphone could not be opened. Check your browser settings and retry.');
+    }
+  };
+
+  const pauseOrResume = () => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+    if (recorder.state === 'recording') {
+      recorder.pause();
+      setStatus('paused');
+      setMessage('Recording is paused. Resume when you are ready.');
+    } else if (recorder.state === 'paused') {
+      recorder.resume();
+      setStatus('recording');
+      setMessage('Recording resumed.');
+    }
+  };
+
+  const retry = () => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    recorderRef.current = null;
+    streamRef.current = null;
+    chunksRef.current = [];
+    startedAtRef.current = null;
+    setRecordingBlob(null);
+    setElapsedSeconds(0);
+    setPreparationRemaining(task.preparationSeconds);
+    setUploadProgress(0);
+    setStatus('idle');
+    setMessage('Click Start and speak clearly. You can pause if needed.');
+  };
+
+  const submit = async () => {
+    if (!recordingBlob) return;
+    setStatus('submitting');
+    setMessage(isFirebaseStorageConfigured ? 'Uploading your response...' : 'Saving this attempt on this browser...');
+    setUploadProgress(0);
+    try {
+      const attemptId = makeSpeakingAttemptId();
+      const upload = isFirebaseStorageConfigured
+        ? await uploadSpeakingRecording(recordingBlob, { userId: user.id, taskId: task.id, attemptId, onProgress: setUploadProgress })
+        : null;
+      const attempt = createSpeakingAttempt({
+        id: attemptId,
+        userId: user.id,
+        taskId: task.id,
+        taskTitle: task.title,
+        startedAt: startedAtRef.current ?? new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        durationSeconds: elapsedSeconds,
+        status: 'submitted',
+        ...(upload ? { audioUrl: upload.downloadUrl, audioStoragePath: upload.storagePath, audioMimeType: upload.mimeType, audioSizeBytes: upload.sizeBytes } : {}),
+      });
+      const result = await saveSpeakingAttempt(attempt);
+      onSubmitted(attempt);
+      setStatus('submitted');
+      setMessage(result.destination === 'firestore' ? 'Response submitted. Evaluation is pending.' : 'Attempt saved in this browser. Firebase is required for remote evaluation.');
+    } catch (error) {
+      setStatus('stopped');
+      setMessage(error instanceof Error ? error.message : 'The response could not be submitted. Please retry.');
+    }
+  };
+
+  return { status, preparationRemaining, elapsedSeconds, recordingBlob, message, uploadProgress, start, stop, pauseOrResume, retry, submit };
+}
+
+export function SpeakingPractice({ user, taskSlug }: { user: AuthUser; taskSlug?: string }) {
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
   const isTablet = width >= 760;
   const isCompact = width < 620;
+  const [task, setTask] = useState(() => getSpeakingTask(taskSlug));
+  const [attempts, setAttempts] = useState<SpeakingAttemptRecord[]>(() => readSpeakingAttempts(user.id));
+  const [showAllAttempts, setShowAllAttempts] = useState(false);
+  const [showRubric, setShowRubric] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const handleSubmitted = useCallback((attempt: SpeakingAttemptRecord) => {
+    setAttempts((current) => [attempt, ...current.filter((item) => item.id !== attempt.id)]);
+  }, []);
+  const recorder = useSpeakingRecorder(user, task, handleSubmitted);
+
+  useEffect(() => {
+    let active = true;
+    void syncPublishedSpeakingTasks().catch(() => false).finally(() => { if (active) setTask(getSpeakingTask(taskSlug)); });
+    return () => { active = false; };
+  }, [taskSlug]);
+
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = subscribeSpeakingAttempts(
+      user.id,
+      (items) => { if (active) setAttempts(items); },
+      () => { if (active) setAttempts(readSpeakingAttempts(user.id)); },
+    );
+    if (!unsubscribe) {
+      void loadSpeakingAttempts(user.id)
+        .then((items) => { if (active) setAttempts(items); })
+        .catch(() => { if (active) setAttempts(readSpeakingAttempts(user.id)); });
+    }
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [user.id]);
+
+  const checklist = task.responseChecklist?.length ? task.responseChecklist : fallbackSpeakingChecklist;
+  const criteria = task.scoringCriteria?.length ? task.scoringCriteria : fallbackSpeakingCriteria;
+  const beforeStart = task.beforeStartChecklist?.length ? task.beforeStartChecklist : fallbackSpeakingBeforeStart;
+  const promptLines = task.prompt.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const taskAttempts = useMemo(() => attempts.filter((attempt) => attempt.taskId === task.id).sort((first, second) => Date.parse(second.completedAt) - Date.parse(first.completedAt)), [attempts, task.id]);
+  const shownAttempts = showAllAttempts ? taskAttempts : taskAttempts.slice(0, 3);
+  const scoredAttempts = taskAttempts.filter((attempt) => typeof attempt.score === 'number');
+  const latestScored = scoredAttempts[0];
+  const previousScored = scoredAttempts[1];
+  const scoreChange = latestScored && previousScored ? Math.round((latestScored.score! - previousScored.score!) * 10) / 10 : null;
+  const responseProgress = Math.round((recorder.elapsedSeconds / Math.max(1, task.responseSeconds)) * 100);
+  const waveformProgress = recorder.status === 'idle' ? 46 : recorder.status === 'preparing' ? 0 : responseProgress;
+  const preparationDisplay = recorder.status === 'preparing' ? recorder.preparationRemaining : task.preparationSeconds;
+  const speakingDisplay = recorder.status === 'recording' || recorder.status === 'paused' ? Math.max(0, task.responseSeconds - recorder.elapsedSeconds) : task.responseSeconds;
+  const criterionTones: Tone[] = ['orange', 'green', 'blue', 'purple'];
+  const criterionIcons = [volumeSymbol, bookSymbol, grammarSymbol, headphonesSymbol];
+  const rowForAttempt = (attempt: SpeakingAttemptRecord, index: number) => ({
+    ...attempt,
+    attemptLabel: String(Math.max(1, taskAttempts.length - index)),
+    dateLabel: new Date(attempt.completedAt).toLocaleString('tr-TR'),
+    durationLabel: formatSpeakingTime(attempt.durationSeconds),
+    scoreLabel: typeof attempt.score === 'number' ? `${attempt.score}/30` : 'Bekliyor',
+    fluencyLabel: typeof attempt.fluencyScore === 'number' ? attempt.fluencyScore.toFixed(1) : '-',
+    languageLabel: typeof attempt.languageScore === 'number' ? attempt.languageScore.toFixed(1) : '-',
+    topicLabel: typeof attempt.topicScore === 'number' ? attempt.topicScore.toFixed(1) : '-',
+    pronunciationLabel: typeof attempt.pronunciationScore === 'number' ? attempt.pronunciationScore.toFixed(1) : '-',
+  });
 
   return (
     <View testID="speaking-practice-screen" style={styles.screen}>
       <View style={[styles.pageTopLine, !isTablet ? styles.pageTopLineCompact : null]}>
         <View style={styles.headingWithPill}>
-          <PageTitle title="Speaking Practice" subtitle="Independent Task 2" />
-          <MiniBadge label="Estimated Speaking /30" tone="purple" />
+          <PageTitle title="Speaking Practice" subtitle={task.title} />
+          <MiniBadge label={latestScored ? `Estimated Speaking ${latestScored.score}/30` : 'Speaking score pending'} tone="purple" />
         </View>
         {isTablet ? <QuoteCard text="Practice consistently, speak confidently." /> : null}
       </View>
@@ -317,18 +560,17 @@ export function SpeakingPractice() {
       <View style={[styles.twoColumnGrid, isWide ? styles.twoColumnGridWide : null]}>
         <View style={styles.mainColumn}>
           <Card style={styles.practicePanel} contentStyle={styles.practicePanelBody}>
-            <SectionHeader title="TASK PROMPT" right={<View style={styles.timerStackRow}><TimerBox label="PREPARATION TIME" value="01:00" tone="orange" /><TimerBox label="SPEAKING TIME" value="02:00" tone="purple" /></View>} />
+            <SectionHeader title="TASK PROMPT" right={<View style={styles.timerStackRow}><TimerBox label="PREPARATION TIME" value={formatSpeakingTime(preparationDisplay)} tone="orange" /><TimerBox label="SPEAKING TIME" value={formatSpeakingTime(speakingDisplay)} tone="purple" /></View>} />
             <View style={styles.promptBody}>
-              <Text style={styles.promptQuestion}>Some people believe that celebrities are good role models for young people.</Text>
-              <Text style={styles.promptQuestion}>To what extent do you agree or disagree?</Text>
-              <Text style={styles.promptText}>Give reasons for your answer and include any relevant examples from your own knowledge or experience.</Text>
+              {promptLines.map((line, index) => <Text key={`${index}-${line}`} style={index < 2 ? styles.promptQuestion : styles.promptText}>{line}</Text>)}
+              {!promptLines.length ? <Text style={styles.promptText}>This task has no prompt yet.</Text> : null}
             </View>
             <View style={styles.checkList}>
               <Text style={styles.checkListTitle}>INCLUDE IN YOUR RESPONSE</Text>
-              {speakingAnswers.map((item) => (
-                <View key={item.key} style={styles.checkRow}>
+              {checklist.map((item) => (
+                <View key={item} style={styles.checkRow}>
                   <SymbolView name={checkCircleSymbol} tintColor={toneColor.purple} size={13} style={styles.tinyIcon} />
-                  <Text style={styles.checkText}>{item.text}</Text>
+                  <Text style={styles.checkText}>{item}</Text>
                 </View>
               ))}
             </View>
@@ -339,96 +581,110 @@ export function SpeakingPractice() {
               <Text style={styles.orangeLabel}>RECORD YOUR RESPONSE</Text>
             </View>
             <View style={[styles.recorderStage, isCompact ? styles.recorderStageCompact : null]}>
-              <Waveform color="#9f7aea" muted="#264370" compact={isCompact} />
+              <Waveform color="#9f7aea" muted="#264370" compact={isCompact} progress={waveformProgress} active={recorder.status === 'recording'} />
               <View style={[styles.micRing, isCompact ? styles.micRingCompact : null]}>
                 <View style={[styles.micCircle, isCompact ? styles.micCircleCompact : null]}>
                   <SymbolView name={micSymbol} tintColor="#8b5cf6" size={isCompact ? 30 : 42} style={isCompact ? styles.mediumIcon : styles.bigIcon} />
                 </View>
               </View>
               <View style={[styles.elapsedBox, isCompact ? styles.elapsedBoxCompact : null]}>
-                <Text style={styles.elapsedLabel}>ELAPSED TIME</Text>
-                <Text style={styles.elapsedValue}>00:00 <Text style={styles.elapsedMax}>/02:00</Text></Text>
-                <Progress value={0} color={studentTokens.yellow} />
+                <Text style={styles.elapsedLabel}>{recorder.status === 'preparing' ? 'PREPARATION TIME' : 'ELAPSED TIME'}</Text>
+                <Text style={styles.elapsedValue}>{formatSpeakingTime(recorder.status === 'preparing' ? recorder.preparationRemaining : recorder.elapsedSeconds)} <Text style={styles.elapsedMax}>/{formatSpeakingTime(recorder.status === 'preparing' ? task.preparationSeconds : task.responseSeconds)}</Text></Text>
+                <Progress value={recorder.status === 'preparing' ? Math.round(((task.preparationSeconds - recorder.preparationRemaining) / Math.max(1, task.preparationSeconds)) * 100) : responseProgress} color={studentTokens.yellow} />
                 <View style={styles.readyHint}>
                   <SymbolView name={checkCircleSymbol} tintColor="#c6f6d5" size={14} style={styles.tinyIcon} />
-                  <Text style={styles.readyText}>Click Start and speak clearly. You can pause if needed.</Text>
+                  <Text style={styles.readyText}>{recorder.status === 'submitting' && recorder.uploadProgress ? `${recorder.message} ${recorder.uploadProgress}%` : recorder.message}</Text>
                 </View>
               </View>
             </View>
             <View style={[styles.recorderActions, isCompact ? styles.recorderActionsCompact : null]}>
-              <Button label="Start" size="sm" variant="secondary" left={<SymbolView name={playSymbol} tintColor={studentTokens.navy} size={14} style={styles.tinyIcon} />} style={styles.equalButton} />
-              <Button label="Pause" size="sm" variant="ghost" left={<SymbolView name={pauseSymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
-              <Button label="Stop" size="sm" variant="ghost" left={<SymbolView name={stopSymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
-              <Button label="Retry" size="sm" variant="ghost" left={<SymbolView name={retrySymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
-              <Button label="Submit" size="sm" variant="ghost" left={<SymbolView name={sendSymbol} tintColor="#9fb4dc" size={14} style={styles.tinyIcon} />} style={styles.disabledDarkButton} textStyle={styles.disabledDarkButtonText} />
+              <Button label="Start" size="sm" variant="secondary" onPress={recorder.start} disabled={recorder.status !== 'idle'} left={<SymbolView name={playSymbol} tintColor={studentTokens.navy} size={14} style={styles.tinyIcon} />} style={styles.equalButton} />
+              <Button label={recorder.status === 'paused' ? 'Resume' : 'Pause'} size="sm" variant="ghost" onPress={recorder.pauseOrResume} disabled={recorder.status !== 'recording' && recorder.status !== 'paused'} left={<SymbolView name={recorder.status === 'paused' ? playSymbol : pauseSymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
+              <Button label="Stop" size="sm" variant="ghost" onPress={recorder.stop} disabled={!['preparing', 'recording', 'paused'].includes(recorder.status)} left={<SymbolView name={stopSymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
+              <Button label="Retry" size="sm" variant="ghost" onPress={recorder.retry} disabled={!['stopped', 'submitted', 'error'].includes(recorder.status)} left={<SymbolView name={retrySymbol} tintColor="#ffffff" size={14} style={styles.tinyIcon} />} style={styles.darkGhostButton} textStyle={styles.whiteButtonText} />
+              <Button label="Submit" size="sm" variant="ghost" onPress={recorder.submit} loading={recorder.status === 'submitting'} disabled={recorder.status !== 'stopped' || !recorder.recordingBlob} left={<SymbolView name={sendSymbol} tintColor={recorder.status === 'stopped' ? '#ffffff' : '#9fb4dc'} size={14} style={styles.tinyIcon} />} style={recorder.status === 'stopped' ? styles.darkGhostButton : styles.disabledDarkButton} textStyle={recorder.status === 'stopped' ? styles.whiteButtonText : styles.disabledDarkButtonText} />
             </View>
           </Card>
 
           <Card style={styles.practicePanel} contentStyle={styles.practicePanelBody}>
             <SectionHeader title="YOUR PREVIOUS ATTEMPTS" />
-            {isCompact ? (
+            {!shownAttempts.length ? (
+              <Text style={styles.emptyStateText}>No attempts yet. Record and submit your first response to start tracking progress.</Text>
+            ) : isCompact ? (
               <View style={styles.mobileAttemptList}>
-                {previousAttempts.map((attempt) => (
-                  <View key={attempt.attempt} style={styles.mobileAttemptCard}>
+                {shownAttempts.map((item, index) => {
+                  const attempt = rowForAttempt(item, index);
+                  return (
+                  <View key={attempt.id} style={styles.mobileAttemptCard}>
                     <View style={styles.mobileAttemptTop}>
                       <View style={styles.mobileAttemptMeta}>
-                        <Text style={styles.mobileAttemptTitle}>Attempt {attempt.attempt}</Text>
-                        <Text style={styles.mobileAttemptDate}>{attempt.date}</Text>
+                        <Text style={styles.mobileAttemptTitle}>Attempt {attempt.attemptLabel}</Text>
+                        <Text style={styles.mobileAttemptDate}>{attempt.dateLabel}</Text>
                       </View>
-                      <MiniBadge label={attempt.estimated} tone={attempt.estimated === '23/30' ? 'green' : 'orange'} />
+                      <MiniBadge label={attempt.scoreLabel} tone={typeof attempt.score === 'number' ? 'green' : 'orange'} />
                     </View>
                     <View style={styles.mobileAttemptScores}>
-                      <MiniBadge label={`Duration ${attempt.duration}`} tone="navy" />
-                      <MiniBadge label={`Del. ${attempt.delivery}`} tone="yellow" />
-                      <MiniBadge label={`Lang. ${attempt.language}`} tone="green" />
-                      <MiniBadge label={`Topic ${attempt.topic}`} tone="blue" />
-                      <MiniBadge label={`Pron. ${attempt.pronunciation}`} tone="purple" />
+                      <MiniBadge label={`Duration ${attempt.durationLabel}`} tone="navy" />
+                      <MiniBadge label={`Flu. ${attempt.fluencyLabel}`} tone="yellow" />
+                      <MiniBadge label={`Lang. ${attempt.languageLabel}`} tone="green" />
+                      <MiniBadge label={`Topic ${attempt.topicLabel}`} tone="blue" />
+                      <MiniBadge label={`Pron. ${attempt.pronunciationLabel}`} tone="purple" />
                     </View>
                   </View>
-                ))}
+                  );
+                })}
               </View>
             ) : (
               <View style={styles.attemptTable}>
                 <View style={styles.tableHead}>
-                  {['ATTEMPT', 'DATE & TIME', 'DURATION', 'ESTIMATED', 'DEL.', 'LANG.', 'TOPIC', 'PRON.'].map((head) => <Text key={head} style={styles.tableHeadText}>{head}</Text>)}
+                  {['ATTEMPT', 'DATE & TIME', 'DURATION', 'ESTIMATED', 'FLU.', 'LANG.', 'TOPIC', 'PRON.'].map((head) => <Text key={head} style={styles.tableHeadText}>{head}</Text>)}
                 </View>
-                {previousAttempts.map((attempt) => (
-                  <View key={attempt.attempt} style={styles.tableRow}>
-                    <Text style={styles.tableText}>{attempt.attempt}</Text>
-                    <Text style={styles.tableText}>{attempt.date}</Text>
-                    <Text style={styles.tableText}>{attempt.duration}</Text>
-                    <MiniBadge label={attempt.estimated} tone={attempt.estimated === '23/30' ? 'green' : 'orange'} />
-                    <MiniBadge label={attempt.delivery} tone="yellow" />
-                    <MiniBadge label={attempt.language} tone="green" />
-                    <MiniBadge label={attempt.topic} tone="blue" />
-                    <MiniBadge label={attempt.pronunciation} tone="purple" />
+                {shownAttempts.map((item, index) => {
+                  const attempt = rowForAttempt(item, index);
+                  return (
+                  <View key={attempt.id} style={styles.tableRow}>
+                    <Text style={styles.tableText}>{attempt.attemptLabel}</Text>
+                    <Text style={styles.tableText}>{attempt.dateLabel}</Text>
+                    <Text style={styles.tableText}>{attempt.durationLabel}</Text>
+                    <MiniBadge label={attempt.scoreLabel} tone={typeof attempt.score === 'number' ? 'green' : 'orange'} />
+                    <MiniBadge label={attempt.fluencyLabel} tone="yellow" />
+                    <MiniBadge label={attempt.languageLabel} tone="green" />
+                    <MiniBadge label={attempt.topicLabel} tone="blue" />
+                    <MiniBadge label={attempt.pronunciationLabel} tone="purple" />
                   </View>
-                ))}
+                  );
+                })}
               </View>
-            )}            <Button label="View All Attempts" size="sm" variant="secondary" right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.centerButton} />
+            )}
+            {taskAttempts.length > 3 ? <Button label={showAllAttempts ? 'Show Recent Attempts' : 'View All Attempts'} size="sm" variant="secondary" onPress={() => setShowAllAttempts((value) => !value)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.centerButton} /> : null}
           </Card>
         </View>
 
         <View style={[styles.sideColumn, !isWide ? styles.sideColumnStacked : null]}>
           <Card style={styles.sideCard} contentStyle={styles.sideBody}>
             <Text style={styles.orangeLabel}>SPEAKING TIPS & SCORING CRITERIA</Text>
-            {speakingCriteria.map((item) => (
-              <View key={item.title} style={styles.criteriaRow}>
-                <IconBubble icon={item.icon} tone={item.tone} size={34} />
+            {criteria.map((item, index) => (
+              <View key={item.id} style={styles.criteriaRow}>
+                <IconBubble icon={criterionIcons[index % criterionIcons.length]} tone={criterionTones[index % criterionTones.length]} size={34} />
                 <View style={styles.criteriaCopy}>
                   <Text style={styles.criteriaTitle}>{item.title}</Text>
-                  <Text style={styles.criteriaText}>{item.text}</Text>
+                  <Text style={styles.criteriaText}>{item.description}</Text>
                 </View>
-                <Text style={styles.criteriaScore}>{item.score}</Text>
+                <Text style={styles.criteriaScore}>0 - {item.maxScore} raw</Text>
               </View>
             ))}
-            <Button label="View TOEFL Rubric" size="sm" variant="secondary" right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.fullButton} />
+            {showRubric ? (
+              <View style={styles.inlineLivePanel}>
+                <Text style={styles.criteriaText}>This task uses the published criteria above. Practice scores are estimates until an evaluator or the future AI scoring service reviews the recording.</Text>
+              </View>
+            ) : null}
+            <Button label={showRubric ? 'Hide Rubric Notes' : 'View TOEFL Rubric'} size="sm" variant="secondary" onPress={() => setShowRubric((value) => !value)} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.fullButton} />
           </Card>
 
           <Card style={styles.beforeCard} contentStyle={styles.beforeBody}>
             <View style={styles.beforeCopy}>
               <Text style={styles.orangeLabel}>BEFORE YOU START</Text>
-              {['Find a quiet place', 'Check your microphone', 'Speak clearly and naturally', 'Stick to the time limit', 'Review the task prompt'].map((item) => (
+              {beforeStart.map((item) => (
                 <View key={item} style={styles.checkRow}>
                   <SymbolView name={checkSymbol} tintColor={toneColor.green} size={13} style={styles.tinyIcon} />
                   <Text style={styles.checkText}>{item}</Text>
@@ -442,15 +698,20 @@ export function SpeakingPractice() {
             <Text style={styles.orangeLabel}>PERFORMANCE SUMMARY</Text>
             <View style={styles.summaryScoreRow}>
               <View style={styles.scoreRing}>
-                <Text style={styles.scoreRingValue}>23</Text>
+                <Text style={styles.scoreRingValue}>{latestScored?.score ?? '-'}</Text>
                 <Text style={styles.scoreRingLabel}>/30</Text>
               </View>
               <View style={styles.summaryCopy}>
-                <Text style={styles.summaryUp}>+2 since last attempt</Text>
-                <Text style={styles.summaryText}>Your fluency and pronunciation improved. Use a wider range of vocabulary in your next attempt.</Text>
+                <Text style={styles.summaryUp}>{scoreChange === null ? (taskAttempts.length ? 'Evaluation pending' : 'No submitted attempt') : `${scoreChange >= 0 ? '+' : ''}${scoreChange} since last attempt`}</Text>
+                <Text style={styles.summaryText}>{latestScored?.feedback ?? (taskAttempts.length ? 'Your latest recording was submitted successfully. Detailed scores will appear here after evaluation.' : 'Submit a response to start building your speaking performance history.')}</Text>
               </View>
             </View>
-            <Button label="View Detailed Feedback" size="sm" variant="secondary" right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.fullButton} />
+            {showFeedback && latestScored ? (
+              <View style={styles.inlineLivePanel}>
+                <Text style={styles.criteriaText}>Fluency: {latestScored.fluencyScore ?? '-'} · Language: {latestScored.languageScore ?? '-'} · Topic: {latestScored.topicScore ?? '-'} · Pronunciation: {latestScored.pronunciationScore ?? '-'}</Text>
+              </View>
+            ) : null}
+            <Button label={showFeedback ? 'Hide Detailed Feedback' : 'View Detailed Feedback'} size="sm" variant="secondary" onPress={() => setShowFeedback((value) => !value)} disabled={!latestScored} right={<SymbolView name={arrowSymbol} tintColor={studentTokens.navy} size={13} style={styles.tinyIcon} />} style={styles.fullButton} />
           </Card>
         </View>
       </View>
@@ -942,6 +1203,8 @@ const styles = StyleSheet.create({
   disabledDarkButton: { flexGrow: 1, minWidth: 96, minHeight: 38, borderRadius: 7, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
   whiteButtonText: { color: '#ffffff', fontFamily },
   disabledDarkButtonText: { color: '#9fb4dc', fontFamily },
+  emptyStateText: { color: '#6e778b', fontFamily, fontSize: 10, fontWeight: '600', lineHeight: 16, paddingVertical: 10 },
+  inlineLivePanel: { borderRadius: 8, borderWidth: 1, borderColor: '#e5eaf2', backgroundColor: '#f8faff', padding: 10, gap: 6 },
   attemptTable: { gap: 0, borderTopWidth: 1, borderTopColor: '#eef1f6' },
   tableHead: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: '#eef1f6' },
   tableHeadText: { flex: 1, color: '#6e778b', fontFamily, fontSize: 8, fontWeight: '700', lineHeight: 11 },

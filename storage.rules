@@ -38,6 +38,16 @@ service firebase.storage {
       allow update, delete: if isAdmin() && request.auth.uid == userId;
     }
 
+    match /speaking-attempts/{userId}/{taskId}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.contentType.matches('audio/.*')
+        && request.resource.size > 0
+        && request.resource.size < 25 * 1024 * 1024;
+      allow update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -105,6 +105,7 @@ const initialCollectionByModule: Partial<Record<AdminModuleKey, AdminMutableColl
   'video-lessons': 'lessons',
   "reading-practice": "readingPracticeScreens",
   "listening-hub": "listeningHubItems",
+  'speaking-practice': 'speakingTasks',
   vocabulary: 'vocabularySets',
   grammar: 'grammarCategories',
   'question-bank': 'questions',
@@ -795,6 +796,16 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
       ?? state.catalog.subskills.find((item) => item.skillId === listeningSkillIdValue && item.taskTypeIds.includes(listeningTaskTypeId));
     onChange({ ...draft, listeningTaskTypeId, listeningSubskillId: compatibleSubskill?.id ?? "" });
   };
+  const speakingSkillIdValue = state.catalog.skills.find((item) => item.slug === 'speaking')?.id ?? '';
+  const speakingTopicOptions = state.catalog.topics.filter((item) => item.skillIds.includes(speakingSkillIdValue));
+  const speakingTaskTypeOptions = state.catalog.taskTypes.filter((item) => item.skillId === speakingSkillIdValue);
+  const currentSpeakingTaskTypeId = draft.speakingTaskTypeId ?? speakingTaskTypeOptions[0]?.id ?? '';
+  const speakingSubskillOptions = state.catalog.subskills.filter((item) => item.skillId === speakingSkillIdValue && (!currentSpeakingTaskTypeId || item.taskTypeIds.includes(currentSpeakingTaskTypeId)));
+  const changeSpeakingTaskType = (speakingTaskTypeId: string) => {
+    const compatibleSubskill = state.catalog.subskills.find((item) => item.id === draft.speakingSubskillId && item.skillId === speakingSkillIdValue && item.taskTypeIds.includes(speakingTaskTypeId))
+      ?? state.catalog.subskills.find((item) => item.skillId === speakingSkillIdValue && item.taskTypeIds.includes(speakingTaskTypeId));
+    onChange({ ...draft, speakingTaskTypeId, speakingSubskillId: compatibleSubskill?.id ?? '' });
+  };
 
   return (
     <NativeModal transparent visible animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onClose}>
@@ -983,6 +994,51 @@ function AdminEntityEditor({ editor, issues, isMobile, onChange, onClose, onSave
                   <Text style={styles.formLabel}>Buton etiketi</Text>
                   <TextInput accessibilityLabel="Buton etiketi" value={draft.listeningActionLabel ?? "Start Focused Practice"} onChangeText={(value) => setField("listeningActionLabel", value)} placeholder="Start Focused Practice" placeholderTextColor={studentTokens.muted} style={styles.formInput} />
                   <Text style={styles.formHelper}>Öğrenci listening sayfasındaki kart butonunda görünür ve practice ekranına yönlendirir.</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {editor.collection === 'speakingTasks' ? (
+              <View style={styles.videoSourceSection}>
+                <View>
+                  <Text style={styles.formLabel}>Konuşma görevi</Text>
+                  <Text style={styles.formHelper}>Görev metni, süreler, öğrenci kontrol listesi ve değerlendirme ölçütleri konuşma ekranına canlı aktarılır.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Görev metni</Text>
+                  <TextInput accessibilityLabel="Konuşma görev metni" value={draft.prompt ?? ''} onChangeText={(value) => setField('prompt', value)} placeholder={'Soruyu ve destekleyici yönergeleri ayrı satırlara yazın.'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır öğrenci ekranında ayrı bir görev cümlesi olarak gösterilir.</Text>
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <CatalogSelector label="Görev türü" options={speakingTaskTypeOptions} value={draft.speakingTaskTypeId} onChange={changeSpeakingTaskType} />
+                  <CatalogSelector label="Alt beceri" options={speakingSubskillOptions} value={draft.speakingSubskillId} onChange={(speakingSubskillId) => setField('speakingSubskillId', speakingSubskillId)} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <CatalogSelector label="Konu" options={speakingTopicOptions} value={draft.speakingTopicId} onChange={(speakingTopicId) => setField('speakingTopicId', speakingTopicId)} />
+                  <CatalogSelector label="Seviye" options={state.catalog.levels} value={draft.speakingLevelId} onChange={(speakingLevelId) => setField('speakingLevelId', speakingLevelId)} />
+                </View>
+                <View style={[styles.formGrid, isMobile ? styles.formGridMobile : null]}>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Hazırlık süresi (saniye)</Text>
+                    <TextInput accessibilityLabel="Konuşma hazırlık süresi" value={String(draft.speakingPreparationSeconds ?? 60)} onChangeText={(value) => setField('speakingPreparationSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Konuşma süresi (saniye)</Text>
+                    <TextInput accessibilityLabel="Konuşma yanıt süresi" value={String(draft.speakingResponseSeconds ?? 120)} onChangeText={(value) => setField('speakingResponseSeconds', Number(value.replace(/[^0-9]/g, '')) || 0)} keyboardType="number-pad" style={styles.formInput} />
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Yanıtta bulunması gerekenler</Text>
+                  <TextInput accessibilityLabel="Konuşma yanıt kontrol listesi" value={draft.speakingChecklistText ?? ''} onChangeText={(value) => setField('speakingChecklistText', value)} placeholder={'Her satıra bir kontrol maddesi yazın.'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Puanlama ölçütleri</Text>
+                  <TextInput accessibilityLabel="Konuşma puanlama ölçütleri" value={draft.speakingCriteriaText ?? ''} onChangeText={(value) => setField('speakingCriteriaText', value)} placeholder={'Fluency & Coherence|Speak smoothly and organize ideas clearly.|4'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
+                  <Text style={styles.formHelper}>Her satır: başlık|açıklama|azami ham puan. Azami puan 1-4 arasında olmalıdır.</Text>
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Başlamadan önce kontrol listesi</Text>
+                  <TextInput accessibilityLabel="Konuşma başlangıç kontrol listesi" value={draft.speakingBeforeStartText ?? ''} onChangeText={(value) => setField('speakingBeforeStartText', value)} placeholder={'Her satıra bir hazırlık maddesi yazın.'} placeholderTextColor={studentTokens.muted} multiline style={[styles.formInput, styles.textArea]} />
                 </View>
               </View>
             ) : null}

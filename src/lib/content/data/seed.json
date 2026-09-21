@@ -1695,11 +1695,49 @@
           "tag-timed"
         ]
       },
-      "prompt": "Do you agree that celebrities are good role models for young people?",
+      "prompt": "Some people believe that celebrities are good role models for young people.\nTo what extent do you agree or disagree?\nGive reasons for your answer and include relevant examples from your own knowledge or experience.",
       "preparationSeconds": 60,
       "responseSeconds": 120,
       "rubricTagIds": [
         "tag-high-yield"
+      ],
+      "responseChecklist": [
+        "Give a clear opinion and keep one position.",
+        "Use two reasons with specific examples.",
+        "Close with a short summary of your view."
+      ],
+      "scoringCriteria": [
+        {
+          "id": "fluency-coherence",
+          "title": "Fluency & Coherence",
+          "description": "Speak smoothly and organize ideas clearly.",
+          "maxScore": 4
+        },
+        {
+          "id": "lexical-resource",
+          "title": "Lexical Resource",
+          "description": "Use accurate academic vocabulary.",
+          "maxScore": 4
+        },
+        {
+          "id": "grammatical-range",
+          "title": "Grammatical Range",
+          "description": "Use varied structures with control.",
+          "maxScore": 4
+        },
+        {
+          "id": "pronunciation",
+          "title": "Pronunciation",
+          "description": "Keep rhythm, stress, and intonation natural.",
+          "maxScore": 4
+        }
+      ],
+      "beforeStartChecklist": [
+        "Find a quiet place",
+        "Check your microphone",
+        "Speak clearly and naturally",
+        "Stick to the time limit",
+        "Review the task prompt"
       ]
     }
   ],

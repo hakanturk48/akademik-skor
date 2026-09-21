@@ -7,7 +7,7 @@ import { WordFlashcard } from '@/components/student/VocabularyLearningScreens';
 import { LearnPanel } from '@/components/student/GrammarLearningScreens';
 import type { AuthUser } from '@/lib/auth';
 import type { AdminDocument, AdminMutableCollectionKey, AdminSnapshot, AdminWorkspaceState, PublicationStatus } from '@/lib/admin';
-import type { BaseEntity, Lesson, ListeningHubItem, Question, ReadingPracticeScreen, VocabularyWord } from '@/lib/content';
+import type { BaseEntity, Lesson, ListeningHubItem, Question, ReadingPracticeScreen, SpeakingTask, VocabularyWord } from '@/lib/content';
 import { skillThemes, type LearningSkillKey, type VideoLesson } from '@/lib/student-learning';
 import { formatVideoTimestamp, getVideoEmbedUrl, videoProviderLabel } from '@/lib/video-media';
 import { getVideoUploadUrl, revokeVideoUploadUrl } from '@/lib/video-upload';
@@ -164,6 +164,23 @@ export function AdminContentPreview({ snapshot, collection, state, user }: { sna
         {activeQuestion.explanation ? <Text style={styles.meta}>{activeQuestion.explanation}</Text> : null}
       </View> : <Text style={styles.meta}>Henüz listening sorusu eklenmemiş.</Text>}
       <Text style={styles.meta}>{questionCount} soru · {item.estimatedMinutes} dk · {formatVideoTimestamp(item.durationSeconds)} medya{previewLabel} · {item.outline?.length ?? 0} outline · {item.transcript?.length ?? 0} transkript satırı · Buton: {item.actionLabel}</Text>
+    </Card>;
+  } else if (collection === 'speakingTasks') {
+    const task = snapshot as SpeakingTask;
+    const taskType = catalog.taskTypes.find((item) => item.id === task.taxonomy.taskTypeId)?.title ?? 'Görev türü seçilmedi';
+    const topic = catalog.topics.find((item) => task.taxonomy.topicIds.includes(item.id))?.title ?? 'Konu seçilmedi';
+    const promptLines = task.prompt.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    content = <Card title={task.title} right={<Badge label={base.isPremium ? 'Premium' : 'Ücretsiz'} tone={base.isPremium ? 'yellow' : 'teal'} />}>
+      <Text style={styles.meta}>{taskType} · {topic} · {task.preparationSeconds} sn hazırlık · {task.responseSeconds} sn konuşma</Text>
+      {promptLines.map((line) => <Text key={line} style={styles.body}>{line}</Text>)}
+      <View style={styles.option}>
+        <Text style={styles.heading}>Yanıt kontrol listesi</Text>
+        {(task.responseChecklist ?? []).map((item) => <Text key={item} style={styles.body}>• {item}</Text>)}
+      </View>
+      <View style={styles.option}>
+        <Text style={styles.heading}>Puanlama ölçütleri</Text>
+        {(task.scoringCriteria ?? []).map((item) => <Text key={item.id} style={styles.body}>{item.title}: {item.description} (0-{item.maxScore})</Text>)}
+      </View>
     </Card>;
   } else if (collection === "vocabularyWords") {
     const word = snapshot as VocabularyWord;

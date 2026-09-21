@@ -332,6 +332,31 @@ test("listening hub publishing keeps only route metadata and no student progress
   assert.ok(workflow.validatePublication(result, "listeningHubItems", invalid).some((error) => /topic must belong to Listening/.test(error)));
 });
 
+test('speaking task publishing requires timing, checklists and scoring criteria', () => {
+  const state = fresh();
+  const draft = {
+    ...service.initialAdminDraft('speakingTasks', undefined, state.catalog),
+    title: 'Speaking Workflow',
+    slug: 'speaking-workflow',
+    prompt: 'Explain whether public figures should be role models and support your position with examples.',
+    speakingPreparationSeconds: 30,
+    speakingResponseSeconds: 60,
+    speakingChecklistText: 'State a clear position\nSupport it with a specific example',
+    speakingCriteriaText: 'Fluency & Coherence|Organize ideas and speak smoothly.|4\nPronunciation|Use clear rhythm, stress, and intonation.|4',
+    speakingBeforeStartText: 'Check your microphone\nReview the task prompt',
+  };
+  assert.throws(() => service.saveAdminContent(state, 'speaking-practice', 'speakingTasks', { ...draft, speakingResponseSeconds: 0 }, actor, 'published'), /Konuşma süresi/);
+  assert.throws(() => service.saveAdminContent(state, 'speaking-practice', 'speakingTasks', { ...draft, speakingCriteriaText: '' }, actor, 'published'), /puanlama ölçütü/);
+  const result = service.saveAdminContent(state, 'speaking-practice', 'speakingTasks', draft, actor, 'published');
+  const published = workflow.getAdminDocument(result, 'speakingTasks', 'speakingTasks-speaking-workflow').published;
+  assert.equal(published.preparationSeconds, 30);
+  assert.equal(published.responseSeconds, 60);
+  assert.equal(published.responseChecklist.length, 2);
+  assert.equal(published.scoringCriteria[0].maxScore, 4);
+  assert.equal(published.beforeStartChecklist.length, 2);
+  assert.deepEqual(workflow.validatePublication(result, 'speakingTasks', published), []);
+});
+
 test('archive preserves history and refuses to break published references', () => {
   const published = save(fresh(), 'published');
   const archived = service.archiveAdminEntity(published, 'exams', doc(published).entityId, actor, 1);

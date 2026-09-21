@@ -36,6 +36,7 @@ const adminIconRegistry: Record<AdminIconKey, AppSymbolName> = {
   video: symbolName('play.rectangle', 'smart_display'),
   reading: symbolName("book", "menu_book"),
   listening: symbolName("headphones", "headphones"),
+  speaking: symbolName('mic', 'mic'),
   vocabulary: symbolName('textformat.abc', 'abc'),
   grammar: symbolName('text.book.closed', 'article'),
   questions: symbolName('questionmark.square', 'quiz'),

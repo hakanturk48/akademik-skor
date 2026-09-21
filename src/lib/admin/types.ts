@@ -12,6 +12,7 @@ export type AdminModuleKey =
   | 'video-lessons'
   | "reading-practice"
   | "listening-hub"
+  | 'speaking-practice'
   | 'vocabulary'
   | 'grammar'
   | 'question-bank'
@@ -27,6 +28,7 @@ export type AdminIconKey =
   | 'video'
   | 'reading'
   | "listening"
+  | 'speaking'
   | 'vocabulary'
   | 'grammar'
   | 'questions'
@@ -59,6 +61,7 @@ export type AdminMutableCollectionKey =
   | 'questions'
   | "readingPracticeScreens"
   | "listeningHubItems"
+  | 'speakingTasks'
   | "practiceSets"
   | 'tests';
 
@@ -316,6 +319,15 @@ export type AdminEntityDraft = {
   listeningNoteSeed?: string;
   listeningStudyTip?: string;
   listeningActionLabel?: string;
+  speakingTaskTypeId?: string;
+  speakingSubskillId?: string;
+  speakingTopicId?: string;
+  speakingLevelId?: string;
+  speakingPreparationSeconds?: number;
+  speakingResponseSeconds?: number;
+  speakingChecklistText?: string;
+  speakingCriteriaText?: string;
+  speakingBeforeStartText?: string;
 };
 
 export type AdminQuestionDraft = {

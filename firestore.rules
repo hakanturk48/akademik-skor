@@ -155,6 +155,40 @@ service cloud.firestore {
         && data.responses.size() == data.questionCount;
     }
 
+    function validSpeakingAttempt(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'id', 'schemaVersion', 'userId', 'taskId', 'taskTitle', 'startedAt',
+          'completedAt', 'durationSeconds', 'status', 'audioUrl', 'audioStoragePath',
+          'audioMimeType', 'audioSizeBytes', 'score', 'fluencyScore', 'languageScore',
+          'topicScore', 'pronunciationScore', 'transcript', 'feedback', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && data.schemaVersion == 1
+        && data.taskId is string
+        && data.taskId.size() > 0
+        && data.taskId.size() <= 160
+        && data.taskTitle is string
+        && data.taskTitle.size() <= 200
+        && data.startedAt is string
+        && data.completedAt is string
+        && data.durationSeconds is int
+        && data.durationSeconds >= 0
+        && data.durationSeconds <= 600
+        && data.status in ['submitted', 'processing', 'scored', 'failed']
+        && (!data.keys().hasAny(['audioUrl']) || (data.audioUrl is string && data.audioUrl.size() <= 2500))
+        && (!data.keys().hasAny(['audioStoragePath']) || (data.audioStoragePath is string && data.audioStoragePath.size() <= 500))
+        && (!data.keys().hasAny(['audioMimeType']) || (data.audioMimeType is string && data.audioMimeType.matches('audio/.*')))
+        && (!data.keys().hasAny(['audioSizeBytes']) || (data.audioSizeBytes is int && data.audioSizeBytes > 0 && data.audioSizeBytes < 25 * 1024 * 1024))
+        && (!data.keys().hasAny(['score']) || (data.score is number && data.score >= 0 && data.score <= 30))
+        && (!data.keys().hasAny(['fluencyScore']) || (data.fluencyScore is number && data.fluencyScore >= 0 && data.fluencyScore <= 4))
+        && (!data.keys().hasAny(['languageScore']) || (data.languageScore is number && data.languageScore >= 0 && data.languageScore <= 4))
+        && (!data.keys().hasAny(['topicScore']) || (data.topicScore is number && data.topicScore >= 0 && data.topicScore <= 4))
+        && (!data.keys().hasAny(['pronunciationScore']) || (data.pronunciationScore is number && data.pronunciationScore >= 0 && data.pronunciationScore <= 4))
+        && (!data.keys().hasAny(['transcript']) || (data.transcript is string && data.transcript.size() <= 12000))
+        && (!data.keys().hasAny(['feedback']) || (data.feedback is string && data.feedback.size() <= 4000));
+    }
+
     function validVideoProgress(userId, lessonId) {
       let data = request.resource.data;
       return data.keys().hasOnly([
@@ -218,6 +252,15 @@ service cloud.firestore {
           && request.auth.uid == userId
           && validReadingAttempt(userId);
         allow update: if false;
+        allow delete: if false;
+      }
+
+      match /speakingAttempts/{attemptId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && validSpeakingAttempt(userId);
+        allow update: if isAdmin();
         allow delete: if false;
       }
 
